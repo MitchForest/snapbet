@@ -1,16 +1,33 @@
 # process.md - Development Process and Ceremonies
 
+## Role Responsibilities
+
+**Reviewer (R)** handles:
+- Epic Start - Creates epic breakdown from PRD
+- Sprint End - Runs quality checks (lint, typecheck, build)
+- Sprint Review - Reviews code and approves/requests revisions
+- Epic End - Comprehensive testing and documentation
+
+**Executor (E)** handles:
+- Sprint Start - Creates detailed implementation plan
+- Sprint Execution - Implements approved plan
+- Sprint Handoff - Updates tracker and prepares for review
+
 ## Process Overview
 
 1. **Project Planning** (Claude.ai browser) → Creates PRD
-2. **Epic Start** → Validates plan, creates epic breakdown
+2. **Epic Start** (Reviewer) → Validates plan, creates epic breakdown
 3. **Sprint 0** → Sets up infrastructure
-4. **Sprint Cycles** → Implement features (Start → Execute → End → Review)
-5. **Epic End** → Refactor, document, finalize
+4. **Sprint Cycles**:
+   - Sprint Start (Executor) → Plan implementation
+   - Execute (Executor) → Build features
+   - Sprint End (Reviewer) → Quality checks
+   - Review (Reviewer) → Approve/revise
+5. **Epic End** (Reviewer) → Refactor, document, finalize
 
 ## Detailed Process Flows
 
-### 1. Epic Start Process (Executor)
+### 1. Epic Start Process (Reviewer)
 
 **Context Required**: PRD, project-tracker.md, previous epics
 
@@ -86,15 +103,15 @@ Dependencies/Risks:
 May I proceed with this implementation plan?
 ```
 
-### 3. Sprint End Process (Executor)
+### 3. Sprint End Process (Reviewer)
 
 **Steps**:
-1. Run linting: `npm run lint` or equivalent
-2. Run type checking: `npm run type-check` or equivalent
-3. Run build: `npm run build`
-4. Fix any errors
-5. Update sprint-tracker-[sprint-name].md with handoff section
-6. Status: "Ready for review"
+1. Run linting: `bun run lint`
+2. Run type checking: `bun run typecheck`
+3. Run build: `bun run build` (if applicable)
+4. Fix any errors related to current sprint
+5. Update the existing sprint tracker file with handoff section
+6. Change status to: "READY FOR REVIEW"
 
 **Handoff Summary Template**:
 ```
@@ -126,12 +143,23 @@ Status: READY FOR REVIEW
 1. Read sprint tracker and handoff summary
 2. Review actual code changes
 3. Validate against requirements
-4. Provide feedback in sprint tracker
-5. Update status: APPROVED or NEEDS REVISION
+4. Add review feedback to the same sprint tracker file
+5. Update status in sprint tracker: APPROVED or NEEDS REVISION
+6. Update sprint status in epic tracker
+
+**Review Section Template** (add to sprint tracker):
+```
+## Review Outcome
+
+**Status**: APPROVED/NEEDS REVISION
+**Reviewed**: [Date/Time]
+**Reviewer Notes**: 
+- [Feedback points]
+```
 
 **If Revisions Needed**: Executor addresses feedback, updates code, updates tracker, resubmits
 
-### 5. Epic End Process (Executor)
+### 5. Epic End Process (Reviewer)
 
 **After all sprints approved**:
 
@@ -192,20 +220,23 @@ Examples:
 
 ## Context Management Rules
 
-### For Epic Start
-Include: PRD, project-tracker.md, this process.md
+### For Epic Start (Reviewer)
+Include: PRD, project-tracker.md, this process.md, reviewer.md
 
-### For Sprint Start  
-Include: Current epic tracker, previous sprints in epic, this process.md
+### For Sprint Start (Executor)
+Include: Current epic tracker, previous sprints in epic, this process.md, executor.md
 
-### For Sprint Execution
+### For Sprint Execution (Executor)
 Include: Current sprint tracker, executor.md only
 
-### For Sprint Review
+### For Sprint End (Reviewer)
+Include: Sprint tracker, this process.md, reviewer.md
+
+### For Sprint Review (Reviewer)
 Include: Sprint tracker, epic tracker, PRD, reviewer.md only
 
-### For Epic End
-Include: All sprint trackers from epic, epic tracker, project-tracker.md, this process.md
+### For Epic End (Reviewer)
+Include: All sprint trackers from epic, epic tracker, project-tracker.md, this process.md, reviewer.md
 
 ## Error Recovery
 

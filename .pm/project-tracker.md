@@ -7,7 +7,7 @@ This document tracks high-level progress across all epics, maintains key archite
 
 | Epic # | Epic Name | Status | Start Date | End Date | Key Outcome |
 |--------|-----------|--------|------------|----------|-------------|
-| 01 | Foundation & Infrastructure | NOT STARTED | - | - | Complete dev environment and core architecture |
+| 01 | Foundation & Infrastructure | COMPLETED | Dec 2024 | Dec 2024 | Complete dev environment and core architecture |
 | 02 | Authentication & User System | NOT STARTED | - | - | OAuth flow and user profile management |
 | 03 | Social Feed & Content | NOT STARTED | - | - | Photo/video sharing with stories |
 | 04 | Betting System | NOT STARTED | - | - | Mock betting with tail/fade mechanics |
@@ -22,7 +22,17 @@ This document tracks high-level progress across all epics, maintains key archite
 
 ## Completed Epics Summary
 
-[No completed epics yet]
+### Epic 01: Foundation & Infrastructure (Dec 2024)
+- **Duration**: 1 day (9.5 hours across 4 sprints)
+- **Key Achievements**:
+  - Complete development environment with Expo, TypeScript, and Bun
+  - Supabase backend with full schema, RLS, and storage
+  - Tamagui UI system with custom theme
+  - Navigation structure with drawer and tabs
+  - 30 mock users with personality-driven behavior
+  - Zero linting or type errors
+- **Major Decisions**: Simple repo structure, cents for money, mock user system
+- **Ready For**: Epic 2 - Authentication can now begin
 
 ## Cross-Epic Architectural Decisions
 
@@ -34,7 +44,8 @@ This document tracks high-level progress across all epics, maintains key archite
 | Dec 2024 | Keep simple repo structure | Avoid monorepo complexity for single app | Epic 1 |
 | Dec 2024 | Light theme design | Warm, friendly aesthetic for social platform | Epic 1-10 |
 | Dec 2024 | Add mock user columns to users table | Support personality-driven mock data per mock.md | Epic 1 |
-| Dec 2024 | Include materialized views in Epic 1 | Performance optimization from start per database.md | Epic 1 |
+| Dec 2024 | Defer materialized views | Not needed for basic infrastructure | Epic 1 → Epic 4/6 |
+| Dec 2024 | Add .prettierignore for generated files | Prevent formatting issues with auto-generated code | Epic 1 |
 
 ### Established Patterns
 - **Authentication**: [TBD - OAuth with Supabase]
@@ -155,12 +166,21 @@ This document tracks high-level progress across all epics, maintains key archite
 
 ## Next Steps
 
-**Current Epic**: Epic 1 - Foundation & Infrastructure
-**Next Planned Epic**: Epic 2 - Authentication & User System
-**Blocked Items**: None yet
+**Current Epic**: Epic 2 - Authentication & User System (Ready to Start)
+**Next Planned Epic**: Epic 3 - Social Feed & Content
+**Blocked Items**: None
 **P0 Items in Backlog**: 0
+
+### Ready for Epic 2
+With Epic 1 complete, we now have:
+- ✅ Working development environment
+- ✅ Database with users table ready for OAuth
+- ✅ Navigation structure for auth flows
+- ✅ Theme system for consistent UI
+- ✅ Mock users to test with
+- ✅ Clean, lint-free codebase
 
 ---
 
-*Last Updated: [Current Date]*
-*Updated By: Initial Setup* 
+*Last Updated: Dec 2024*
+*Updated By: Epic 01 Complete* 

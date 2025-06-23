@@ -15,11 +15,19 @@ module.exports = function (api) {
             '@/stores': './stores',
             '@/hooks': './hooks',
             '@/utils': './utils',
-            '@/types': './types'
-          }
-        }
+            '@/types': './types',
+            '@/theme': './theme',
+          },
+        },
       ],
-      'expo-router/babel'
-    ]
+      [
+        '@tamagui/babel-plugin',
+        {
+          config: './theme/index.ts',
+          components: ['@tamagui/core'],
+        },
+      ],
+      'react-native-reanimated/plugin',
+    ],
   };
-}; 
+};
