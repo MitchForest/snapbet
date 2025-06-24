@@ -290,6 +290,17 @@ export const Colors = {
   shadow: 'rgba(0, 0, 0, 0.5)', // Shadow color
   transparent: 'transparent', // Transparent
 
+  // Camera-specific colors
+  camera: {
+    captureButton: '#FFFFFF', // White capture button
+    captureButtonBorder: '#E5E7EB', // Light border for capture button
+    recordingRed: '#EF4444', // Red for recording indicator
+    controlsBackground: 'rgba(0,0,0,0.8)', // Semi-transparent background for controls
+    flashActive: '#F59E0B', // Yellow for active flash
+    flashInactive: '#FFFFFF', // White for inactive flash
+    modeButtonActive: 'rgba(255, 255, 255, 0.2)', // Semi-transparent white for active mode
+  },
+
   // Legacy mappings (for easier migration)
   gray: {
     50: '#F9FAFB',

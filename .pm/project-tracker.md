@@ -9,7 +9,7 @@ This document tracks high-level progress across all epics, maintains key archite
 |--------|-----------|--------|------------|----------|-------------|
 | 01 | Foundation & Infrastructure | COMPLETED | Dec 2024 | Dec 2024 | Complete dev environment and core architecture |
 | 02 | Authentication & User System | COMPLETED | 2024-12-19 | 2025-01-19 | OAuth, profiles, badges, referrals - DEVELOPMENT BUILD REQUIRED |
-| 03 | Social Feed & Content | NOT STARTED | - | - | Photo/video sharing with stories |
+| 03 | Social Feed & Content | IN PROGRESS | 2025-01-20 | - | Photo/video sharing with stories |
 | 04 | Betting System | NOT STARTED | - | - | Mock betting with tail/fade mechanics |
 | 05 | Messaging & Real-time | NOT STARTED | - | - | DMs, group chats, real-time updates |
 | 06 | Discovery & Polish | NOT STARTED | - | - | Search, explore, notifications, UI polish |
@@ -183,12 +183,15 @@ When querying related tables with multiple foreign keys:
 |---------|---------|---------------|-----------|
 | expo-sharing | Native share for referrals | Epic 2 | Referral system sharing |
 | expo-notifications | Push notifications | Epic 2 | Engagement features |
-| [Libraries will be tracked as added] | [Why needed] | Epic # | [Reason for choice] |
+| expo-auth-session | OAuth authentication | Epic 2 | Required for OAuth flow |
+| expo-web-browser | OAuth browser handling | Epic 2 | Opens OAuth providers |
+| expo-secure-store | Secure token storage | Epic 2 | OAuth token persistence |
+| react-native-mmkv | Fast storage | Epic 2 | Settings persistence |
 
 ## Deployment Strategy
 
 ### Build & Distribution
-- **Development**: Expo Go for rapid iteration
+- **Development**: Development builds via EAS (NOT Expo Go)
 - **Testing**: EAS Build preview profiles for TestFlight/Internal Testing  
 - **Production**: EAS Build production profiles for App Store/Play Store
 - **Updates**: OTA updates via EAS Update for non-native changes
@@ -196,21 +199,21 @@ When querying related tables with multiple foreign keys:
 ### Environment Strategy
 | Environment | Purpose | Supabase Tier | Build Profile |
 |------------|---------|---------------|---------------|
-| Development | Local development | Local Docker | Expo Go |
+| Development | Local development | Cloud (free) | development-simulator |
 | Staging | Integration testing | Free tier | preview |
 | Production | Live users | Pro tier | production |
 
-### Automation Infrastructure
-- **Badge Updates**: Supabase Edge Function (hourly)
-- **Bet Settlement**: Supabase Edge Function (every 5 min)
-- **Game Addition**: Supabase Edge Function (daily 3 AM ET)
-- **Deployment**: GitHub Actions CI/CD pipeline
+### Automation Infrastructure (DEFERRED - See Backlog)
+- **Badge Updates**: Currently scripts, need Edge Function (hourly)
+- **Bet Settlement**: Currently scripts, need Edge Function (every 5 min)
+- **Game Addition**: Currently scripts, need Edge Function (daily 3 AM ET)
+- **Deployment**: Manual builds, need GitHub Actions CI/CD
 
 ### Security Model
 - **API Authentication**: Supabase Auth + RLS
-- **Edge Functions**: Bearer token validation
+- **Edge Functions**: Bearer token validation (when implemented)
 - **Secrets Management**: EAS Secrets + Supabase Secrets
-- **OAuth**: Google/Twitter via Supabase Auth
+- **OAuth**: Google/Twitter via Supabase Auth (NO EMAIL/PASSWORD)
 
 ## Critical Gotchas & Learnings
 
@@ -231,6 +234,10 @@ When querying related tables with multiple foreign keys:
 - **Database triggers need schema qualification** - `public.oauth_provider` not just `oauth_provider`
 - **Twitter OAuth needs email permission** - must enable in Twitter app settings
 - **Development builds still support hot reload** - no loss of DX when migrating from Expo Go
+- **Supabase queries need relationship hints** - when multiple foreign keys exist between tables
+- **Navigation timing issues** - need delays to ensure navigators are mounted
+- **Google OAuth can timeout** - 2FA flows need 60-second timeout
+- **Hermes runtime errors on reload** - restart Metro bundler with --clear
 
 ### Performance Optimizations
 - Badge calculation on-the-fly for now - will cache in Epic 4
@@ -265,20 +272,22 @@ When querying related tables with multiple foreign keys:
 ### Completed Refactoring
 - Created CustomAuthError instead of extending AuthError (Sprint 02.00)
 - Inline SVG icons instead of icon library dependency (Sprint 02.01)
+- Centralized color system with Colors constant (Sprint 02.06)
+- Created ScreenHeader component for drawer screens (Sprint 02.07)
+- Created useUserList hook for shared user list logic (Sprint 02.07)
 
 ### Identified Technical Debt
 | Issue | Severity | Identified In | Planned Resolution |
 |-------|----------|---------------|-------------------|
+| Edge Functions migration | HIGH | Epic 2 | Epic 4-5 (see backlog) |
+| CI/CD pipeline setup | HIGH | Epic 2 | Pre-Launch Epic |
+| Environment management | MEDIUM | Epic 2 | When staging needed |
+| SecureStore token optimization | LOW | Epic 2 | Performance Epic |
+| Comprehensive documentation | MEDIUM | Epic 2 | Post-MVP |
 | Badge calculation performance | LOW | Epic 2 | Batch processing hourly |
 | Notification scaling | MEDIUM | Epic 2 | Pagination in Epic 6 |
-| Notification schema mismatch | HIGH | Epic 2 | Fixed in Sprint 02.06 |
-| Badge automation deployment | MEDIUM | Epic 2 | Edge Functions in Sprint 02.06 |
 | Referral rewards system | MEDIUM | Epic 2 | Post-MVP feature addition |
-| Remaining lint errors | LOW | Epic 2 | Sprint 02.06 cleanup |
-| File-based script locks | LOW | Epic 2 | Replaced with Edge Functions |
-| TypeScript type generation | LOW | Epic 2 | Manual types in Sprint 02.06 |
 | Sports API integration | MEDIUM | Epic 2 | Mock flag allows future migration |
-| Color system fragmentation | MEDIUM | Epic 2 | Centralized in Sprint 02.06 |
 
 ## Production Readiness Checklist
 
@@ -306,18 +315,80 @@ When querying related tables with multiple foreign keys:
 - **Dependencies**: Better to implement when we have real user patterns to optimize
 - **Testing**: Can test core functionality with simple mock data first
 
+## Deferred Features from Epic 2 (CRITICAL FOR FUTURE EPICS)
+
+### 1. Edge Functions Migration (Target: Epic 4-5)
+**Current State**: Using local scripts with file-based locking
+**Migration Required**:
+```typescript
+// Current: scripts/update-badges.ts
+// Future: supabase/functions/update-badges/index.ts
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+serve(async (req) => {
+  // Verify Bearer token from cron
+  const authHeader = req.headers.get('Authorization')
+  if (authHeader !== `Bearer ${Deno.env.get('FUNCTION_SECRET')}`) {
+    return new Response('Unauthorized', { status: 401 })
+  }
+  // Port badge update logic here
+})
+```
+
+**Also Migrate**:
+- `scripts/settle-bets.ts` → Edge Function
+- `scripts/add-games.ts` → Edge Function
+- Set up Supabase cron triggers
+
+### 2. CI/CD Pipeline (Target: Pre-Launch Epic)
+**Files to Create**:
+```yaml
+# .github/workflows/eas-preview.yml
+name: EAS Preview
+on:
+  pull_request:
+    types: [opened, synchronize]
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: expo/expo-github-action@v8
+      - run: eas build --profile preview --platform all
+```
+
+### 3. Environment Management (Target: When Staging Needed)
+**Current**: Single `.env` file
+**Future Structure**:
+```
+.env.development
+.env.staging  
+.env.production
+config/environment.ts  # Environment switcher
+```
+
+### 4. Documentation (Target: Post-MVP)
+**Create**:
+- `docs/DEPLOYMENT.md` - EAS Build setup, env vars, secrets
+- `docs/OAUTH_SETUP.md` - Google/Twitter app configuration
+- `docs/TROUBLESHOOTING.md` - Common issues (Hermes, navigation, etc.)
+- `docs/ARCHITECTURE.md` - System design, data flow
+- `docs/CONTRIBUTING.md` - Development workflow, PR process
+
 ## Feature Backlog
 
 ### Prioritized Features (Post-MVP)
 | Priority | Feature | User Story | Estimated Epics | Notes |
 |----------|---------|------------|-----------------|-------|
-| P0 (Critical) | [Features from PRD exclusions] | - | - | [To be populated] |
+| P0 (Critical) | Edge Functions | Infrastructure | 0.5 | Scripts work but not scalable |
+| P0 (Critical) | CI/CD Pipeline | Infrastructure | 1 | Manual builds not sustainable |
 | P1 (High) | Referral rewards system | Growth | 1 | Deferred from Epic 2 to prevent abuse |
-| P1 (High) | Badge automation edge functions | Performance | 1 | Replace cron scripts |
+| P1 (High) | Environment management | Infrastructure | 0.5 | Need staging environment |
 | P1 (High) | Live betting updates | Enhancement | 1-2 | Real-time odds |
 | P1 (High) | Complex parlays | Story 2 enhancement | 1 | Multi-leg bets |
-| P2 (Medium) | Notification schema cleanup | Tech debt | 0.5 | Resolve title/body mismatch |
-| P2 (Medium) | Production automation scheduling | Infrastructure | 1 | Proper cron/scheduling solution |
+| P2 (Medium) | SecureStore optimization | Performance | 0.5 | Split large tokens |
+| P2 (Medium) | Documentation suite | Developer Experience | 1 | Comprehensive guides |
 | P2 (Medium) | Public tournaments | New Story | 2-3 | Contest system |
 | P3 (Low) | Web version | Platform expansion | 3-4 | Post mobile success |
 
@@ -337,7 +408,7 @@ When querying related tables with multiple foreign keys:
 ### Resolved Bugs
 | ID | Description | Fixed In | Resolution |
 |----|-------------|----------|------------|
-| [Will track resolved bugs] | - | - | - |
+| B001 | TypeScript error in useUserList | Epic 2, Sprint 02.07 | Added relationship hints |
 
 ## Open Questions & Decisions Needed
 
@@ -345,73 +416,42 @@ When querying related tables with multiple foreign keys:
 2. How do we handle ties/pushes in fade scenarios? - Blocks: Epic 4
 3. Should stories auto-generate for milestones? - Blocks: Epic 3
 4. What's the max group chat size? - Blocks: Epic 5
-5. Do we need a tutorial/onboarding flow? - Blocks: Epic 2 - ANSWERED: Yes, 3-step onboarding
+5. ~~Do we need a tutorial/onboarding flow?~~ - ANSWERED: Yes, 3-step onboarding (Epic 2)
 
 ## Next Steps
 
-**Current Epic**: Epic 2 - Authentication & User System (IN PROGRESS - Sprints 02.00-02.06 APPROVED)
-**Current Sprint**: Sprint 02.07 - OAuth Implementation & Dev Build (IN PROGRESS)
-**Blocked Items**: None (OAuth now working!)
-**P0 Items in Backlog**: 0
+**Current Epic**: Epic 3 - Social Feed & Content (IN PROGRESS)
+**Prerequisites**: 
+- Development build installed on simulator
+- OAuth authentication working
+- User profiles established
 
-### Epic 2 Progress Update
-With Sprints 02.00-02.07 in progress, we now have:
-- ✅ OAuth with Twitter WORKING! (Google pending test)
-- ✅ Development build migration complete
-- ✅ Welcome screen implemented
-- ✅ Username selection with validation
-- ✅ Session management secure
-- ✅ Team selection (optional) with 62 teams
-- ✅ Follow suggestions with smart algorithm
-- ✅ Badge system infrastructure (8 types)
-- ✅ Mock users with realistic stats
-- ✅ Profile system with Posts/Bets tabs
-- ✅ Complete drawer navigation menu
-- ✅ Settings screens and customization
-- ✅ Notification system foundation
-- ✅ Referral system (tracking only, no rewards)
-- ✅ Badge automation scripts
-- ✅ Technical debt cleanup (0 errors, 0 warnings!)
-- ✅ Database triggers for OAuth user creation
-- ⏳ Navigation error after login (non-blocking)
-- ⏳ Original deployment preparation tasks
+### Epic 3 Progress
+**Completed Sprints**:
+- Sprint 03.00 - Camera & Media Infrastructure ✅
+  - Full camera implementation with photo/video capture
+  - Gallery selection and media compression
+  - Upload service with retry logic
+  - Tab bar integration complete
+  - Migrated from deprecated expo-av to expo-video
 
-### Sprint 02.05 Key Achievements
-- Implemented referral tracking system without rewards
-- Created memorable referral codes with username prefixes
-- Built invite screen with native share and clipboard fallback
-- Added referral code input to welcome screen
-- Developed production-ready badge automation script with file locking
-- Integrated AsyncStorage for OAuth flow persistence
+**Next Sprint**: 03.01 - Effects & Filters System
+- Implement emoji-based effects system
+- 48+ base effects across 17 categories
+- Badge-based unlocks from Epic 2
+- React Native Reanimated 2 for performance
+- Haptic feedback integration
+- 73+ total effects with tiers
 
-### Remaining in Epic 2
-Sprint 02.07 will complete the epic with:
-- ✅ Fix OAuth authentication (Twitter working!)
-- ✅ Migrate to development builds
-- ✅ Fix all database triggers and constraints
-- [ ] Test Google OAuth (should work now)
-- [ ] Fix navigation error after login
-- [ ] Complete original deployment preparation tasks
-- [ ] Environment management system
-- [ ] Edge Functions migration
-- [ ] CI/CD pipeline setup
-
-### Technical Decisions from Sprint 02.05
-- AsyncStorage for referral code persistence across OAuth redirect
-- File-based locking prevents concurrent badge updates
-- Native share with clipboard fallback for better UX
-- Silent handling of self-referrals
-- Badge history simplified for MVP (action and timestamp only)
-
-### Technical Decisions from Sprint 02.07 (OAuth Implementation)
-- **Migrated to development builds** - Expo Go can't handle OAuth deep links
-- **Manual token parsing** - Supabase returns tokens in URL fragment with #
-- **Auth trigger with error handling** - Ensures user records created even if trigger fails
-- **Nullable email/username** - Supports Twitter OAuth and onboarding flow
-- **WebBrowser.openAuthSessionAsync** - Properly waits for OAuth completion
-- **Schema-qualified enum types** - Required in database triggers
+**Critical Notes for Epic 3**:
+1. Must use development builds (camera won't work in Expo Go)
+2. Follow UI/UX consistency rules (.pm/process/ui-ux-consistency-rules.md)
+3. Use established patterns (useUserList hook, ScreenHeader component)
+4. Maintain zero lint/TypeScript errors
+5. **expo-av is DEPRECATED** - always use expo-video for video playback
+6. Emoji effects approach chosen over Lottie - zero dependencies, better performance
 
 ---
 
-*Last Updated: January 18, 2025*
-*Updated By: Sprint 02.07 OAuth Implementation Progress* 
+*Last Updated: January 20, 2025*
+*Updated By: Epic 3 Sprint 03.00 Completion - Camera Infrastructure* 

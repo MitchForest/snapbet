@@ -63,7 +63,7 @@ export const TabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
 
         {/* Camera Button */}
         <View position="relative" top={-8}>
-          <Pressable onPress={() => navigation.navigate('camera')}>
+          <Pressable onPress={() => navigation.getParent()?.navigate('camera')}>
             <View
               width={56}
               height={56}

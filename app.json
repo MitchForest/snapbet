@@ -32,7 +32,26 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow SnapBet to access your camera to capture photos and videos for your posts and stories"
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow SnapBet to access your photos to share in posts and stories",
+          "savePhotosPermission": "Allow SnapBet to save photos to your gallery"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow SnapBet to access your photos to share in posts and stories"
+        }
+      ]
     ],
     "extra": {
       "router": {},
