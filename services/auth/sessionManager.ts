@@ -10,7 +10,10 @@ export class SessionManager {
 
   async saveSession(session: Session): Promise<void> {
     try {
-      console.log('Saving session with expiry:', new Date(session.expires_at! * 1000).toISOString());
+      console.log(
+        'Saving session with expiry:',
+        new Date(session.expires_at! * 1000).toISOString()
+      );
       await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session));
       this.scheduleRefresh(session.expires_at || 0);
     } catch (error) {

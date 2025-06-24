@@ -19,12 +19,7 @@ export function Logo({ size = 40, variant = 'full' }: LogoProps) {
         justifyContent="center"
         alignItems="center"
       >
-        <Text
-          fontSize={size * 0.4}
-          fontWeight="800"
-          color="white"
-          letterSpacing={-1}
-        >
+        <Text fontSize={size * 0.4} fontWeight="800" color="white" letterSpacing={-1}>
           SB
         </Text>
       </View>

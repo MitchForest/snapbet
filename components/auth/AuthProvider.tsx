@@ -26,7 +26,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth state change:', event);
       console.log('Session in auth state change:', !!session, session?.user?.email);
-      
+
       // Use setTimeout to defer async operations and avoid deadlocks
       setTimeout(() => {
         setSession(session);

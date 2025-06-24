@@ -53,7 +53,16 @@ function RootLayoutNav() {
 
   // Handle navigation based on auth state
   useEffect(() => {
-    console.log('Navigation effect - isLoading:', isLoading, 'checkingProfile:', checkingProfile, 'isAuthenticated:', isAuthenticated, 'hasUsername:', hasUsername);
+    console.log(
+      'Navigation effect - isLoading:',
+      isLoading,
+      'checkingProfile:',
+      checkingProfile,
+      'isAuthenticated:',
+      isAuthenticated,
+      'hasUsername:',
+      hasUsername
+    );
     if (isLoading || checkingProfile) return;
 
     const inAuthGroup = segments[0] === '(auth)';

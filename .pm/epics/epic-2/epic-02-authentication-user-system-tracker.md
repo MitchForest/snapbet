@@ -30,7 +30,7 @@
 | 02.04 | Profile, Settings & Drawer | APPROVED | 2024-12-20 | 2024-12-20 | Full profile system with navigation |
 | 02.05 | Referral & Badge Automation | APPROVED | 2024-12-20 | 2024-12-20 | Growth features and automation |
 | 02.06 | Technical Debt Cleanup & Automation Migration | APPROVED | 2024-12-20 | 2024-12-20 | Zero lint issues, proper types, color extraction, refactoring |
-| 02.07 | Deployment Preparation | NOT STARTED | - | - | EAS setup, environments, CI/CD foundation (Expo Go compatible) |
+| 02.07 | OAuth Implementation & Dev Build | IN PROGRESS | 2024-01-18 | - | OAuth working, dev build migration |
 
 **Statuses**: NOT STARTED | IN PROGRESS | IN REVIEW | APPROVED | BLOCKED
 
@@ -412,54 +412,41 @@ CREATE TABLE badge_history (
 - Deferred non-critical items to maintain sprint scope
 **Issues Encountered**: None - smooth implementation with all critical objectives met
 
-### Sprint 02.07: Deployment Preparation (5-6 hours)
+### Sprint 02.07: OAuth Implementation & Development Build Migration
 
-**Objectives**:
-- Set up EAS Build configuration without breaking Expo Go
-- Create environment management system (dev/staging/prod)
-- Configure app.json with production settings
-- Establish CI/CD pipeline foundation
-- Document deployment process for future use
-- Prepare app store asset structure
+**Status**: IN PROGRESS
+**Summary**: Major pivot from deployment preparation to fixing OAuth authentication. Discovered Expo Go limitations prevented OAuth from working properly. Successfully migrated to development builds and implemented working OAuth flow with Twitter. Google OAuth pending testing.
 
-**Tasks**:
-1. [ ] Initialize EAS:
-   - [ ] Install EAS CLI globally
-   - [ ] Create eas.json with three profiles
-   - [ ] Configure build settings (keep Expo Go working)
+**Key Decisions**:
+- Migrated from Expo Go to development builds due to deep linking limitations
+- Fixed Supabase OAuth redirect handling (# vs ? in URLs)
+- Created auth trigger to auto-create user records
+- Made email nullable to support Twitter OAuth
+- Fixed username constraint to allow NULL during onboarding
 
-2. [ ] Environment setup:
-   - [ ] Create .env files for each environment
-   - [ ] Create config/environment.js
-   - [ ] Update Supabase client to use environment config
-   - [ ] Add environment files to .gitignore
+**Completed**:
+- [x] Development build setup with EAS
+- [x] Supabase redirect URLs configured for snapbet://
+- [x] OAuth flow working with Twitter
+- [x] Database triggers and constraints fixed
+- [x] All lint errors (42) and TypeScript errors (1) resolved
 
-3. [ ] Update app.json:
-   - [ ] Add iOS bundle identifier
-   - [ ] Add Android package name
-   - [ ] Configure deep linking scheme
-   - [ ] Add permission descriptions
-   - [ ] Keep Expo Go compatibility
+**In Progress**:
+- [ ] Fix navigation error after successful login
+- [ ] Test Google OAuth (should work now)
+- [ ] Complete original deployment preparation tasks
 
-4. [ ] CI/CD foundation:
-   - [ ] Create GitHub Actions workflow
-   - [ ] Set up preview build notifications
-   - [ ] Add test running to pipeline
+**Issues Encountered**: 
+- Expo Go can't handle OAuth redirects properly
+- Supabase uses non-standard URL format for tokens
+- Database trigger needed schema qualification for enum types
+- Navigation error occurs after successful login (non-blocking)
 
-5. [ ] Documentation:
-   - [ ] Create SnapBet-specific deployment guide
-   - [ ] Document OAuth configuration for production
-   - [ ] Create app store asset requirements guide
-   - [ ] Add version bump script
-
-**Success Criteria**:
-- Expo Go still works for development
-- EAS configuration ready for future builds
-- Environment switching is seamless
-- CI/CD pipeline testable
-- No breaking changes to development workflow
-
-**Important**: This sprint does NOT require Apple/Google developer accounts yet
+**Deferred to Complete**:
+- Environment management system
+- Edge Functions migration
+- CI/CD pipeline setup
+- Deployment documentation
 
 ---
 

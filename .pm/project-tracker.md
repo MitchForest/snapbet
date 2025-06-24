@@ -8,7 +8,7 @@ This document tracks high-level progress across all epics, maintains key archite
 | Epic # | Epic Name | Status | Start Date | End Date | Key Outcome |
 |--------|-----------|--------|------------|----------|-------------|
 | 01 | Foundation & Infrastructure | COMPLETED | Dec 2024 | Dec 2024 | Complete dev environment and core architecture |
-| 02 | Authentication & User System | IN PROGRESS | 2024-12-19 | - | OAuth, profiles, badges, notifications, referrals |
+| 02 | Authentication & User System | IN PROGRESS | 2024-12-19 | - | OAuth working! Dev build migration, profiles, badges |
 | 03 | Social Feed & Content | NOT STARTED | - | - | Photo/video sharing with stories |
 | 04 | Betting System | NOT STARTED | - | - | Mock betting with tail/fade mechanics |
 | 05 | Messaging & Real-time | NOT STARTED | - | - | DMs, group chats, real-time updates |
@@ -63,6 +63,9 @@ This document tracks high-level progress across all epics, maintains key archite
 | Dec 2024 | EAS Build from day one | Smooth deployment path, early testing capability | Epic 2, All |
 | Dec 2024 | Environment-based configuration | Clear dev/staging/prod separation | Epic 2, All |
 | Dec 2024 | Mock data flag for APIs | Gradual migration from mock to real data | Epic 2, 4 |
+| Jan 2025 | Migrate from Expo Go to Dev Build | OAuth requires proper deep linking | Epic 2, All |
+| Jan 2025 | Manual token parsing for OAuth | Supabase uses # in redirect URLs | Epic 2 |
+| Jan 2025 | Development builds for OAuth | Expo Go can't handle deep links properly | Epic 2, All |
 
 ### Established Patterns
 - **Authentication**: OAuth-only with Supabase (Google/Twitter)
@@ -138,6 +141,12 @@ This document tracks high-level progress across all epics, maintains key archite
 - Edge Functions use Deno not Node.js - different APIs and imports
 - Color literals cause massive lint warnings - centralize early
 - EAS doesn't break Expo Go - can set up deployment infrastructure from day one
+- **Expo Go can't handle OAuth** - deep linking doesn't work, must use development builds
+- **Supabase OAuth uses # not ?** - requires manual URL parsing for tokens
+- **Auth callbacks can deadlock** - use sync callbacks with setTimeout for async work
+- **Database triggers need schema qualification** - `public.oauth_provider` not just `oauth_provider`
+- **Twitter OAuth needs email permission** - must enable in Twitter app settings
+- **Development builds still support hot reload** - no loss of DX when migrating from Expo Go
 
 ### Performance Optimizations
 - Badge calculation on-the-fly for now - will cache in Epic 4
@@ -256,14 +265,15 @@ This document tracks high-level progress across all epics, maintains key archite
 
 ## Next Steps
 
-**Current Epic**: Epic 2 - Authentication & User System (IN PROGRESS - Sprints 02.00-02.05 APPROVED)
-**Current Sprint**: Sprint 02.06 - Technical Debt Cleanup (NOT STARTED)
-**Blocked Items**: None
+**Current Epic**: Epic 2 - Authentication & User System (IN PROGRESS - Sprints 02.00-02.06 APPROVED)
+**Current Sprint**: Sprint 02.07 - OAuth Implementation & Dev Build (IN PROGRESS)
+**Blocked Items**: None (OAuth now working!)
 **P0 Items in Backlog**: 0
 
 ### Epic 2 Progress Update
-With Sprints 02.00-02.05 complete, we now have:
-- ✅ OAuth with Google/Twitter working
+With Sprints 02.00-02.07 in progress, we now have:
+- ✅ OAuth with Twitter WORKING! (Google pending test)
+- ✅ Development build migration complete
 - ✅ Welcome screen implemented
 - ✅ Username selection with validation
 - ✅ Session management secure
@@ -277,7 +287,10 @@ With Sprints 02.00-02.05 complete, we now have:
 - ✅ Notification system foundation
 - ✅ Referral system (tracking only, no rewards)
 - ✅ Badge automation scripts
-- ⏳ Technical debt cleanup (11 errors, 43 warnings)
+- ✅ Technical debt cleanup (0 errors, 0 warnings!)
+- ✅ Database triggers for OAuth user creation
+- ⏳ Navigation error after login (non-blocking)
+- ⏳ Original deployment preparation tasks
 
 ### Sprint 02.05 Key Achievements
 - Implemented referral tracking system without rewards
@@ -288,13 +301,16 @@ With Sprints 02.00-02.05 complete, we now have:
 - Integrated AsyncStorage for OAuth flow persistence
 
 ### Remaining in Epic 2
-Sprint 02.06 will complete the epic with:
-- Fix notification schema mismatch (database vs service)
-- Eliminate ALL lint errors (11) and warnings (43)
-- Extract ~40 color literals to theme constants
-- Regenerate TypeScript types for new tables
-- Remove code duplication with reusable hooks
-- Create deployment documentation
+Sprint 02.07 will complete the epic with:
+- ✅ Fix OAuth authentication (Twitter working!)
+- ✅ Migrate to development builds
+- ✅ Fix all database triggers and constraints
+- [ ] Test Google OAuth (should work now)
+- [ ] Fix navigation error after login
+- [ ] Complete original deployment preparation tasks
+- [ ] Environment management system
+- [ ] Edge Functions migration
+- [ ] CI/CD pipeline setup
 
 ### Technical Decisions from Sprint 02.05
 - AsyncStorage for referral code persistence across OAuth redirect
@@ -303,7 +319,15 @@ Sprint 02.06 will complete the epic with:
 - Silent handling of self-referrals
 - Badge history simplified for MVP (action and timestamp only)
 
+### Technical Decisions from Sprint 02.07 (OAuth Implementation)
+- **Migrated to development builds** - Expo Go can't handle OAuth deep links
+- **Manual token parsing** - Supabase returns tokens in URL fragment with #
+- **Auth trigger with error handling** - Ensures user records created even if trigger fails
+- **Nullable email/username** - Supports Twitter OAuth and onboarding flow
+- **WebBrowser.openAuthSessionAsync** - Properly waits for OAuth completion
+- **Schema-qualified enum types** - Required in database triggers
+
 ---
 
-*Last Updated: December 20, 2024*
-*Updated By: Sprint 02.05 Completion & Review* 
+*Last Updated: January 18, 2025*
+*Updated By: Sprint 02.07 OAuth Implementation Progress* 

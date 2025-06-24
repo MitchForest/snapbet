@@ -12,8 +12,11 @@ export default function AuthCallback() {
     const handleCallback = async () => {
       try {
         // Get the session
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
         if (error) {
           console.error('Callback error:', error);
           router.replace('/(auth)/welcome');
@@ -53,4 +56,4 @@ export default function AuthCallback() {
       </Text>
     </View>
   );
-} 
+}

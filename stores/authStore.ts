@@ -65,7 +65,7 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
           isLoading: false,
           error: null,
         });
-        
+
         // Process pending referral code if this is a new user
         setTimeout(async () => {
           try {
@@ -145,7 +145,7 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
       const user = await authService.getUser();
 
       console.log('checkSession - session:', !!session, 'user:', !!user);
-      
+
       set({
         session,
         user,
