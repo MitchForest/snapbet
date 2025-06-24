@@ -1,4 +1,4 @@
-# SnapFade Development Roadmap
+# SnapBet Development Roadmap
 
 ## Project Timeline Overview
 
@@ -31,8 +31,8 @@
 ### Epic 1: Foundation & Infrastructure (Day 1)
 **Goal**: Set up the complete development environment and core architecture
 
-### Epic 2: Authentication & User System (Day 1)
-**Goal**: Complete OAuth flow and user profile management
+### Epic 2: Authentication & User System (Day 1-2)
+**Goal**: Complete OAuth flow, user profiles, badges, notifications, and referral system
 
 ### Epic 3: Social Feed & Content (Day 2)
 **Goal**: Photo/video sharing with expiration and stories
@@ -77,7 +77,7 @@
 
 **Deliverables**:
 - [ ] Working Expo development environment
-- [ ] Tamagui theme with SnapFade colors
+- [ ] Tamagui theme with SnapBet colors
 - [ ] Connected to Supabase
 - [ ] Basic navigation structure
 
@@ -142,21 +142,23 @@
 
 **Goals**:
 - Build username selection screen
-- Build favorite team selection
-- Build follow suggestions screen
-- Create onboarding state machine
+- Build favorite team selection with all 62 teams
+- Build follow suggestions with badge display
+- Initialize badge system and stats preferences
 - Initialize user bankroll
 - Complete profile setup
 
 **Deliverables**:
 - [ ] Complete 3-step onboarding
-- [ ] User profile created
+- [ ] User profile created with badges
 - [ ] Initial follows established
 - [ ] $1,000 bankroll initialized
+- [ ] Default stats display set
 
 **Acceptance Criteria**:
 - Username validation works
-- Can select favorite team
+- Can select from NFL/NBA teams
+- Shows user badges in follow suggestions
 - Must follow 3+ users to continue
 - Lands on feed after onboarding
 

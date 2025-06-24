@@ -9,6 +9,7 @@ interface AuthState {
   session: Session | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isOnboarding: boolean;
   error: CustomAuthError | null;
 
   // Actions
@@ -19,6 +20,14 @@ interface AuthState {
   setSession: (session: Session | null) => void;
   clearError: () => void;
   updateUsername: (username: string) => Promise<{ error: Error | null }>;
+  updateFavoriteTeam: (teamId: string | null) => Promise<void>;
+  updateNotificationSettings: (settings: Record<string, any>) => Promise<{ error: Error | null }>;
+  updatePrivacySettings: (settings: Record<string, any>) => Promise<{ error: Error | null }>;
+  updateProfile: (updates: {
+    display_name?: string;
+    bio?: string;
+  }) => Promise<{ error: Error | null }>;
+  resetBankroll: () => Promise<{ error: Error | null }>;
 }
 
 export const useAuthStore = create<AuthState>((set, _get) => ({
@@ -26,6 +35,7 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
   session: null,
   isLoading: true,
   isAuthenticated: false,
+  isOnboarding: false,
   error: null,
 
   signIn: async (provider: OAuthProvider) => {
@@ -163,6 +173,94 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
           : null,
       }));
     }
+
+    return { error };
+  },
+
+  updateFavoriteTeam: async (teamId: string | null) => {
+    const currentUser = _get().user;
+    if (!currentUser) return;
+
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ favorite_team: teamId })
+        .eq('id', currentUser.id);
+
+      if (error) {
+        console.error('Error updating favorite team:', error);
+        throw error;
+      }
+
+      // Update local state
+      set({
+        user: {
+          ...currentUser,
+          user_metadata: {
+            ...currentUser.user_metadata,
+            favorite_team: teamId,
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Failed to update favorite team:', error);
+      throw error;
+    }
+  },
+
+  updateNotificationSettings: async (settings: Record<string, any>) => {
+    const userId = _get().user?.id;
+    if (!userId) return { error: new Error('No user logged in') };
+
+    const { error } = await supabase
+      .from('users')
+      .update({ notification_settings: settings })
+      .eq('id', userId);
+
+    return { error };
+  },
+
+  updatePrivacySettings: async (settings: Record<string, any>) => {
+    const userId = _get().user?.id;
+    if (!userId) return { error: new Error('No user logged in') };
+
+    const { error } = await supabase
+      .from('users')
+      .update({ privacy_settings: settings })
+      .eq('id', userId);
+
+    return { error };
+  },
+
+  updateProfile: async (updates: { display_name?: string; bio?: string }) => {
+    const userId = _get().user?.id;
+    if (!userId) return { error: new Error('No user logged in') };
+
+    const { error } = await supabase.from('users').update(updates).eq('id', userId);
+
+    if (!error) {
+      // Update local user object
+      set((state) => ({
+        user: state.user
+          ? {
+              ...state.user,
+              user_metadata: {
+                ...state.user.user_metadata,
+                ...updates,
+              },
+            }
+          : null,
+      }));
+    }
+
+    return { error };
+  },
+
+  resetBankroll: async () => {
+    const userId = _get().user?.id;
+    if (!userId) return { error: new Error('No user logged in') };
+
+    const { error } = await supabase.rpc('reset_bankroll', { p_user_id: userId });
 
     return { error };
   },

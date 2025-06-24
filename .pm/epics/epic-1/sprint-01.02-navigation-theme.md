@@ -13,7 +13,7 @@
 
 - Install and configure Tamagui for UI components
 - Set up Expo Router navigation structure
-- Create warm, light theme with SnapFade colors
+- Create warm, light theme with SnapBet colors
 - Implement drawer and tab navigation
 - Create all placeholder screens
 
@@ -30,7 +30,7 @@
 - [x] Drawer opens from left with profile info placeholder
 - [x] Bottom tabs show correct icons with emerald active state
 - [x] Camera button is raised with emerald background
-- [x] Header shows SnapFade logo in emerald
+- [x] Header shows SnapBet logo in emerald
 
 ## Tasks
 
@@ -48,7 +48,7 @@
 - [x] Configure babel.config.js for Tamagui
 - [x] Set up Tamagui provider in App.tsx
 
-### 2. Create SnapFade Theme
+### 2. Create SnapBet Theme
 - [x] Create `theme/index.ts`
 - [x] **Reference [UI/UX Color Palette](.pm/docs/ui-ux.md#color-palette)** for exact color values
 - [x] Define color tokens (use exact hex values from ui-ux.md):
@@ -96,7 +96,7 @@
 - [x] **Reference [UI/UX Header Component](.pm/docs/ui-ux.md#header-component)** for exact specs
 - [x] Create `Header` component:
   - [x] Left: Profile avatar placeholder (32x32)
-  - [x] Center: SnapFade logo (emerald)
+  - [x] Center: SnapBet logo (emerald)
   - [x] Right: Notification bell with badge
   - [x] Height: 56px with border bottom
 - [x] **Reference [UI/UX Tab Bar](.pm/docs/ui-ux.md#tab-bar)** for exact specs
@@ -223,7 +223,7 @@ plugins: [
 **Status**: APPROVED
 
 ### What Was Implemented
-- Complete Tamagui theme system with SnapFade colors (#059669 emerald, warm off-white background)
+- Complete Tamagui theme system with SnapBet colors (#059669 emerald, warm off-white background)
 - Nested navigation structure: Drawer → Tabs → Screens
 - Custom Header component with profile avatar and notification bell
 - Custom TabBar with raised emerald camera button

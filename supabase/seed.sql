@@ -1,15 +1,14 @@
--- Initial seed data for SnapFade
+-- Initial seed data for SnapBet
 
 -- System user for testing and development
-INSERT INTO users (id, email, username, display_name, oauth_provider, oauth_id, is_mock) 
+INSERT INTO auth.users (id, email, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 VALUES (
   '00000000-0000-0000-0000-000000000001',
-  'system@snapfade.com',
-  'system',
-  'System User',
-  'google',
-  'system',
-  false
+  'system@snapbet.ai',
+  '{"role": "system"}',
+  '{"username": "system", "display_name": "System User", "oauth_provider": "google", "oauth_id": "system", "is_mock": false}',
+  NOW(),
+  NOW()
 ) ON CONFLICT (id) DO NOTHING;
 
 -- Create bankroll for system user

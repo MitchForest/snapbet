@@ -1,4 +1,4 @@
-# SnapFade PRD
+# SnapBet PRD
 
 ## Project Overview
 
@@ -98,7 +98,7 @@ The system follows a client-server architecture with real-time capabilities:
 
 ### Repository Structure
 ```
-snapfade/
+snapbet/
 ├── apps/
 │   └── mobile/                    # React Native/Expo app
 │       ├── app/                   # Expo Router screens
@@ -209,14 +209,20 @@ Key relationships:
   - Admin scripts for development
 
 ### Epic 2: Authentication & User System
-- **Goal**: OAuth implementation and user onboarding
-- **User Stories Addressed**: Enables all stories
+- **Goal**: OAuth implementation, user onboarding, and engagement systems
+- **User Stories Addressed**: Enables all stories, particularly Story 5
 - **Features**:
   - Passwordless OAuth (Google/Twitter only)
   - Automatic profile picture/username from OAuth
   - Username selection and validation
-  - Favorite team selection
-  - Initial friend suggestions (10 mock users)
+  - Favorite team selection (all 62 NFL/NBA teams)
+  - Initial friend suggestions with badge display
+  - Badge/achievement system (8 types)
+  - Stats display customization
+  - Profile with Posts/Bets tabs
+  - Complete drawer navigation menu
+  - Notification system foundation
+  - Referral system with rewards
   - Bankroll initialization ($1,000)
   - User settings and preferences
 

@@ -227,7 +227,7 @@ async function resetFullDatabase() {
 
 // Main execution
 async function main() {
-  console.log('🗄️  SnapFade Database Setup\n');
+  console.log('🗄️  SnapBet Database Setup\n');
 
   // Show current state
   const counts = await countRecords();

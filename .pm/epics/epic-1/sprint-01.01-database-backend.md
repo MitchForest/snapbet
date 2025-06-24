@@ -36,7 +36,7 @@
 
 ### 1. Create Supabase Project (15 minutes for account setup)
 - [ ] Sign up/login to Supabase
-- [ ] Create new project "snapfade"
+- [ ] Create new project "snapbet"
 - [ ] Note project URL and anon key
 - [ ] Update `.env` with credentials
 - [ ] Familiarize with Supabase dashboard
@@ -183,7 +183,7 @@
   INSERT INTO users (id, email, username, oauth_provider, oauth_id) 
   VALUES (
     '00000000-0000-0000-0000-000000000001',
-    'system@snapfade.com',
+    'system@snapbet.com',
     'system',
     'google',
     'system'

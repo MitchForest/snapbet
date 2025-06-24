@@ -34,7 +34,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 
 class AuthService {
   private redirectUrl = makeRedirectUri({
-    scheme: 'snapfade',
+    scheme: 'snapbet',
     path: 'auth/callback',
   });
 
@@ -53,7 +53,10 @@ class AuthService {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: this.redirectUrl,
+          redirectTo: makeRedirectUri({
+            scheme: 'snapbet',
+            path: 'auth',
+          }),
           skipBrowserRedirect: true,
         },
       });

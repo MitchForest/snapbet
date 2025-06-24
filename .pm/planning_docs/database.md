@@ -1,4 +1,4 @@
-# SnapFade Database Design Document
+# SnapBet Database Design Document
 
 ## Table of Contents
 1. [Database Overview](#database-overview)
@@ -1855,7 +1855,7 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
 -- Initial data
 INSERT INTO users (id, email, username, oauth_provider, oauth_id) VALUES
-  ('00000000-0000-0000-0000-000000000001', 'system@snapfade.com', 'system', 'google', 'system');
+  ('00000000-0000-0000-0000-000000000001', 'system@snapbet.com', 'system', 'google', 'system');
 
 COMMIT;
 ```

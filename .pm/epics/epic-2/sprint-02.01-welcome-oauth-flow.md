@@ -15,7 +15,7 @@
 ## Sprint Plan
 
 ### Objectives
-1. Create polished welcome screen with SnapFade branding
+1. Create polished welcome screen with SnapBet branding
 2. Implement OAuth sign-in buttons with provider branding
 3. Handle OAuth flow completion and errors
 4. Manage loading states during authentication
@@ -28,7 +28,7 @@
 | `app/(auth)/_layout.tsx` | Auth stack layout configuration | COMPLETED |
 | `components/auth/OAuthButton.tsx` | Reusable OAuth provider button | COMPLETED |
 | `components/auth/LoadingOverlay.tsx` | Full-screen loading during auth | COMPLETED |
-| `components/common/Logo.tsx` | SnapFade logo component | COMPLETED |
+| `components/common/Logo.tsx` | SnapBet logo component | COMPLETED |
 | `utils/auth/errorMessages.ts` | User-friendly auth error messages | COMPLETED |
 
 ### Files to Modify  
@@ -40,7 +40,7 @@
 ### Implementation Approach
 1. **Welcome Screen Design**:
    - Warm off-white background (#FAF9F5)
-   - Centered SnapFade logo (80x80, emerald #059669)
+   - Centered SnapBet logo (80x80, emerald #059669)
    - Tagline: "Sports betting with friends"
    - OAuth buttons with 32px horizontal margins
    - Legal disclaimer at bottom
@@ -188,7 +188,7 @@ checkUserProfile(): Promise<void>
 
 ### What Was Implemented
 Successfully implemented the complete welcome and OAuth flow infrastructure:
-- Created a polished welcome screen with SnapFade branding
+- Created a polished welcome screen with SnapBet branding
 - Built reusable OAuth button component with provider-specific styling
 - Implemented full-screen loading overlay for auth operations
 - Created error message utility for user-friendly error display

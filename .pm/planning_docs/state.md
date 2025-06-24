@@ -1,4 +1,4 @@
-# SnapFade State Management Architecture
+# SnapBet State Management Architecture
 
 ## Table of Contents
 1. [Architecture Overview](#architecture-overview)
@@ -145,7 +145,7 @@ export const useStore = create<RootStore>()(
       ...createBettingSlice(...a),
       ...createNotificationSlice(...a),
     })),
-    { name: 'SnapFade' }
+    { name: 'SnapBet' }
   )
 );
 ```
@@ -330,7 +330,7 @@ export const queryClient = new QueryClient({
 ```typescript
 // lib/queryKeys.ts
 export const queryKeys = {
-  all: ['snapfade'] as const,
+  all: ['snapbet'] as const,
   
   // Auth
   auth: () => [...queryKeys.all, 'auth'] as const,
@@ -608,8 +608,8 @@ const ChatScreen = ({ chatId }) => {
 import { MMKV } from 'react-native-mmkv';
 
 export const storage = new MMKV({
-  id: 'snapfade-storage',
-  encryptionKey: 'snapfade-encryption-key',
+  id: 'snapbet-storage',
+  encryptionKey: 'snapbet-encryption-key',
 });
 
 // Storage utilities
@@ -678,7 +678,7 @@ export const usePersistedStore = create<PersistedState>()(
       })),
     }),
     {
-      name: 'snapfade-persisted',
+      name: 'snapbet-persisted',
       storage: mmkvStorage,
       partialize: (state) => ({
         defaultStake: state.defaultStake,
@@ -1011,7 +1011,7 @@ const placeBetWithPost = async (bet: BetInput, post: PostInput) => {
     // Batch invalidations
     queryClient.invalidateQueries({
       predicate: (query) => 
-        query.queryKey[0] === 'snapfade' &&
+        query.queryKey[0] === 'snapbet' &&
         ['bets', 'feed', 'posts'].includes(query.queryKey[1] as string)
     });
     
@@ -1151,4 +1151,4 @@ type UpdatePost = Database['public']['Tables']['posts']['Update'];
 
 ---
 
-This comprehensive State Management Architecture provides a solid foundation for building SnapFade with predictable, performant, and maintainable state management.
+This comprehensive State Management Architecture provides a solid foundation for building SnapBet with predictable, performant, and maintainable state management.

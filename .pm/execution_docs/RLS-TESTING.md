@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide provides test scenarios to verify that Row Level Security policies are working correctly in the SnapFade database.
+This guide provides test scenarios to verify that Row Level Security policies are working correctly in the SnapBet database.
 
 ## Prerequisites
 

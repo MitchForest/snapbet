@@ -10,7 +10,7 @@
 1. Go to [https://app.supabase.com](https://app.supabase.com)
 2. Click "New project"
 3. Fill in:
-   - Project name: `snapfade`
+   - Project name: `snapbet`
    - Database password: (save this securely)
    - Region: Choose closest to your users
 4. Click "Create new project"

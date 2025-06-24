@@ -1,4 +1,4 @@
-# SnapFade API Specification Document
+# SnapBet API Specification Document
 
 ## Table of Contents
 1. [API Overview](#api-overview)
@@ -1485,4 +1485,4 @@ Authenticated users have higher limits:
 
 ---
 
-This comprehensive API specification covers all endpoints, request/response formats, real-time subscriptions, and error handling for the SnapFade application.
+This comprehensive API specification covers all endpoints, request/response formats, real-time subscriptions, and error handling for the SnapBet application.

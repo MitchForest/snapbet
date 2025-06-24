@@ -116,7 +116,7 @@
     
     return (
       <View style={styles.container}>
-        <Text>SnapFade</Text>
+        <Text>SnapBet</Text>
         <Text>Environment: {connected ? '✅ Ready' : '⏳ Loading'}</Text>
       </View>
     )
@@ -140,7 +140,7 @@
 
 ### Project Structure
 ```
-snapfade/
+snapbet/
 ├── app/                    # Expo Router screens
 │   ├── (auth)/            # Auth group
 │   ├── (tabs)/            # Main app tabs
@@ -202,7 +202,7 @@ snapfade/
 - ESLint v9 configured with flat config format
 - Prettier integrated for code formatting
 - All core dependencies installed (Supabase, Tamagui, Zustand)
-- Health check screen showing "SnapFade" and "Environment: ✅ Ready"
+- Health check screen showing "SnapBet" and "Environment: ✅ Ready"
 - Complete documentation in README and SETUP.md
 
 ### Files Modified/Created
@@ -232,7 +232,7 @@ snapfade/
 ### Key Decisions Made
 1. Used ESLint v9 flat config format instead of downgrading
 2. Configured path aliases with @ prefix for all imports
-3. Set up placeholder screens with SnapFade's emerald theme colors
+3. Set up placeholder screens with SnapBet's emerald theme colors
 4. Included all dependencies for future sprints to avoid multiple installs
 
 ### Deviations from Plan
@@ -248,7 +248,7 @@ snapfade/
 - ✅ `bun run typecheck` passes with no errors
 - ✅ `bun run lint` runs with only expected warnings
 - ✅ Path aliases work (will be tested when creating components)
-- ✅ App displays "SnapFade" and "Environment: ✅ Ready"
+- ✅ App displays "SnapBet" and "Environment: ✅ Ready"
 
 ---
 

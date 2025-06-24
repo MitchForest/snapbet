@@ -1,4 +1,4 @@
-# SnapFade Mock Data Strategy
+# SnapBet Mock Data Strategy
 
 ## Table of Contents
 1. [Overview & Architecture](#overview--architecture)

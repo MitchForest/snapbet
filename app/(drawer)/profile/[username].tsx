@@ -1,48 +1,156 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text } from '@tamagui/core';
-import { Pressable } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityIndicator, RefreshControl, ScrollView } from 'react-native';
+import { useLocalSearchParams, router } from 'expo-router';
+import { useAuthStore } from '@/stores/authStore';
+import { supabase } from '@/services/supabase/client';
+import { ProfileHeader } from '@/components/profile/ProfileHeader';
+import { ProfileTabs } from '@/components/profile/ProfileTabs';
+import { PostsList } from '@/components/profile/PostsList';
+import { BetsList } from '@/components/profile/BetsList';
 
 export default function ProfileScreen() {
-  const router = useRouter();
-  const { username } = useLocalSearchParams();
-  const insets = useSafeAreaInsets();
+  const { username } = useLocalSearchParams<{ username: string }>();
+  const currentUser = useAuthStore((state) => state.user);
+  const [profileUser, setProfileUser] = useState<Record<string, any> | null>(null);
+  const [userStats, setUserStats] = useState<Record<string, any> | null>(null);
+  const [badges, setBadges] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'posts' | 'bets'>('posts');
+  const [refreshing, setRefreshing] = useState(false);
+
+  const isOwnProfile = currentUser?.user_metadata?.username === username;
+
+  const fetchProfileData = async () => {
+    try {
+      // Get user data
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('username', username.toLowerCase())
+        .single();
+
+      if (userError || !userData) {
+        // Profile not found
+        router.replace('/');
+        return;
+      }
+
+      setProfileUser(userData);
+
+      // Get user stats
+      const { data: bankrollData } = await supabase
+        .from('bankrolls')
+        .select('*')
+        .eq('user_id', userData.id)
+        .single();
+
+      setUserStats(bankrollData);
+
+      // Get user badges (for now, calculate on the fly)
+      // In production, these would come from user_badges table
+      if (bankrollData) {
+        const { calculateUserBadges } = await import('@/services/badges/badgeService');
+        const userBadges = await calculateUserBadges(userData.id);
+        setBadges(userBadges);
+      }
+
+      // Check if following (if not own profile)
+      if (!isOwnProfile && currentUser?.id) {
+        const { data: followData } = await supabase
+          .from('follows')
+          .select('*')
+          .eq('follower_id', currentUser.id)
+          .eq('following_id', userData.id)
+          .single();
+
+        setIsFollowing(!!followData);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProfileData();
+  }, [username]);
+
+  const handleFollow = async () => {
+    if (!currentUser?.id || !profileUser?.id) return;
+
+    try {
+      if (isFollowing) {
+        // Unfollow
+        await supabase
+          .from('follows')
+          .delete()
+          .eq('follower_id', currentUser.id)
+          .eq('following_id', profileUser.id);
+      } else {
+        // Follow
+        await supabase.from('follows').insert({
+          follower_id: currentUser.id,
+          following_id: profileUser.id,
+        });
+      }
+      setIsFollowing(!isFollowing);
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+    }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchProfileData();
+  };
+
+  if (isLoading) {
+    return (
+      <View flex={1} justifyContent="center" alignItems="center" backgroundColor="$background">
+        <ActivityIndicator size="large" color="#10b981" />
+      </View>
+    );
+  }
+
+  if (!profileUser) {
+    return (
+      <View flex={1} justifyContent="center" alignItems="center" backgroundColor="$background">
+        <Text fontSize={18} color="$textSecondary">
+          Profile not found
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View flex={1} backgroundColor="$background">
-      <View
-        backgroundColor="$surface"
-        borderBottomWidth={1}
-        borderBottomColor="$divider"
-        paddingTop={insets.top}
-        height={56 + insets.top}
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10b981" />
+        }
       >
-        <View
-          flexDirection="row"
-          alignItems="center"
-          justifyContent="space-between"
-          paddingHorizontal="$4"
-          height={56}
-        >
-          <Pressable onPress={() => router.back()}>
-            <Text fontSize={20}>←</Text>
-          </Pressable>
-          <Text fontSize={16} color="$textPrimary">
-            @{username}
-          </Text>
-          <View width={20} />
-        </View>
-      </View>
+        <ProfileHeader
+          user={profileUser}
+          stats={userStats}
+          badges={badges}
+          isOwnProfile={isOwnProfile}
+          isFollowing={isFollowing}
+          onFollow={handleFollow}
+          onEditProfile={() => router.push('/settings/profile')}
+        />
 
-      <View flex={1} justifyContent="center" alignItems="center">
-        <Text fontSize={24} color="$textPrimary" fontWeight="600">
-          Profile: @{username}
-        </Text>
-        <Text fontSize={16} color="$textSecondary" marginTop="$2">
-          Profile details coming soon
-        </Text>
-      </View>
+        <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} />
+
+        {activeTab === 'posts' ? (
+          <PostsList userId={profileUser.id} />
+        ) : (
+          <BetsList userId={profileUser.id} />
+        )}
+      </ScrollView>
     </View>
   );
 }

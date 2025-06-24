@@ -7,7 +7,7 @@
 **Target End Date**: Day 1 (end) - Day 2 (morning)  
 **Actual End Date**: -
 
-**Epic Goal**: Implement complete OAuth authentication flow with Google and Twitter, create user onboarding experience, establish user profiles and settings, and initialize bankroll system.
+**Epic Goal**: Implement complete OAuth authentication flow with Google and Twitter, create user onboarding experience, establish user profiles and settings, initialize bankroll system, and implement user engagement features.
 
 **User Stories Addressed**:
 - Story 1: Social Pick Sharing - Enables user identity and profiles
@@ -26,8 +26,9 @@
 | 02.00 | OAuth Infrastructure | APPROVED | 2024-12-19 | 2024-12-19 | Working OAuth with Supabase |
 | 02.01 | Welcome & OAuth Flow | APPROVED | 2024-12-19 | 2024-12-19 | Sign in with Google/Twitter |
 | 02.02 | Onboarding - Username | APPROVED | 2024-12-20 | 2024-12-20 | Username selection screen |
-| 02.03 | Onboarding - Team & Follow | NOT STARTED | - | - | Complete onboarding flow |
-| 02.04 | User Profile & Settings | NOT STARTED | - | - | Profile management & bankroll |
+| 02.03 | Team & Follow with Badges | APPROVED | 2024-12-20 | 2024-12-20 | Complete onboarding with badge system |
+| 02.04 | Profile, Settings & Drawer | NEEDS REVISION | 2024-12-20 | - | Full profile system with navigation |
+| 02.05 | Referral & Badge Automation | NOT STARTED | - | - | Growth features and automation |
 
 **Statuses**: NOT STARTED | IN PROGRESS | IN REVIEW | APPROVED | BLOCKED
 
@@ -40,6 +41,9 @@ This epic establishes the complete authentication and user management system:
 - Multi-step onboarding flow
 - User profile and settings management
 - Bankroll initialization and tracking
+- Badge/achievement system
+- Notification foundation
+- Referral system for growth
 
 ### Key Design Decisions
 
@@ -73,6 +77,16 @@ This epic establishes the complete authentication and user management system:
    - Rationale: Prevents confusion, maintains betting history integrity
    - Trade-offs: Users stuck with poor choices, but encourages thoughtfulness
 
+7. **Badge System Architecture**: Auto-assigned with manual selection
+   - Alternatives considered: Fully automatic, fully manual
+   - Rationale: Ensures authenticity while giving users some control
+   - Trade-offs: More complex but better user experience
+
+8. **Stats Display Customization**: User chooses one primary stat
+   - Alternatives considered: Show all stats, fixed format
+   - Rationale: Reduces information overload, lets users emphasize strengths
+   - Trade-offs: Hides some information but cleaner UI
+
 ### Dependencies
 **External Dependencies**:
 - Supabase Auth - OAuth provider integration
@@ -80,16 +94,18 @@ This epic establishes the complete authentication and user management system:
 - expo-secure-store - Secure token storage
 - expo-linking - Deep link handling
 - react-native-mmkv - Fast persistent storage
+- expo-sharing - Native share functionality
+- expo-notifications - Push notification support
 
 **Internal Dependencies**:
 - Requires: Database schema from Epic 1, Navigation structure from Epic 1
-- Provides: User authentication for all future epics, User profiles for social features
+- Provides: User authentication for all future epics, User profiles for social features, Badge system for engagement
 
 ## Implementation Notes
 
 ### File Structure for Epic
 ```
-snapfade/
+snapbet/
 ├── app/
 │   ├── (auth)/
 │   │   ├── _layout.tsx          # Auth stack layout
@@ -99,35 +115,71 @@ snapfade/
 │   │       ├── username.tsx     # Username selection
 │   │       ├── team.tsx         # Favorite team selection
 │   │       └── follow.tsx       # Follow suggestions
-│   ├── profile/
-│   │   ├── [username].tsx       # Public profile view
-│   │   └── settings.tsx         # User settings
+│   ├── (drawer)/
+│   │   ├── profile/
+│   │   │   └── [username].tsx   # Dynamic profile view
+│   │   ├── settings/
+│   │   │   ├── index.tsx        # Settings main
+│   │   │   ├── profile.tsx      # Profile editing
+│   │   │   ├── notifications.tsx # Notification prefs
+│   │   │   ├── privacy.tsx      # Privacy settings
+│   │   │   └── stats-display.tsx # Stats customization
+│   │   ├── following.tsx        # Following list
+│   │   ├── followers.tsx        # Followers list
+│   │   ├── notifications.tsx    # Notification center
+│   │   ├── invite.tsx           # Referral screen
+│   │   └── how-to-play.tsx      # Tutorial
 ├── services/
 │   ├── auth/
 │   │   ├── authService.ts       # OAuth flow logic
 │   │   ├── sessionManager.ts    # Token management
 │   │   └── types.ts             # Auth types
+│   ├── badges/
+│   │   ├── badgeService.ts      # Badge calculation
+│   │   └── badgeAutomation.ts   # Automated updates
+│   ├── notifications/
+│   │   └── notificationService.ts # Notification logic
+│   └── referral/
+│       └── referralService.ts   # Referral system
 ├── stores/
 │   ├── authStore.ts             # Auth state (Zustand)
 │   └── userStore.ts             # User profile state
 ├── hooks/
 │   ├── useAuth.ts               # Auth hook
 │   ├── useUser.ts               # User data hook
-│   └── useSession.ts            # Session management
+│   ├── useSession.ts            # Session management
+│   ├── useNotifications.ts      # Notification subscription
+│   └── useReferral.ts           # Referral state
 ├── components/
 │   ├── auth/
 │   │   ├── OAuthButton.tsx      # OAuth provider button
 │   │   ├── OnboardingStep.tsx   # Step indicator
 │   │   └── UsernameInput.tsx    # Username validation
 │   ├── profile/
-│   │   ├── ProfileHeader.tsx    # Profile display
-│   │   ├── BankrollCard.tsx     # Bankroll display
-│   │   └── SettingsItem.tsx     # Settings row
+│   │   ├── ProfileHeader.tsx    # Profile display with badges
+│   │   ├── ProfileTabs.tsx      # Posts/Bets tabs
+│   │   ├── BadgeSelector.tsx    # Badge selection
+│   │   └── StatsCard.tsx        # Stats display
+│   ├── common/
+│   │   ├── BadgeDisplay.tsx     # Badge rendering
+│   │   └── UserListItem.tsx     # User list rows
+│   ├── invite/
+│   │   ├── InviteCard.tsx       # Shareable invite
+│   │   └── ReferralStats.tsx    # Referral performance
 │   └── team/
 │       ├── TeamSelector.tsx     # Team grid
-│       └── TeamLogo.tsx         # SVG team logo
-└── constants/
-    └── teams.ts                 # NFL/NBA team data
+│       └── TeamCard.tsx         # Team selection card
+├── data/
+│   ├── teams.ts                 # NFL/NBA team data
+│   └── badges.ts                # Badge definitions
+└── supabase/
+    ├── migrations/
+    │   ├── 003_user_badges.sql  # Badge tables
+    │   ├── 004_notifications.sql # Notification tables
+    │   └── 005_referrals.sql    # Referral tables
+    └── functions/
+        ├── calculate-badges/     # Badge automation
+        └── process-referral/     # Referral rewards
 ```
 
 ### API Endpoints Added
@@ -139,15 +191,73 @@ snapfade/
 | PATCH | /rest/v1/users | Update profile | 02.02 |
 | GET | /rest/v1/users?username=eq.* | Check username | 02.02 |
 | POST | /rest/v1/follows | Follow user | 02.03 |
-| POST | /rest/v1/bankrolls | Initialize bankroll | 02.04 |
+| POST | /rest/v1/bankrolls | Initialize bankroll | 02.03 |
+| GET | /rest/v1/user_badges | Get user badges | 02.03 |
+| POST | /rest/v1/user_stats_display | Set stats preferences | 02.03 |
+| GET | /rest/v1/notifications | Get notifications | 02.04 |
+| POST | /rest/v1/referral_codes | Generate referral code | 02.05 |
 
 ### Data Model Changes
 ```sql
--- No schema changes needed, using existing tables from Epic 1:
--- users: OAuth data, profile info
--- bankrolls: User bankroll tracking
--- follows: User relationships
--- user_settings: Preferences (JSONB in users table)
+-- Sprint 02.03: Badge system
+CREATE TABLE user_badges (
+  user_id UUID REFERENCES users(id),
+  badge_id TEXT NOT NULL,
+  earned_at TIMESTAMPTZ DEFAULT NOW(),
+  lost_at TIMESTAMPTZ,
+  PRIMARY KEY (user_id, badge_id, earned_at)
+);
+
+CREATE TABLE user_stats_display (
+  user_id UUID PRIMARY KEY REFERENCES users(id),
+  primary_stat TEXT NOT NULL DEFAULT 'record',
+  show_badge BOOLEAN DEFAULT true,
+  selected_badge TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Sprint 02.04: Notifications
+CREATE TABLE notifications (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES users(id),
+  type TEXT NOT NULL,
+  data JSONB NOT NULL,
+  read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  read_at TIMESTAMPTZ
+);
+
+-- Sprint 02.05: Referrals
+CREATE TABLE referral_codes (
+  user_id UUID PRIMARY KEY REFERENCES users(id),
+  code TEXT UNIQUE NOT NULL,
+  uses_count INTEGER DEFAULT 0,
+  max_uses INTEGER DEFAULT -1,
+  expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE referrals (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  referrer_id UUID NOT NULL REFERENCES users(id),
+  referred_id UUID NOT NULL REFERENCES users(id),
+  code TEXT NOT NULL,
+  status TEXT NOT NULL,
+  reward_amount INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  completed_at TIMESTAMPTZ,
+  UNIQUE(referred_id)
+);
+
+CREATE TABLE badge_history (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES users(id),
+  badge_id TEXT NOT NULL,
+  action TEXT NOT NULL,
+  stats_snapshot JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 ```
 
 ### Key Functions/Components Created
@@ -156,8 +266,13 @@ snapfade/
 - `UsernameInput` - Real-time validation - Sprint 02.02
 - `TeamSelector` - Team selection grid - Sprint 02.03
 - `FollowSuggestions` - User recommendation list - Sprint 02.03
-- `ProfileHeader` - User profile display - Sprint 02.04
-- `BankrollCard` - Bankroll display/reset - Sprint 02.04
+- `BadgeDisplay` - Badge rendering system - Sprint 02.03
+- `ProfileHeader` - User profile display with badges - Sprint 02.04
+- `ProfileTabs` - Posts/Bets tab navigation - Sprint 02.04
+- `DrawerContent` - Complete drawer menu - Sprint 02.04
+- `NotificationItem` - Notification display - Sprint 02.04
+- `InviteCard` - Shareable referral card - Sprint 02.05
+- `calculateBadges` - Edge function for badge updates - Sprint 02.05
 
 ## Sprint Execution Log
 
@@ -189,13 +304,25 @@ snapfade/
 - 5 different suggestion strategies for taken usernames
 **Issues Encountered**: None - smooth implementation with proper error handling
 
-### Sprint 02.03: Onboarding - Team & Follow
-**Status**: NOT STARTED
+### Sprint 02.03: Team & Follow with Badges
+**Status**: APPROVED
+**Summary**: Successfully implemented team selection, follow suggestions, and badge system infrastructure. All 62 teams (NFL/NBA) available with sport toggle. Smart follow algorithm considers team preference and user performance. Badge calculation service ready with 8 badge types. Mock users enhanced with realistic stats. After revision, all badge thresholds now match specifications exactly.
+**Key Decisions**: 
+- Made team selection optional with skip button
+- Set minimum 3 follows to ensure social engagement
+- Used colored circles for team logos instead of images
+- Badge calculation on-the-fly (could be cached later)
+- Direct database queries instead of RPC functions
+- Username presence used to track onboarding completion
+**Issues Encountered**: Initial badge thresholds didn't match spec - fixed in revision. TypeScript types for new tables not yet generated - worked around with type assertions.
+
+### Sprint 02.04: Profile, Settings & Drawer
+**Status**: NEEDS REVISION
 **Summary**: [To be completed]
 **Key Decisions**: [To be completed]
 **Issues Encountered**: [To be completed]
 
-### Sprint 02.04: User Profile & Settings
+### Sprint 02.05: Referral & Badge Automation
 **Status**: NOT STARTED
 **Summary**: [To be completed]
 **Key Decisions**: [To be completed]
@@ -209,6 +336,9 @@ snapfade/
 - Verify deep linking works on both platforms
 - Test session persistence and refresh
 - Ensure onboarding can't be bypassed
+- Test badge calculation accuracy
+- Verify notification delivery
+- Test referral code generation and redemption
 
 ### Known Issues
 | Issue | Severity | Sprint | Status | Resolution |
@@ -241,6 +371,9 @@ snapfade/
 - [ ] Onboarding flow smooth and complete
 - [ ] User profiles properly initialized
 - [ ] Bankroll system working
+- [ ] Badge system calculating correctly
+- [ ] Notifications delivering in real-time
+- [ ] Referral system functional
 - [ ] Settings persisted correctly
 - [ ] Deep linking configured
 - [ ] No critical bugs remaining
@@ -291,12 +424,12 @@ snapfade/
    ```json
    {
      "expo": {
-       "scheme": "snapfade",
+       "scheme": "snapbet",
        "ios": {
-         "bundleIdentifier": "com.snapfade.app"
+         "bundleIdentifier": "com.snapbet.app"
        },
        "android": {
-         "package": "com.snapfade.app"
+         "package": "com.snapbet.app"
        }
      }
    }
@@ -369,7 +502,7 @@ snapfade/
 
 **Tasks**:
 1. [ ] Create welcome screen (app/(auth)/welcome.tsx):
-   - [ ] SnapFade logo (80x80, emerald color)
+   - [ ] SnapBet logo (80x80, emerald color)
    - [ ] Tagline: "Sports betting with friends"
    - [ ] OAuth buttons with provider branding
    - [ ] Legal disclaimer: "For entertainment only. Must be 21+"
@@ -492,7 +625,7 @@ snapfade/
 
 ---
 
-### Sprint 02.03: Onboarding - Team & Follow (3 hours)
+### Sprint 02.03: Team & Follow with Badges (3 hours)
 
 **Objectives**:
 - Build team selection screen (optional)
@@ -572,7 +705,7 @@ snapfade/
 
 ---
 
-### Sprint 02.04: User Profile & Settings (2.5 hours)
+### Sprint 02.04: Profile, Settings & Drawer (2.5 hours)
 
 **Objectives**:
 - Build user profile structure
@@ -580,6 +713,7 @@ snapfade/
 - Implement bankroll display/reset
 - Add profile editing
 - Set up preferences storage
+- Implement navigation drawer
 
 **Tasks**:
 1. [ ] Create user store (stores/userStore.ts):
@@ -639,12 +773,72 @@ snapfade/
    }
    ```
 
+8. [ ] Create drawer content component (components/drawer/DrawerContent.tsx):
+   - [ ] Navigation links
+   - [ ] Profile link
+   - [ ] Settings link
+   - [ ] Notifications link
+   - [ ] Logout button
+
+9. [ ] Implement notification logic:
+   - [ ] Create notification service (services/notifications/notificationService.ts)
+   - [ ] Implement notification handling logic
+   - [ ] Create notification item component (components/notifications/NotificationItem.tsx)
+
 **Success Criteria**:
 - Profile displays correctly
 - Settings persist across sessions
 - Bankroll reset works
 - Can edit profile fields
 - Sign out clears session
+- Drawer content renders correctly
+- Notification logic implemented
+
+---
+
+### Sprint 02.05: Referral & Badge Automation (2 hours)
+
+**Objectives**:
+- Implement referral system
+- Automate badge updates
+- Create growth features
+
+**Tasks**:
+1. [ ] Create referral service (services/referral/referralService.ts):
+   - [ ] Initialize referral system
+   - [ ] Implement referral logic
+   - [ ] Create referral code generation
+   - [ ] Implement referral tracking
+
+2. [ ] Create badge automation service (services/badges/badgeAutomation.ts):
+   - [ ] Implement automated badge updates
+   - [ ] Create badge calculation logic
+   - [ ] Implement badge history tracking
+
+3. [ ] Create referral screen (app/invite/InviteCard.tsx):
+   - [ ] Design referral card
+   - [ ] Implement referral code sharing
+   - [ ] Create referral stats component (app/invite/ReferralStats.tsx)
+
+4. [ ] Implement referral logic:
+   - [ ] Create referral code generation
+   - [ ] Implement referral tracking
+   - [ ] Create referral rewards
+
+5. [ ] Implement badge automation:
+   - [ ] Create automated badge updates
+   - [ ] Implement badge calculation logic
+   - [ ] Implement badge history tracking
+
+6. [ ] Create growth features:
+   - [ ] Implement referral system
+   - [ ] Automate badge updates
+   - [ ] Create growth features
+
+**Success Criteria**:
+- Referral system functional
+- Badge automation implemented
+- Growth features created
 
 ---
 

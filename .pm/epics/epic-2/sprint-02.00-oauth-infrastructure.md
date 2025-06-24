@@ -47,7 +47,7 @@
    - Enable email scope for user data
 
 2. **Deep Linking Setup**:
-   - Configure `snapfade://` scheme in app.json
+   - Configure `snapbet://` scheme in app.json
    - Handle OAuth callbacks through deep links
    - Parse tokens from redirect URLs
 

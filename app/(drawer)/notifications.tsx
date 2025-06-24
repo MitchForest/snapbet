@@ -1,40 +1,74 @@
 import React from 'react';
 import { View, Text } from '@tamagui/core';
-import { Pressable } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ScrollView, RefreshControl, Pressable } from 'react-native';
+import { useNotifications } from '@/hooks/useNotifications';
+import { NotificationItem } from '@/components/notifications/NotificationItem';
 
 export default function NotificationsScreen() {
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const { notifications, isLoading, markAsRead, markAllAsRead, refetch } = useNotifications();
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
+
+  const handleMarkAllRead = async () => {
+    await markAllAsRead();
+  };
+
+  if (isLoading && notifications.length === 0) {
+    return (
+      <View flex={1} justifyContent="center" alignItems="center" backgroundColor="$background">
+        <Text fontSize={16} color="$textSecondary">
+          Loading notifications...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View flex={1} backgroundColor="$background">
-      <View
-        backgroundColor="$surface"
-        borderBottomWidth={1}
-        borderBottomColor="$divider"
-        paddingTop={insets.top}
-        height={56 + insets.top}
-      >
-        <View flexDirection="row" alignItems="center" paddingHorizontal="$4" height={56}>
-          <Pressable onPress={() => router.back()}>
-            <Text fontSize={20}>←</Text>
+      {notifications.length > 0 && (
+        <View
+          paddingHorizontal="$4"
+          paddingVertical="$2"
+          borderBottomWidth={1}
+          borderBottomColor="$divider"
+        >
+          <Pressable onPress={handleMarkAllRead}>
+            <Text fontSize={14} color="$primary" textAlign="right">
+              Mark all as read
+            </Text>
           </Pressable>
-          <Text fontSize={18} fontWeight="600" color="$textPrimary" marginLeft="$4">
-            Notifications
-          </Text>
         </View>
-      </View>
+      )}
 
-      <View flex={1} justifyContent="center" alignItems="center">
-        <Text fontSize={24} color="$textPrimary" fontWeight="600">
-          No notifications yet
-        </Text>
-        <Text fontSize={16} color="$textSecondary" marginTop="$2">
-          Your notifications will appear here
-        </Text>
-      </View>
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10b981" />
+        }
+      >
+        {notifications.length === 0 ? (
+          <View flex={1} justifyContent="center" alignItems="center" paddingVertical="$8">
+            <Text fontSize={18} color="$textSecondary" marginBottom="$2">
+              No notifications yet
+            </Text>
+            <Text fontSize={14} color="$textSecondary" textAlign="center" paddingHorizontal="$4">
+              You'll see notifications here when someone interacts with your picks
+            </Text>
+          </View>
+        ) : (
+          notifications.map((notification) => (
+            <NotificationItem
+              key={notification.id}
+              notification={notification}
+              onPress={() => markAsRead(notification.id)}
+            />
+          ))
+        )}
+      </ScrollView>
     </View>
   );
 }

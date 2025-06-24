@@ -83,7 +83,7 @@ const bodyFont = createInterFont({
   },
 });
 
-// Create custom tokens based on SnapFade design system
+// Create custom tokens based on SnapBet design system
 const tokens = createTokens({
   ...configBase.tokens,
   color: {

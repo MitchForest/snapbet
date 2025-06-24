@@ -1,4 +1,4 @@
-# SnapFade Setup Guide
+# SnapBet Setup Guide
 
 ## Environment Setup
 
@@ -24,7 +24,7 @@
 1. **Clone the repository**
    ```bash
    git clone [repository-url]
-   cd snapfade
+   cd snapbet
    ```
 
 2. **Install dependencies**

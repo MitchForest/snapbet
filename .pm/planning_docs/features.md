@@ -1,4 +1,4 @@
-# SnapFade Feature Specification Document
+# SnapBet Feature Specification Document
 
 ## Table of Contents
 1. [Authentication & Onboarding](#authentication--onboarding)
@@ -149,19 +149,27 @@
 **Description**: Visual indicators of performance shown next to username.
 
 **Badge Types**:
-- 🔥 Hot Streak (3+ wins)
-- 💰 Profit Leader (+$500+)
-- 📈 High ROI (20%+ with 20+ bets)
-- 🎯 Sharp (60%+ win rate, 20+ bets)
-- 🎪 Fade Material (others profit by fading)
-- 👑 Influencer (50+ followers)
-- 💎 Perfect Day (5-0 or better)
+- 🔥 Hot Streak (3+ wins) - Priority: 3
+- 💰 Profit Leader (+$500+) - Priority: 5
+- 📈 High ROI (20%+ with 20+ bets) - Priority: 6
+- 🎯 Sharp (60%+ win rate, 20+ bets) - Priority: 7
+- 🎪 Fade Material (others profit by fading) - Priority: 2
+- 👑 Influencer (50+ followers) - Priority: 4
+- 💎 Perfect Day (5-0 or better) - Priority: 8
+- 🏆 Team Loyalist (20+ bets on favorite team) - Priority: 1
 
 **Display Rules**:
-- Show most relevant badge
-- Update in real-time
-- Appear next to username in feed
-- Clicking shows all earned badges
+- Profile shows ALL earned badges
+- Feed shows ONE badge (user selected or highest priority)
+- Update hourly via edge function
+- Track when earned AND lost
+- Badge history preserved
+
+**Stats Display Customization**:
+- User chooses primary stat: winRate | profit | roi | record | streak
+- Shows next to username in feed (e.g., "@mikebets • 67% Win Rate")
+- Configurable in settings
+- Default based on best performance metric
 
 ### Settings Management
 **Description**: User preferences and app settings.
@@ -727,6 +735,46 @@
 - Cache for performance
 - Show "last updated"
 
+## Referral System
+
+### Referral Code Generation
+**Description**: Users can invite friends with personalized codes.
+
+**Code Format**:
+- 6 characters: First 3 from username + 3 random
+- Example: MIK2X9, SAR8K1
+- Case insensitive
+- Unique per user
+
+**Sharing Options**:
+- Copy to clipboard
+- Native share sheet
+- Pre-filled message template
+- Deep link: snapbet.app/invite/CODE
+
+### Referral Rewards
+**Description**: Incentives for growing the platform.
+
+**Reward Structure**:
+- Referrer: $5 per successful referral
+- Referred: $10 bonus on signup
+- Milestone bonuses:
+  - 5 referrals: $25 bonus
+  - 10 referrals: $50 bonus
+  - 25 referrals: $150 bonus
+
+**Activation Requirements**:
+- Referred user must place first bet
+- Prevents signup-only abuse
+- One-time per referred user
+- Rewards credited immediately
+
+**Tracking**:
+- Referral stats in profile
+- List of successful referrals
+- Total earnings from referrals
+- Leaderboard (future)
+
 ## Gamification & Achievements
 
 ### Streak Tracking
@@ -1030,4 +1078,4 @@ npm run seed
 
 ---
 
-This comprehensive feature specification covers every aspect of SnapFade, from core functionality to future RAG enhancements. Each feature is detailed with requirements, user flows, edge cases, and technical considerations.
+This comprehensive feature specification covers every aspect of SnapBet, from core functionality to future RAG enhancements. Each feature is detailed with requirements, user flows, edge cases, and technical considerations.

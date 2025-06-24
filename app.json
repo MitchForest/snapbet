@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "snapfade",
-    "slug": "snapfade",
+    "name": "snapbet",
+    "slug": "snapbet",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "scheme": "snapfade",
+    "scheme": "snapbet",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.snapfade.app"
+      "bundleIdentifier": "com.snapbet.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +23,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.snapfade.app"
+      "package": "com.snapbet.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"

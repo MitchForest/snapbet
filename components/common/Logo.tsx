@@ -20,7 +20,7 @@ export function Logo({ size = 80 }: LogoProps) {
           textAnchor="middle"
           alignmentBaseline="middle"
         >
-          SF
+          SB
         </SvgText>
       </Svg>
     </View>

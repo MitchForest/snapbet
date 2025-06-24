@@ -1,6 +1,6 @@
-# SnapFade Scripts Documentation
+# SnapBet Scripts Documentation
 
-This directory contains administrative scripts for managing the SnapFade database and mock data.
+This directory contains administrative scripts for managing the SnapBet database and mock data.
 
 ## Prerequisites
 

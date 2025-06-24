@@ -1,4 +1,4 @@
-# SnapFade Component Architecture Document
+# SnapBet Component Architecture Document
 
 ## Table of Contents
 1. [Architecture Overview](#architecture-overview)
@@ -843,4 +843,4 @@ it('renders correctly in compact mode', () => {
 
 ---
 
-This Component Architecture Document provides a comprehensive blueprint for building SnapFade's UI components with consistency, reusability, and performance in mind. The patterns and structures defined here will ensure a maintainable and scalable component library.
+This Component Architecture Document provides a comprehensive blueprint for building SnapBet's UI components with consistency, reusability, and performance in mind. The patterns and structures defined here will ensure a maintainable and scalable component library.

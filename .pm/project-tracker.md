@@ -1,4 +1,4 @@
-# SnapFade - Project Tracker
+# SnapBet - Project Tracker
 
 ## Overview
 This document tracks high-level progress across all epics, maintains key architectural decisions, and serves as persistent memory for the project.
@@ -8,7 +8,7 @@ This document tracks high-level progress across all epics, maintains key archite
 | Epic # | Epic Name | Status | Start Date | End Date | Key Outcome |
 |--------|-----------|--------|------------|----------|-------------|
 | 01 | Foundation & Infrastructure | COMPLETED | Dec 2024 | Dec 2024 | Complete dev environment and core architecture |
-| 02 | Authentication & User System | IN PROGRESS | 2024-12-19 | - | OAuth flow and user profile management |
+| 02 | Authentication & User System | IN PROGRESS | 2024-12-19 | - | OAuth, profiles, badges, notifications, referrals |
 | 03 | Social Feed & Content | NOT STARTED | - | - | Photo/video sharing with stories |
 | 04 | Betting System | NOT STARTED | - | - | Mock betting with tail/fade mechanics |
 | 05 | Messaging & Real-time | NOT STARTED | - | - | DMs, group chats, real-time updates |
@@ -46,13 +46,20 @@ This document tracks high-level progress across all epics, maintains key archite
 | Dec 2024 | Add mock user columns to users table | Support personality-driven mock data per mock.md | Epic 1 |
 | Dec 2024 | Defer materialized views | Not needed for basic infrastructure | Epic 1 → Epic 4/6 |
 | Dec 2024 | Add .prettierignore for generated files | Prevent formatting issues with auto-generated code | Epic 1 |
+| Dec 2024 | Badge system auto-assigned with selection | Ensures authenticity while giving user control | Epic 2 |
+| Dec 2024 | Single stat display in feed | Reduces clutter, emphasizes user choice | Epic 2 |
+| Dec 2024 | Profile shows Posts/Bets tabs | More engaging than just stats view | Epic 2 |
+| Dec 2024 | Referral rewards on first bet | Prevents abuse while encouraging engagement | Epic 2 |
 
 ### Established Patterns
-- **Authentication**: [TBD - OAuth with Supabase]
+- **Authentication**: OAuth-only with Supabase (Google/Twitter)
 - **Error Handling**: [TBD]
 - **Data Fetching**: [TBD - React Query pattern]
-- **State Management**: [TBD - Zustand for app state]
+- **State Management**: Zustand for app state
 - **Component Structure**: [TBD]
+- **Badge System**: Auto-calculated with user selection for display
+- **Stats Display**: User-customizable primary stat
+- **Navigation**: Drawer menu for non-tab screens
 
 ## Technology Stack Evolution
 
@@ -67,38 +74,47 @@ This document tracks high-level progress across all epics, maintains key archite
 ### Additional Libraries Added
 | Library | Purpose | Added In Epic | Rationale |
 |---------|---------|---------------|-----------|
+| expo-sharing | Native share for referrals | Epic 2 | Referral system sharing |
+| expo-notifications | Push notifications | Epic 2 | Engagement features |
 | [Libraries will be tracked as added] | [Why needed] | Epic # | [Reason for choice] |
 
 ## Critical Gotchas & Learnings
 
 ### Things That Tripped Us Up
-[Will be populated during development]
+- Tamagui doesn't export Button/Spinner components - use React Native equivalents
+- AuthError interface too complex to extend - create custom error types
+- Username validation needs race condition handling - implement smart caching
 
 ### Performance Optimizations
 [Will be tracked as implemented]
 
 ### Security Considerations Implemented
-[Will be tracked as implemented]
+- OAuth tokens in secure storage only
+- Username validation with debouncing
+- Referral code abuse prevention
 
 ## User Story Completion Status
 
 | User Story | Status | Fully Enabled By Epics | Notes |
 |------------|--------|------------------------|-------|
-| Story 1: Social Pick Sharing | NOT STARTED | Epic 1, 2, 3 | Camera, feed, media storage |
+| Story 1: Social Pick Sharing | PARTIAL | Epic 1, 2, 3 | Auth/profiles ready, need camera/feed |
 | Story 2: Tail/Fade Decisions | NOT STARTED | Epic 3, 4 | Betting logic and UI |
 | Story 3: Ephemeral Content | NOT STARTED | Epic 1, 3 | Auto-expiration system |
 | Story 4: Group Coordination | NOT STARTED | Epic 5 | Messaging system |
-| Story 5: Performance Tracking | NOT STARTED | Epic 4, 6 | Stats and profiles |
+| Story 5: Performance Tracking | PARTIAL | Epic 2, 4, 6 | Badge system started, need full stats |
 | Story 6: AI Insights (RAG) | NOT STARTED | Epic 7, 8, 9 | Phase 2 features |
 
 ## Refactoring & Technical Debt
 
 ### Completed Refactoring
-[Will be tracked as completed]
+- Created CustomAuthError instead of extending AuthError (Sprint 02.00)
+- Inline SVG icons instead of icon library dependency (Sprint 02.01)
 
 ### Identified Technical Debt
 | Issue | Severity | Identified In | Planned Resolution |
 |-------|----------|---------------|-------------------|
+| Badge calculation performance | LOW | Epic 2 | Batch processing hourly |
+| Notification scaling | MEDIUM | Epic 2 | Pagination in Epic 6 |
 | [Debt items will be tracked] | HIGH/MED/LOW | Epic # | Epic # or "Post-MVP" |
 
 ## Production Readiness Checklist
@@ -162,25 +178,48 @@ This document tracks high-level progress across all epics, maintains key archite
 2. How do we handle ties/pushes in fade scenarios? - Blocks: Epic 4
 3. Should stories auto-generate for milestones? - Blocks: Epic 3
 4. What's the max group chat size? - Blocks: Epic 5
-5. Do we need a tutorial/onboarding flow? - Blocks: Epic 2
+5. Do we need a tutorial/onboarding flow? - Blocks: Epic 2 - ANSWERED: Yes, 3-step onboarding
 
 ## Next Steps
 
-**Current Epic**: Epic 2 - Authentication & User System (IN PROGRESS - Sprint 02.00 APPROVED)
-**Next Planned Epic**: Epic 3 - Social Feed & Content
+**Current Epic**: Epic 2 - Authentication & User System (IN PROGRESS - Sprints 02.00-02.03 APPROVED, 02.04 IN PROGRESS)
+**Current Sprint**: Sprint 02.04 - Profile, Settings & Drawer (IN PROGRESS)
 **Blocked Items**: None
 **P0 Items in Backlog**: 0
 
-### Ready for Epic 2
-With Epic 1 complete, we now have:
-- ✅ Working development environment
-- ✅ Database with users table ready for OAuth
-- ✅ Navigation structure for auth flows
-- ✅ Theme system for consistent UI
-- ✅ Mock users to test with
-- ✅ Clean, lint-free codebase
+### Epic 2 Progress Update
+With Sprints 02.00-02.03 complete, we now have:
+- ✅ OAuth with Google/Twitter working
+- ✅ Welcome screen implemented
+- ✅ Username selection with validation
+- ✅ Session management secure
+- ✅ Team selection (optional) with 62 teams
+- ✅ Follow suggestions with smart algorithm
+- ✅ Badge system infrastructure (8 types)
+- ✅ Mock users with realistic stats
+- ⏳ Profile system with Posts/Bets tabs (Sprint 02.04)
+- ⏳ Complete drawer navigation menu (Sprint 02.04)
+- ⏳ Settings screens and customization (Sprint 02.04)
+- ⏳ Notification system foundation (Sprint 02.04)
+- ⏳ Referral system and automation (Sprint 02.05)
+
+### Sprint 02.03 Key Achievements
+- Implemented all 62 NFL/NBA teams with official colors
+- Smart follow suggestions based on team preference and performance
+- Badge calculation service with proper thresholds
+- Enhanced mock user data with realistic personality-based stats
+- Database migrations for badge tracking and stats metadata
+
+### New Features Added to Epic 2
+Based on review, Epic 2 has been expanded to include:
+- **Badge/Achievement System**: 8 badge types with auto-calculation ✅
+- **Stats Display Customization**: Users choose primary stat to show ✅
+- **Enhanced Profile**: Posts/Bets tabs instead of just stats (IN PROGRESS)
+- **Drawer Navigation**: Complete menu system (IN PROGRESS)
+- **Notification Foundation**: Real-time system with preferences (IN PROGRESS)
+- **Referral System**: Growth mechanics with rewards (NOT STARTED)
 
 ---
 
-*Last Updated: Dec 2024*
-*Updated By: Epic 01 Complete* 
+*Last Updated: December 20, 2024*
+*Updated By: Sprint 02.03 Completion & Sprint 02.04 Start* 

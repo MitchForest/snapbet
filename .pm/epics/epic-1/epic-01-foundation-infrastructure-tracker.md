@@ -7,7 +7,7 @@
 **Target End Date**: Day 1 (end)  
 **Actual End Date**: Dec 2024
 
-**Epic Goal**: Set up the complete development environment, core architecture, and foundational infrastructure for the SnapFade mobile app.
+**Epic Goal**: Set up the complete development environment, core architecture, and foundational infrastructure for the SnapBet mobile app.
 
 **User Stories Addressed**:
 - Story 1-6: This epic enables all stories by providing the foundational infrastructure
@@ -77,7 +77,7 @@ This epic establishes the foundational architecture:
 
 ### File Structure for Epic
 ```
-snapfade/
+snapbet/
 ├── app/                    # Expo Router screens
 │   ├── (auth)/            # Auth group
 │   ├── (tabs)/            # Main app tabs
@@ -119,7 +119,7 @@ snapfade/
 ### Key Functions/Components Created
 - `createSupabaseClient()` - Initialize Supabase - Sprint 01.01
 - `AppNavigator` - Main navigation structure - Sprint 01.02
-- `SnapFadeTheme` - Tamagui theme with warm colors - Sprint 01.02
+- `SnapBetTheme` - Tamagui theme with warm colors - Sprint 01.02
 - `TabBar` - Custom tab bar with raised camera button - Sprint 01.02
 - `DrawerContent` - Profile drawer component - Sprint 01.02
 - `seedMockUsers()` - Create test data - Sprint 01.03
@@ -230,7 +230,7 @@ snapfade/
 
 ## Epic Summary for Project Tracker
 
-**Epic 01 successfully established the complete foundation for SnapFade development.**
+**Epic 01 successfully established the complete foundation for SnapBet development.**
 
 **Delivered Features**:
 - Complete Expo development environment with TypeScript
@@ -344,12 +344,12 @@ snapfade/
 - Install and configure Tamagui
 - Set up Expo Router navigation
 - Create base layout with drawer and tabs
-- Implement SnapFade theme
+- Implement SnapBet theme
 
 **Tasks**:
 1. [ ] Install Tamagui and dependencies
 2. [ ] Configure Tamagui with Expo
-3. [ ] Create theme with SnapFade colors:
+3. [ ] Create theme with SnapBet colors:
    - Primary: Emerald (#059669)
    - Background: Warm off-white (#FAF9F5)
    - Surface: White (#FFFFFF)
@@ -359,7 +359,7 @@ snapfade/
 5. [ ] Create drawer navigation (left side)
 6. [ ] Create bottom tab navigation with raised camera button
 7. [ ] Add placeholder screens for all routes
-8. [ ] Implement header with SnapFade logo (emerald)
+8. [ ] Implement header with SnapBet logo (emerald)
 
 **Success Criteria**:
 - Theme colors match warm, light design system

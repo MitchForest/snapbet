@@ -1,4 +1,4 @@
-# SnapFade Technical Architecture Document
+# SnapBet Technical Architecture Document
 
 ## Table of Contents
 1. [System Overview](#system-overview)
@@ -961,7 +961,7 @@ const queryClient = new QueryClient({
 
 // Query key factory
 const queryKeys = {
-  all: ['snapfade'] as const,
+  all: ['snapbet'] as const,
   posts: () => [...queryKeys.all, 'posts'] as const,
   feed: () => [...queryKeys.posts(), 'feed'] as const,
   post: (id: string) => [...queryKeys.posts(), id] as const,
@@ -1498,4 +1498,4 @@ Cache Layers:
 
 ---
 
-This comprehensive technical architecture document provides the complete blueprint for building SnapFade, covering all aspects from system design to deployment and scaling strategies.
+This comprehensive technical architecture document provides the complete blueprint for building SnapBet, covering all aspects from system design to deployment and scaling strategies.

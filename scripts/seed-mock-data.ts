@@ -25,6 +25,217 @@ const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey, {
   },
 });
 
+// Helper to generate realistic bankroll stats based on personality
+function generateBankrollStats(personality: PersonalityType, username: string) {
+  const baseStats = {
+    balance: 100000, // Start at $1,000
+    last_reset: new Date().toISOString(),
+    reset_count: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  // Generate dates for perfect days
+  const generatePerfectDays = (count: number): string[] => {
+    const days: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - Math.floor(Math.random() * 30));
+      days.push(date.toISOString().split('T')[0]);
+    }
+    return days;
+  };
+
+  // Generate team bet counts
+  const generateTeamBets = (primaryTeam?: string): Record<string, number> => {
+    const teams: Record<string, number> = {};
+    if (primaryTeam) {
+      teams[primaryTeam] = Math.floor(Math.random() * 10) + 20; // 20-30 bets
+    }
+    // Add some random teams
+    const otherTeams = ['KC', 'BUF', 'LAL', 'GSW', 'DAL', 'SF'];
+    for (let i = 0; i < 3; i++) {
+      const team = otherTeams[Math.floor(Math.random() * otherTeams.length)];
+      if (team !== primaryTeam) {
+        teams[team] = Math.floor(Math.random() * 10) + 1;
+      }
+    }
+    return teams;
+  };
+
+  switch (personality) {
+    case PersonalityType.SHARP_BETTOR:
+      return {
+        ...baseStats,
+        balance: 115000 + Math.floor(Math.random() * 10000), // $1,150-$1,250
+        total_wagered: 1000000 + Math.floor(Math.random() * 200000), // $10k-12k wagered
+        total_won: 1150000 + Math.floor(Math.random() * 100000), // 15% ROI
+        win_count: 65 + Math.floor(Math.random() * 10),
+        loss_count: 35 + Math.floor(Math.random() * 10),
+        push_count: Math.floor(Math.random() * 5),
+        biggest_win: 15000 + Math.floor(Math.random() * 5000),
+        biggest_loss: 8000 + Math.floor(Math.random() * 2000),
+        season_high: 125000,
+        season_low: 95000,
+        stats_metadata: {
+          perfect_days: generatePerfectDays(2),
+          team_bet_counts: generateTeamBets(),
+          fade_profit_generated: -500, // People lose money fading sharps
+          current_streak: Math.floor(Math.random() * 5) + 1,
+          best_streak: 7 + Math.floor(Math.random() * 3),
+          last_bet_date: new Date().toISOString().split('T')[0],
+          daily_records: {},
+        },
+      };
+
+    case PersonalityType.FADE_MATERIAL:
+      return {
+        ...baseStats,
+        balance: 70000 + Math.floor(Math.random() * 10000), // $700-$800
+        total_wagered: 1000000 + Math.floor(Math.random() * 200000),
+        total_won: 780000 + Math.floor(Math.random() * 50000), // -22% ROI
+        win_count: 35 + Math.floor(Math.random() * 5),
+        loss_count: 65 + Math.floor(Math.random() * 10),
+        push_count: Math.floor(Math.random() * 5),
+        biggest_win: 8000 + Math.floor(Math.random() * 2000),
+        biggest_loss: 15000 + Math.floor(Math.random() * 5000),
+        season_high: 110000,
+        season_low: 65000,
+        stats_metadata: {
+          perfect_days: [], // Never had one
+          team_bet_counts: generateTeamBets('NYJ'), // Bad team choices
+          fade_profit_generated: 2200 + Math.floor(Math.random() * 500),
+          current_streak: -Math.floor(Math.random() * 5) - 1,
+          best_streak: 2,
+          last_bet_date: new Date().toISOString().split('T')[0],
+          daily_records: {},
+        },
+      };
+
+    case PersonalityType.SQUARE_BETTOR:
+      return {
+        ...baseStats,
+        balance: 85000 + Math.floor(Math.random() * 10000), // $850-$950
+        total_wagered: 800000 + Math.floor(Math.random() * 200000),
+        total_won: 720000 + Math.floor(Math.random() * 80000), // -10% ROI
+        win_count: 45 + Math.floor(Math.random() * 5),
+        loss_count: 55 + Math.floor(Math.random() * 5),
+        push_count: Math.floor(Math.random() * 3),
+        biggest_win: 10000,
+        biggest_loss: 12000,
+        season_high: 105000,
+        season_low: 80000,
+        stats_metadata: {
+          perfect_days: generatePerfectDays(Math.random() > 0.7 ? 1 : 0),
+          team_bet_counts: generateTeamBets('DAL'), // Popular teams
+          fade_profit_generated: 500,
+          current_streak: Math.random() > 0.5 ? 1 : -2,
+          best_streak: 4,
+          last_bet_date: new Date().toISOString().split('T')[0],
+          daily_records: {},
+        },
+      };
+
+    case PersonalityType.CHALK_EATER:
+      return {
+        ...baseStats,
+        balance: 102000 + Math.floor(Math.random() * 5000), // $1,020-$1,070
+        total_wagered: 1500000, // Bets heavy favorites
+        total_won: 1530000, // Small but consistent profit
+        win_count: 75,
+        loss_count: 25,
+        push_count: 0,
+        biggest_win: 5000,
+        biggest_loss: 20000, // When heavy favorite loses
+        season_high: 108000,
+        season_low: 95000,
+        stats_metadata: {
+          perfect_days: generatePerfectDays(3),
+          team_bet_counts: generateTeamBets('KC'), // Bet on favorites
+          fade_profit_generated: -100,
+          current_streak: 3,
+          best_streak: 12,
+          last_bet_date: new Date().toISOString().split('T')[0],
+          daily_records: {},
+        },
+      };
+
+    case PersonalityType.PARLAY_DEGEN:
+      return {
+        ...baseStats,
+        balance: 50000 + Math.floor(Math.random() * 50000), // $500-$1,000 (high variance)
+        total_wagered: 500000,
+        total_won: 450000 + Math.floor(Math.random() * 100000),
+        win_count: 10,
+        loss_count: 90,
+        push_count: 0,
+        biggest_win: 50000, // Hit a big parlay
+        biggest_loss: 5000,
+        season_high: 150000, // When they hit
+        season_low: 40000,
+        stats_metadata: {
+          perfect_days: [],
+          team_bet_counts: generateTeamBets(),
+          fade_profit_generated: 0,
+          current_streak: -8,
+          best_streak: 2,
+          last_bet_date: new Date().toISOString().split('T')[0],
+          daily_records: {},
+        },
+      };
+
+    case PersonalityType.HOMER: {
+      const favoriteTeam = mockUsers.find((u) => u.username === username)?.favorite_team;
+      return {
+        ...baseStats,
+        balance: 90000 + Math.floor(Math.random() * 10000),
+        total_wagered: 600000,
+        total_won: 540000,
+        win_count: 40,
+        loss_count: 50,
+        push_count: 5,
+        biggest_win: 12000,
+        biggest_loss: 10000,
+        season_high: 110000,
+        season_low: 85000,
+        stats_metadata: {
+          perfect_days: generatePerfectDays(1),
+          team_bet_counts: favoriteTeam ? { [favoriteTeam]: 85 } : generateTeamBets(),
+          fade_profit_generated: 200,
+          current_streak: favoriteTeam === 'LAL' ? 2 : -1, // Lakers doing well
+          best_streak: 5,
+          last_bet_date: new Date().toISOString().split('T')[0],
+          daily_records: {},
+        },
+      };
+    }
+
+    default: // CASUAL, ENTERTAINMENT, etc.
+      return {
+        ...baseStats,
+        balance: 95000 + Math.floor(Math.random() * 10000),
+        total_wagered: 200000,
+        total_won: 190000,
+        win_count: 20,
+        loss_count: 22,
+        push_count: 2,
+        biggest_win: 5000,
+        biggest_loss: 5000,
+        season_high: 105000,
+        season_low: 90000,
+        stats_metadata: {
+          perfect_days: generatePerfectDays(Math.random() > 0.8 ? 1 : 0),
+          team_bet_counts: generateTeamBets(),
+          fade_profit_generated: 0,
+          current_streak: Math.random() > 0.5 ? 1 : -1,
+          best_streak: 3,
+          last_bet_date: new Date().toISOString().split('T')[0],
+          daily_records: {},
+        },
+      };
+  }
+}
+
 // Helper to generate follow relationships
 function generateFollowRelationships(
   userIds: string[]
@@ -124,12 +335,16 @@ async function seedMockData() {
 
     console.log(`✅ Created ${createdUsers.length} mock users`);
 
-    // Step 2: Create bankrolls for each user
-    console.log('\n💰 Creating bankrolls...');
-    const bankrollInserts = createdUsers.map((user) => ({
-      user_id: user.id,
-      balance: 100000, // $1,000.00 in cents
-    }));
+    // Step 2: Create bankrolls with realistic stats for each user
+    console.log('\n💰 Creating bankrolls with realistic stats...');
+
+    const bankrollInserts = createdUsers.map((user) => {
+      const mockUser = mockUsers.find((m) => m.username === user.username)!;
+      return {
+        user_id: user.id,
+        ...generateBankrollStats(mockUser.personality, user.username),
+      };
+    });
 
     const { error: bankrollsError } = await supabase.from('bankrolls').insert(bankrollInserts);
 
@@ -138,7 +353,7 @@ async function seedMockData() {
       return;
     }
 
-    console.log('✅ Created bankrolls for all users');
+    console.log('✅ Created bankrolls with realistic stats for all users');
 
     // Step 3: Create follow relationships
     console.log('\n🤝 Creating follow relationships...');
@@ -228,7 +443,7 @@ async function seedMockData() {
     // Summary
     console.log('\n📊 Seeding Summary:');
     console.log(`  ✓ ${createdUsers.length} mock users created`);
-    console.log(`  ✓ ${createdUsers.length} bankrolls created ($1,000 each)`);
+    console.log(`  ✓ ${createdUsers.length} bankrolls created with realistic stats`);
     console.log(`  ✓ ${followRelationships.length} follow relationships`);
     console.log(`  ✓ ${createdGames.length} games (${completedGames.length} completed)`);
     console.log(`  ✓ ${betCount} historical bets`);

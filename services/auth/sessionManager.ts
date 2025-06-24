@@ -2,7 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Session } from '@supabase/supabase-js';
 import { SessionData } from './types';
 
-const SESSION_KEY = 'snapfade_session';
+const SESSION_KEY = 'snapbet_session';
 const REFRESH_BUFFER = 60 * 5; // Refresh 5 minutes before expiry
 
 export class SessionManager {

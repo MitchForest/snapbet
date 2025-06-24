@@ -37,10 +37,12 @@ export const Header: React.FC<HeaderProps> = ({
           <Avatar size={32} />
         </Pressable>
 
-        {/* SnapFade Logo */}
-        <Text fontSize={24} fontWeight="600" color="$primary" fontFamily="$heading">
-          SnapFade
-        </Text>
+        {/* SnapBet Logo */}
+        <View flex={1} alignItems="center" justifyContent="center">
+          <Text fontSize={24} fontWeight="600" color="$primary" fontFamily="$heading">
+            SnapBet
+          </Text>
+        </View>
 
         {/* Notification Bell */}
         <Pressable onPress={onNotificationPress}>
