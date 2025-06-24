@@ -1,14 +1,101 @@
-import React from 'react';
-import { Slot } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Slot, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { TamaguiProvider } from '@tamagui/core';
 import config from '@/theme';
+import { AuthProvider } from '@/components/auth/AuthProvider';
+import { useAuthStore } from '@/stores/authStore';
+import { supabase } from '@/services/supabase/client';
+import { View, Text } from '@tamagui/core';
+import { ActivityIndicator } from 'react-native';
+
+function RootLayoutNav() {
+  const router = useRouter();
+  const segments = useSegments();
+  const { user, isAuthenticated, isLoading, checkSession } = useAuthStore();
+  const [hasUsername, setHasUsername] = useState<boolean | null>(null);
+  const [checkingProfile, setCheckingProfile] = useState(false);
+
+  // Check session on mount
+  useEffect(() => {
+    checkSession();
+  }, [checkSession]);
+
+  // Check if user has username when authenticated
+  useEffect(() => {
+    async function checkUserProfile() {
+      if (!user) {
+        setHasUsername(null);
+        return;
+      }
+
+      setCheckingProfile(true);
+      try {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('username')
+          .eq('id', user.id)
+          .single();
+
+        setHasUsername(!!profile?.username);
+      } catch (error) {
+        console.error('Error checking user profile:', error);
+        setHasUsername(false);
+      } finally {
+        setCheckingProfile(false);
+      }
+    }
+
+    checkUserProfile();
+  }, [user]);
+
+  // Handle navigation based on auth state
+  useEffect(() => {
+    if (isLoading || checkingProfile) return;
+
+    const inAuthGroup = segments[0] === '(auth)';
+    const inDrawerGroup = segments[0] === '(drawer)';
+
+    if (!isAuthenticated) {
+      // Not authenticated, redirect to welcome
+      if (!inAuthGroup) {
+        router.replace('/(auth)/welcome');
+      }
+    } else if (hasUsername === false) {
+      // Authenticated but no username, redirect to onboarding
+      if (segments.join('/') !== '(auth)/onboarding/username') {
+        router.replace('/(auth)/onboarding/username');
+      }
+    } else if (hasUsername === true) {
+      // Authenticated with username, redirect to main app
+      if (!inDrawerGroup) {
+        router.replace('/(drawer)/(tabs)');
+      }
+    }
+  }, [isAuthenticated, hasUsername, isLoading, checkingProfile, segments, router]);
+
+  // Show loading screen while checking auth
+  if (isLoading || (isAuthenticated && checkingProfile)) {
+    return (
+      <View flex={1} backgroundColor="$background" justifyContent="center" alignItems="center">
+        <ActivityIndicator size="large" color="#059669" />
+        <Text marginTop="$4" color="$textSecondary">
+          Loading...
+        </Text>
+      </View>
+    );
+  }
+
+  return <Slot />;
+}
 
 export default function RootLayout() {
   return (
     <TamaguiProvider config={config}>
-      <StatusBar style="dark" />
-      <Slot />
+      <AuthProvider>
+        <StatusBar style="dark" />
+        <RootLayoutNav />
+      </AuthProvider>
     </TamaguiProvider>
   );
 }

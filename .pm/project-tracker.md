@@ -8,7 +8,7 @@ This document tracks high-level progress across all epics, maintains key archite
 | Epic # | Epic Name | Status | Start Date | End Date | Key Outcome |
 |--------|-----------|--------|------------|----------|-------------|
 | 01 | Foundation & Infrastructure | COMPLETED | Dec 2024 | Dec 2024 | Complete dev environment and core architecture |
-| 02 | Authentication & User System | NOT STARTED | - | - | OAuth flow and user profile management |
+| 02 | Authentication & User System | IN PROGRESS | 2024-12-19 | - | OAuth flow and user profile management |
 | 03 | Social Feed & Content | NOT STARTED | - | - | Photo/video sharing with stories |
 | 04 | Betting System | NOT STARTED | - | - | Mock betting with tail/fade mechanics |
 | 05 | Messaging & Real-time | NOT STARTED | - | - | DMs, group chats, real-time updates |
@@ -166,7 +166,7 @@ This document tracks high-level progress across all epics, maintains key archite
 
 ## Next Steps
 
-**Current Epic**: Epic 2 - Authentication & User System (Ready to Start)
+**Current Epic**: Epic 2 - Authentication & User System (IN PROGRESS - Sprint 02.00 APPROVED)
 **Next Planned Epic**: Epic 3 - Social Feed & Content
 **Blocked Items**: None
 **P0 Items in Backlog**: 0
