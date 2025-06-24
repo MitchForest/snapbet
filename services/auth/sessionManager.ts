@@ -10,16 +10,8 @@ export class SessionManager {
 
   async saveSession(session: Session): Promise<void> {
     try {
-      const sessionData: SessionData = {
-        access_token: session.access_token,
-        refresh_token: session.refresh_token,
-        expires_at: session.expires_at || 0,
-        user: session.user,
-      };
-
-      await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(sessionData));
-
-      // Schedule automatic refresh
+      console.log('Saving session with expiry:', new Date(session.expires_at! * 1000).toISOString());
+      await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session));
       this.scheduleRefresh(session.expires_at || 0);
     } catch (error) {
       console.error('Failed to save session:', error);

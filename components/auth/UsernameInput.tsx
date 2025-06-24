@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text } from '@tamagui/core';
-import { TextInput, ActivityIndicator } from 'react-native';
+import { TextInput, ActivityIndicator, StyleSheet } from 'react-native';
 import { validateUsername } from '@/utils/validation/username';
 import { checkUsernameAvailability } from '@/services/api/checkUsername';
+import { Colors } from '@/theme';
 
 interface UsernameInputProps {
   value: string;
@@ -75,7 +76,7 @@ export function UsernameInput({ value, onChange, onValidation }: UsernameInputPr
         clearTimeout(checkTimeoutRef.current);
       }
     };
-  }, [value, checkAvailability]);
+  }, [value, checkAvailability, onValidation]);
 
   const handleChange = (text: string) => {
     // Only allow lowercase letters, numbers, and underscores
@@ -84,61 +85,84 @@ export function UsernameInput({ value, onChange, onValidation }: UsernameInputPr
   };
 
   return (
-    <View gap="$2">
-      <View position="relative">
+    <View style={styles.container}>
+      <View style={styles.inputWrapper}>
+        <Text style={styles.inputPrefix}>@</Text>
         <TextInput
+          style={[
+            styles.input,
+            validationError && styles.inputError,
+            isAvailable && styles.inputSuccess,
+          ]}
           value={value}
           onChangeText={handleChange}
           placeholder="username"
+          placeholderTextColor={Colors.text.tertiary}
           autoCapitalize="none"
           autoCorrect={false}
+          autoComplete="username"
           maxLength={20}
-          style={{
-            paddingLeft: 32,
-            paddingRight: 40,
-            borderColor: validationError ? '#EF4444' : isAvailable ? '#10B981' : '#E5E7EB',
-            borderWidth: 1,
-            borderRadius: 8,
-            height: 48,
-            fontSize: 16,
-            backgroundColor: 'white',
-          }}
         />
-
-        {/* @ Prefix */}
-        <Text
-          position="absolute"
-          left="$3"
-          top="50%"
-          transform={[{ translateY: -8 }]}
-          color="$textSecondary"
-          fontSize={16}
-        >
-          @
-        </Text>
-
-        {/* Status indicator */}
-        <View position="absolute" right="$3" top="50%" transform={[{ translateY: -12 }]}>
-          {isChecking && <ActivityIndicator size="small" color="#059669" />}
-          {!isChecking && isAvailable && (
-            <Text fontSize={20} color="$success">
-              ✓
-            </Text>
-          )}
-          {!isChecking && validationError && (
-            <Text fontSize={20} color="$error">
-              ✗
-            </Text>
-          )}
-        </View>
+        {isChecking && (
+          <ActivityIndicator style={styles.inputIcon} size="small" color={Colors.primaryDark} />
+        )}
+        {!isChecking && isAvailable && value && (
+          <Text style={[styles.inputIcon, styles.checkmark]}>✓</Text>
+        )}
       </View>
 
-      {/* Error message */}
-      {validationError && (
-        <Text fontSize={12} color="$error" marginLeft="$2">
-          {validationError}
-        </Text>
+      {validationError && <Text style={styles.errorText}>{validationError}</Text>}
+
+      {!isAvailable && !validationError && value && (
+        <Text style={styles.errorText}>Username is already taken</Text>
       )}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    marginVertical: 16,
+  },
+  inputWrapper: {
+    position: 'relative' as const,
+  },
+  inputPrefix: {
+    position: 'absolute' as const,
+    left: 16,
+    top: 14,
+    fontSize: 16,
+    color: Colors.text.secondary,
+    zIndex: 1,
+  },
+  input: {
+    paddingLeft: 32,
+    paddingRight: 40,
+    borderColor: Colors.border.default,
+    borderWidth: 1,
+    borderRadius: 8,
+    height: 48,
+    fontSize: 16,
+    backgroundColor: Colors.white,
+  },
+  inputError: {
+    borderColor: Colors.error,
+  },
+  inputSuccess: {
+    borderColor: Colors.success,
+  },
+  inputIcon: {
+    position: 'absolute' as const,
+    right: 16,
+    top: 14,
+  },
+  checkmark: {
+    fontSize: 16,
+    color: Colors.success,
+  },
+  errorText: {
+    color: Colors.error,
+    fontSize: 14,
+    marginTop: 4,
+  },
+});

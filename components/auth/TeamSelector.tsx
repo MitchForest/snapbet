@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { TeamCard } from './TeamCard';
 import { NFL_TEAMS, NBA_TEAMS } from '@/data/teams';
+import { Colors } from '@/theme';
 
 interface TeamSelectorProps {
   selectedTeam?: string | null;
@@ -37,7 +38,7 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({ selectedTeam, onSele
         showsVerticalScrollIndicator={false}
       >
         {teams.map((team) => (
-          <View key={team.id} style={styles.gridItem}>
+          <View key={team.id} style={styles.teamCard}>
             <TeamCard team={team} selected={selectedTeam === team.id} onPress={onSelectTeam} />
           </View>
         ))}
@@ -52,7 +53,7 @@ const styles = StyleSheet.create({
   },
   toggleContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: Colors.gray[100],
     borderRadius: 8,
     padding: 4,
     marginBottom: 16,
@@ -60,13 +61,12 @@ const styles = StyleSheet.create({
   toggleButton: {
     flex: 1,
     paddingVertical: 8,
-    paddingHorizontal: 16,
     borderRadius: 6,
     alignItems: 'center',
   },
   toggleButtonActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
+    backgroundColor: Colors.white,
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -75,10 +75,10 @@ const styles = StyleSheet.create({
   toggleText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#6B7280',
+    color: Colors.text.secondary,
   },
   toggleTextActive: {
-    color: '#1F2937',
+    color: Colors.text.primary,
   },
   scrollView: {
     flex: 1,
@@ -86,9 +86,9 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingBottom: 20,
+    marginHorizontal: -4,
   },
-  gridItem: {
+  teamCard: {
     width: '25%',
     padding: 4,
   },

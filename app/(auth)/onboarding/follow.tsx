@@ -15,6 +15,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { generateFollowSuggestions } from '@/utils/onboarding/suggestions';
 import { followUser, unfollowUser } from '@/services/api/followUser';
 import { supabase } from '@/services/supabase/client';
+import { Colors } from '@/theme';
 
 interface SuggestedUser {
   id: string;
@@ -160,14 +161,14 @@ export default function FollowSuggestionsScreen() {
 
         <View style={styles.footer}>
           <Pressable
-            style={[styles.button, !canContinue && styles.buttonDisabled]}
+            style={[styles.startButton, !canContinue && styles.startButtonDisabled]}
             onPress={handleContinue}
             disabled={!canContinue || submitting}
           >
             {submitting ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Text style={styles.buttonText}>
+              <Text style={styles.startButtonText}>
                 {canContinue ? 'Start Betting' : `Follow ${3 - followCount} more`}
               </Text>
             )}
@@ -181,7 +182,7 @@ export default function FollowSuggestionsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF9F5',
+    backgroundColor: Colors.background,
   },
   loadingContainer: {
     flex: 1,
@@ -192,42 +193,41 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 24,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1F2937',
+    fontSize: 24,
+    fontWeight: '600',
+    color: Colors.text.primary,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6B7280',
+    color: Colors.text.secondary,
   },
   listContent: {
     paddingBottom: 20,
   },
   footer: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    backgroundColor: '#FAF9F5',
+    padding: 16,
+    backgroundColor: Colors.background,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: Colors.border.light,
   },
-  button: {
-    backgroundColor: '#059669',
-    borderRadius: 12,
+  startButton: {
+    backgroundColor: Colors.primaryDark,
     paddingVertical: 16,
+    borderRadius: 12,
     alignItems: 'center',
   },
-  buttonDisabled: {
-    backgroundColor: '#D1D5DB',
+  startButtonDisabled: {
+    backgroundColor: Colors.border.medium,
   },
-  buttonText: {
+  startButtonText: {
+    color: Colors.text.inverse,
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
 });

@@ -7,8 +7,65 @@ export type Json =
   | Json[]
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          operationName?: string
+          query?: string
+          variables?: Json
+          extensions?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
+      badge_history: {
+        Row: {
+          action: string
+          badge_id: string
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          badge_id: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          badge_id?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "badge_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bankrolls: {
         Row: {
           balance: number
@@ -21,6 +78,7 @@ export type Database = {
           reset_count: number | null
           season_high: number | null
           season_low: number | null
+          stats_metadata: Json | null
           total_wagered: number
           total_won: number
           updated_at: string | null
@@ -38,6 +96,7 @@ export type Database = {
           reset_count?: number | null
           season_high?: number | null
           season_low?: number | null
+          stats_metadata?: Json | null
           total_wagered?: number
           total_won?: number
           updated_at?: string | null
@@ -55,6 +114,7 @@ export type Database = {
           reset_count?: number | null
           season_high?: number | null
           season_low?: number | null
+          stats_metadata?: Json | null
           total_wagered?: number
           total_won?: number
           updated_at?: string | null
@@ -381,35 +441,29 @@ export type Database = {
       }
       notifications: {
         Row: {
-          body: string
           created_at: string | null
-          data: Json | null
+          data: Json
           id: string
           read: boolean | null
           read_at: string | null
-          title: string
           type: string
           user_id: string
         }
         Insert: {
-          body: string
           created_at?: string | null
-          data?: Json | null
+          data?: Json
           id?: string
           read?: boolean | null
           read_at?: string | null
-          title: string
           type: string
           user_id: string
         }
         Update: {
-          body?: string
           created_at?: string | null
-          data?: Json | null
+          data?: Json
           id?: string
           read?: boolean | null
           read_at?: string | null
-          title?: string
           type?: string
           user_id?: string
         }
@@ -574,6 +628,74 @@ export type Database = {
           },
         ]
       }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          user_id: string
+          uses_count: number | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          user_id: string
+          uses_count?: number | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          user_id?: string
+          uses_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_codes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referrals: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          referred_id: string
+          referrer_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          referred_id: string
+          referrer_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          referred_id?: string
+          referrer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_referred_id_fkey"
+            columns: ["referred_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stories: {
         Row: {
           caption: string | null
@@ -660,6 +782,70 @@ export type Database = {
           },
         ]
       }
+      user_badges: {
+        Row: {
+          badge_id: string
+          earned_at: string
+          lost_at: string | null
+          user_id: string
+        }
+        Insert: {
+          badge_id: string
+          earned_at?: string
+          lost_at?: string | null
+          user_id: string
+        }
+        Update: {
+          badge_id?: string
+          earned_at?: string
+          lost_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_stats_display: {
+        Row: {
+          created_at: string | null
+          primary_stat: string
+          selected_badge: string | null
+          show_badge: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          primary_stat?: string
+          selected_badge?: string | null
+          show_badge?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          primary_stat?: string
+          selected_badge?: string | null
+          show_badge?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_stats_display_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           avatar_url: string | null
@@ -678,7 +864,7 @@ export type Database = {
           oauth_provider: Database["public"]["Enums"]["oauth_provider"]
           privacy_settings: Json | null
           updated_at: string | null
-          username: string
+          username: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -697,7 +883,7 @@ export type Database = {
           oauth_provider: Database["public"]["Enums"]["oauth_provider"]
           privacy_settings?: Json | null
           updated_at?: string | null
-          username: string
+          username?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -716,18 +902,36 @@ export type Database = {
           oauth_provider?: Database["public"]["Enums"]["oauth_provider"]
           privacy_settings?: Json | null
           updated_at?: string | null
-          username?: string
+          username?: string | null
         }
         Relationships: []
       }
     }
     Views: {
-      [_ in never]: never
+      user_follower_counts: {
+        Row: {
+          follower_count: number | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follows_following_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       calculate_payout: {
         Args: { stake: number; odds: number }
         Returns: number
+      }
+      create_notification: {
+        Args: { p_user_id: string; p_type: string; p_data: Json }
+        Returns: string
       }
       fade_pick: {
         Args: { p_user_id: string; p_post_id: string }
@@ -944,6 +1148,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       bet_status: ["pending", "won", "lost", "push", "cancelled"],

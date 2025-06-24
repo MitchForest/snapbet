@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { authService } from '@/services/auth/authService';
 import { OAuthProvider, CustomAuthError } from '@/services/auth/types';
 import { supabase } from '@/services/supabase/client';
+import { getPendingReferralCode, trackReferral } from '@/services/referral/referralService';
 
 interface AuthState {
   user: User | null;
@@ -21,8 +22,10 @@ interface AuthState {
   clearError: () => void;
   updateUsername: (username: string) => Promise<{ error: Error | null }>;
   updateFavoriteTeam: (teamId: string | null) => Promise<void>;
-  updateNotificationSettings: (settings: Record<string, any>) => Promise<{ error: Error | null }>;
-  updatePrivacySettings: (settings: Record<string, any>) => Promise<{ error: Error | null }>;
+  updateNotificationSettings: (
+    settings: Record<string, boolean>
+  ) => Promise<{ error: Error | null }>;
+  updatePrivacySettings: (settings: Record<string, boolean>) => Promise<{ error: Error | null }>;
   updateProfile: (updates: {
     display_name?: string;
     bio?: string;
@@ -52,8 +55,32 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
         return;
       }
 
-      // OAuth flow initiated, loading state continues
-      // The actual session will be set via setSession when redirect completes
+      // If we got a session back, set it
+      if (response.session && response.user) {
+        console.log('Sign in successful, setting session');
+        set({
+          session: response.session,
+          user: response.user,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+        });
+        
+        // Process pending referral code if this is a new user
+        setTimeout(async () => {
+          try {
+            const pendingCode = await getPendingReferralCode();
+            if (pendingCode) {
+              await trackReferral(pendingCode, response.user!.id);
+            }
+          } catch (error) {
+            console.error('Error processing referral:', error);
+          }
+        }, 0);
+      } else {
+        // OAuth flow initiated but not completed yet
+        set({ isLoading: false });
+      }
     } catch {
       set({
         error: {
@@ -110,12 +137,15 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
   },
 
   checkSession: async () => {
+    console.log('checkSession called');
     set({ isLoading: true });
 
     try {
       const session = await authService.getSession();
       const user = await authService.getUser();
 
+      console.log('checkSession - session:', !!session, 'user:', !!user);
+      
       set({
         session,
         user,
@@ -123,7 +153,8 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
         isLoading: false,
         error: null,
       });
-    } catch {
+    } catch (error) {
+      console.error('checkSession error:', error);
       set({
         session: null,
         user: null,
@@ -142,6 +173,22 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
       isLoading: false,
       error: null,
     });
+
+    // Process pending referral code if this is a new user
+    // Use setTimeout to avoid blocking the auth flow
+    if (session?.user) {
+      setTimeout(async () => {
+        try {
+          const pendingCode = await getPendingReferralCode();
+          if (pendingCode) {
+            await trackReferral(pendingCode, session.user.id);
+          }
+        } catch (error) {
+          console.error('Error processing referral:', error);
+          // Don't fail the auth flow for referral errors
+        }
+      }, 0);
+    }
   },
 
   clearError: () => {
@@ -208,7 +255,7 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
     }
   },
 
-  updateNotificationSettings: async (settings: Record<string, any>) => {
+  updateNotificationSettings: async (settings: Record<string, boolean>) => {
     const userId = _get().user?.id;
     if (!userId) return { error: new Error('No user logged in') };
 
@@ -220,7 +267,7 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
     return { error };
   },
 
-  updatePrivacySettings: async (settings: Record<string, any>) => {
+  updatePrivacySettings: async (settings: Record<string, boolean>) => {
     const userId = _get().user?.id;
     if (!userId) return { error: new Error('No user logged in') };
 

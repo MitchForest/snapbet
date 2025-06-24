@@ -295,7 +295,7 @@ export async function getFollowSuggestions(
 
     // Transform and calculate badges for each user
     const mockUsers: MockUser[] = await Promise.all(
-      users.map(async (user: any) => {
+      (users as UserWithBankroll[]).map(async (user) => {
         const bankroll = user.bankrolls?.[0] || {
           balance: 100000,
           total_wagered: 0,

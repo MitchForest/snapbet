@@ -1,28 +1,48 @@
 import React from 'react';
-import { View } from '@tamagui/core';
-import Svg, { Circle, Text as SvgText } from 'react-native-svg';
+import { View, Text } from '@tamagui/core';
+import { Colors } from '@/theme';
 
 interface LogoProps {
   size?: number;
+  variant?: 'full' | 'icon';
 }
 
-export function Logo({ size = 80 }: LogoProps) {
-  return (
-    <View width={size} height={size}>
-      <Svg width={size} height={size} viewBox="0 0 80 80">
-        <Circle cx="40" cy="40" r="40" fill="#059669" />
-        <SvgText
-          x="40"
-          y="40"
-          fontSize="32"
-          fontWeight="bold"
-          fill="white"
-          textAnchor="middle"
-          alignmentBaseline="middle"
+export function Logo({ size = 40, variant = 'full' }: LogoProps) {
+  if (variant === 'icon') {
+    // Icon variant - just "SB"
+    return (
+      <View
+        width={size}
+        height={size}
+        backgroundColor={Colors.primary}
+        borderRadius="$round"
+        justifyContent="center"
+        alignItems="center"
+      >
+        <Text
+          fontSize={size * 0.4}
+          fontWeight="800"
+          color="white"
+          letterSpacing={-1}
         >
           SB
-        </SvgText>
-      </Svg>
+        </Text>
+      </View>
+    );
+  }
+
+  // Full variant - "Snap Bet" text
+  return (
+    <View justifyContent="center" alignItems="center">
+      <Text
+        fontSize={size}
+        fontWeight="800"
+        color={Colors.primary}
+        letterSpacing={-2}
+        textAlign="center"
+      >
+        Snap Bet
+      </Text>
     </View>
   );
 }

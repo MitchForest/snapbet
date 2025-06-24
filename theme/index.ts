@@ -238,3 +238,71 @@ declare module '@tamagui/core' {
 }
 
 export default config;
+
+// Export standardized color constants for direct use in components
+export const Colors = {
+  // Primary colors
+  primary: '#10B981', // Main emerald green
+  primaryDark: '#059669', // Darker emerald for pressed states
+  primaryLight: '#34D399', // Lighter emerald for hover states
+
+  // Background colors
+  background: '#FAF9F5', // Warm off-white background
+  surface: '#FFFFFF', // Pure white for cards/surfaces
+  surfaceAlt: '#F5F3EE', // Subtle background for sections
+  lightGreen: '#F0FDF4', // Light green background
+
+  // Text colors
+  text: {
+    primary: '#1F2937', // Near black for primary text
+    secondary: '#6B7280', // Medium gray for secondary text
+    tertiary: '#9CA3AF', // Light gray for tertiary text
+    inverse: '#FFFFFF', // White text on dark backgrounds
+  },
+
+  // Border colors
+  border: {
+    default: '#E5E7EB', // Light border
+    medium: '#D1D5DB', // Medium border
+    light: '#F3F4F6', // Very light border/divider
+    focus: '#10B981', // Primary color for focus states
+  },
+
+  // Status colors
+  error: '#EF4444', // Red for errors
+  success: '#10B981', // Same as primary for consistency
+  warning: '#F59E0B', // Amber for warnings
+  info: '#3B82F6', // Blue for info
+
+  // Action colors (for betting)
+  tail: '#3B82F6', // Bright blue for tail
+  tailHover: '#2563EB', // Darker blue for tail hover
+  fade: '#FB923C', // Orange for fade
+  fadeHover: '#F97316', // Darker orange for fade hover
+
+  // Outcome colors
+  win: '#EAB308', // Gold for wins
+  loss: '#EF4444', // Red for losses
+  push: '#6B7280', // Gray for pushes
+
+  // Utility colors
+  overlay: 'rgba(0,0,0,0.5)', // Semi-transparent overlay
+  shadow: 'rgba(0, 0, 0, 0.5)', // Shadow color
+  transparent: 'transparent', // Transparent
+
+  // Legacy mappings (for easier migration)
+  gray: {
+    50: '#F9FAFB',
+    100: '#F3F4F6',
+    200: '#E5E7EB',
+    300: '#D1D5DB',
+    400: '#9CA3AF',
+    500: '#6B7280',
+    600: '#4B5563',
+    700: '#374151',
+    800: '#1F2937',
+    900: '#111827',
+  },
+  white: '#FFFFFF',
+  black: '#000000',
+} as const;

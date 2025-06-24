@@ -8,18 +8,29 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const { setSession } = useAuthStore();
+  const { setSession, checkSession } = useAuthStore();
 
   // Initialize session management
   useSession();
+
+  // Check for existing session on mount
+  useEffect(() => {
+    console.log('AuthProvider mounted, checking initial session...');
+    checkSession();
+  }, [checkSession]);
 
   useEffect(() => {
     // Listen for auth state changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth state change:', event);
-      setSession(session);
+      console.log('Session in auth state change:', !!session, session?.user?.email);
+      
+      // Use setTimeout to defer async operations and avoid deadlocks
+      setTimeout(() => {
+        setSession(session);
+      }, 0);
     });
 
     return () => {

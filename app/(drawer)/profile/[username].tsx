@@ -12,8 +12,25 @@ import { BetsList } from '@/components/profile/BetsList';
 export default function ProfileScreen() {
   const { username } = useLocalSearchParams<{ username: string }>();
   const currentUser = useAuthStore((state) => state.user);
-  const [profileUser, setProfileUser] = useState<Record<string, any> | null>(null);
-  const [userStats, setUserStats] = useState<Record<string, any> | null>(null);
+  interface ProfileUser {
+    id: string;
+    username: string;
+    display_name?: string | null;
+    avatar_url?: string | null;
+    bio?: string | null;
+    favorite_team?: string | null;
+  }
+
+  interface UserStats {
+    balance: number;
+    win_count: number;
+    loss_count: number;
+    total_wagered: number;
+    total_won: number;
+  }
+
+  const [profileUser, setProfileUser] = useState<ProfileUser | null>(null);
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [badges, setBadges] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -31,13 +48,20 @@ export default function ProfileScreen() {
         .eq('username', username.toLowerCase())
         .single();
 
-      if (userError || !userData) {
-        // Profile not found
+      if (userError || !userData || !userData.username) {
+        // Profile not found or user not onboarded
         router.replace('/');
         return;
       }
 
-      setProfileUser(userData);
+      setProfileUser({
+        id: userData.id,
+        username: userData.username,
+        display_name: userData.display_name,
+        avatar_url: userData.avatar_url,
+        bio: userData.bio,
+        favorite_team: userData.favorite_team,
+      });
 
       // Get user stats
       const { data: bankrollData } = await supabase
@@ -77,6 +101,7 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     fetchProfileData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username]);
 
   const handleFollow = async () => {

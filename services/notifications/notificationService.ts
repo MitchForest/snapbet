@@ -16,7 +16,8 @@ export interface Notification {
     | 'follow'
     | 'message'
     | 'mention'
-    | 'milestone';
+    | 'milestone'
+    | 'system';
   data: {
     actorId?: string;
     actorUsername?: string;
@@ -24,7 +25,7 @@ export interface Notification {
     betId?: string;
     amount?: number;
     message?: string;
-    gameInfo?: Record<string, any>;
+    gameInfo?: Record<string, unknown>;
     followerId?: string;
     followerUsername?: string;
     chatId?: string;
@@ -34,6 +35,7 @@ export interface Notification {
     badgeId?: string;
     badgeName?: string;
     achievement?: string;
+    action?: string;
   };
   read: boolean;
   created_at: string;
@@ -140,37 +142,81 @@ class NotificationService {
     }
   }
 
-  // Helper method to format notification text for display
-  getNotificationText(notification: Notification): string {
+  // Helper method to get notification title and body for display
+  getNotificationText(notification: Notification): { title: string; body: string } {
     const { type, data } = notification;
 
     switch (type) {
       case 'tail':
-        return `${data.actorUsername} tailed your pick for $${data.amount}`;
+        return {
+          title: 'New Tail',
+          body: `${data.actorUsername} tailed your pick for $${data.amount}`,
+        };
       case 'fade':
-        return `${data.actorUsername} faded your pick for $${data.amount}`;
+        return {
+          title: 'New Fade',
+          body: `${data.actorUsername} faded your pick for $${data.amount}`,
+        };
       case 'bet_won':
-        return `You won $${data.amount} on your bet!`;
+        return {
+          title: 'Bet Won! 🎉',
+          body: `You won $${data.amount} on your bet!`,
+        };
       case 'bet_lost':
-        return `You lost $${data.amount} on your bet`;
+        return {
+          title: 'Bet Lost',
+          body: `You lost $${data.amount} on your bet`,
+        };
       case 'tail_won':
-        return `Your tail on ${data.actorUsername} won $${data.amount}!`;
+        return {
+          title: 'Tail Won! 🎉',
+          body: `Your tail on ${data.actorUsername} won $${data.amount}!`,
+        };
       case 'tail_lost':
-        return `Your tail on ${data.actorUsername} lost $${data.amount}`;
+        return {
+          title: 'Tail Lost',
+          body: `Your tail on ${data.actorUsername} lost $${data.amount}`,
+        };
       case 'fade_won':
-        return `Your fade on ${data.actorUsername} won $${data.amount}!`;
+        return {
+          title: 'Fade Won! 🎉',
+          body: `Your fade on ${data.actorUsername} won $${data.amount}!`,
+        };
       case 'fade_lost':
-        return `Your fade on ${data.actorUsername} lost $${data.amount}`;
+        return {
+          title: 'Fade Lost',
+          body: `Your fade on ${data.actorUsername} lost $${data.amount}`,
+        };
       case 'follow':
-        return `${data.followerUsername} started following you`;
+        return {
+          title: 'New Follower',
+          body: `${data.followerUsername} started following you`,
+        };
       case 'message':
-        return `${data.senderUsername}: ${data.preview}`;
+        return {
+          title: 'New Message',
+          body: `${data.senderUsername}: ${data.preview}`,
+        };
       case 'mention':
-        return `${data.actorUsername} mentioned you`;
+        return {
+          title: 'You were mentioned',
+          body: `${data.actorUsername} mentioned you`,
+        };
       case 'milestone':
-        return `You earned the ${data.badgeName} badge!`;
+        return {
+          title: 'Achievement Unlocked! 🏆',
+          body: `You earned the ${data.badgeName} badge!`,
+        };
+      case 'system':
+        return {
+          title: 'System Notification',
+          body: data.message || 'System update',
+        };
       default:
-        return 'New notification';
+        return {
+          title: 'Notification',
+          body: 'You have a new notification',
+        };
     }
   }
 

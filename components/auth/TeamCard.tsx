@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, View, Text, StyleSheet } from 'react-native';
 import { Team } from '@/data/teams';
+import { Colors } from '@/theme';
 
 interface TeamCardProps {
   team: Team;
@@ -12,17 +13,17 @@ export const TeamCard: React.FC<TeamCardProps> = ({ team, selected, onPress }) =
   return (
     <Pressable
       style={({ pressed }) => [
-        styles.container,
-        selected && styles.selected,
+        styles.card,
+        selected && styles.cardSelected,
         pressed && styles.pressed,
       ]}
       onPress={() => onPress(team.id)}
     >
       <View style={[styles.logo, { backgroundColor: team.primaryColor }]}>
-        <View style={[styles.logoSecondary, { backgroundColor: team.secondaryColor }]} />
+        <View style={[styles.logoDiagonal, { backgroundColor: team.secondaryColor }]} />
         <Text style={styles.abbreviation}>{team.abbreviation}</Text>
       </View>
-      <Text style={styles.name} numberOfLines={1}>
+      <Text style={styles.teamName} numberOfLines={1}>
         {team.name}
       </Text>
     </Pressable>
@@ -30,50 +31,48 @@ export const TeamCard: React.FC<TeamCardProps> = ({ team, selected, onPress }) =
 };
 
 const styles = StyleSheet.create({
-  container: {
+  card: {
     alignItems: 'center',
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#FAF9F5',
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: Colors.background,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: Colors.transparent,
   },
-  selected: {
-    borderColor: '#059669',
-    backgroundColor: '#F0FDF4',
+  cardSelected: {
+    borderColor: Colors.primaryDark,
+    backgroundColor: Colors.lightGreen,
   },
   pressed: {
     opacity: 0.8,
     transform: [{ scale: 0.98 }],
   },
   logo: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    overflow: 'hidden',
+  },
+  logoDiagonal: {
+    position: 'absolute' as const,
     width: 60,
     height: 60,
-    borderRadius: 30,
-    overflow: 'hidden',
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoSecondary: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    transform: [{ rotate: '45deg' }, { translateX: 30 }],
+    transform: [{ rotate: '45deg' }],
   },
   abbreviation: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#FFFFFF',
-    zIndex: 1,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 1, height: 1 },
+    color: Colors.text.inverse,
+    textShadowColor: Colors.shadow,
+    textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-  name: {
-    marginTop: 4,
+  teamName: {
     fontSize: 12,
-    color: '#1F2937',
     textAlign: 'center',
+    color: Colors.text.primary,
   },
 });

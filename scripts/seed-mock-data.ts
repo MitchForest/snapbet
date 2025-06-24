@@ -342,7 +342,7 @@ async function seedMockData() {
       const mockUser = mockUsers.find((m) => m.username === user.username)!;
       return {
         user_id: user.id,
-        ...generateBankrollStats(mockUser.personality, user.username),
+        ...generateBankrollStats(mockUser.personality, user.username!),
       };
     });
 
@@ -461,6 +461,32 @@ async function seedMockData() {
     Object.entries(personalityCounts).forEach(([personality, count]) => {
       console.log(`  ${personality}: ${count} users`);
     });
+
+    // Add test referral codes for development
+    const isDevelopment = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+    if (isDevelopment) {
+      console.log('\nCreating test referral codes...');
+
+      // Use the first 3 created users
+      const testCodes = [
+        { user_id: createdUsers[0].id, code: 'MIK123' },
+        { user_id: createdUsers[1].id, code: 'SAR456' },
+        { user_id: createdUsers[2].id, code: 'FAD789' },
+      ];
+
+      for (const testCode of testCodes) {
+        // referral_codes table now in generated types
+        const { error } = await supabase.from('referral_codes').insert(testCode);
+
+        if (error) {
+          console.error(`Error creating test code ${testCode.code}:`, error);
+        } else {
+          console.log(
+            `Created test referral code: ${testCode.code} for user ${createdUsers.find((u) => u.id === testCode.user_id)?.username}`
+          );
+        }
+      }
+    }
 
     console.log('\n✅ Mock data seeding completed successfully!');
   } catch (error) {

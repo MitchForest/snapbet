@@ -7,9 +7,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  StyleSheet,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
+import { Colors } from '@/theme';
 
 export default function EditProfileScreen() {
   const { user, updateProfile } = useAuthStore();
@@ -41,71 +43,43 @@ export default function EditProfileScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View flex={1} backgroundColor="$background">
         <ScrollView>
-          <View padding="$4">
+          <View padding="$4" gap="$4">
             {/* Display Name */}
-            <View marginBottom="$4">
+            <View>
               <Text fontSize={14} color="$textSecondary" marginBottom="$2">
                 Display Name
               </Text>
-              <View
-                backgroundColor="$surface"
-                borderWidth={1}
-                borderColor="$divider"
-                borderRadius="$2"
-                paddingHorizontal="$3"
-              >
-                <TextInput
-                  value={displayName}
-                  onChangeText={setDisplayName}
-                  placeholder="Enter display name"
-                  placeholderTextColor="#666"
-                  maxLength={30}
-                  style={{
-                    fontSize: 16,
-                    paddingVertical: 12,
-                    color: '#fff',
-                  }}
-                />
-              </View>
-              <Text fontSize={12} color="$textSecondary" marginTop="$1">
-                {displayName.length}/30
-              </Text>
+              <TextInput
+                style={styles.input}
+                value={displayName}
+                onChangeText={setDisplayName}
+                placeholder="Enter display name"
+                placeholderTextColor={Colors.text.tertiary}
+                maxLength={30}
+              />
             </View>
 
             {/* Bio */}
-            <View marginBottom="$4">
+            <View>
               <Text fontSize={14} color="$textSecondary" marginBottom="$2">
                 Bio
               </Text>
-              <View
-                backgroundColor="$surface"
-                borderWidth={1}
-                borderColor="$divider"
-                borderRadius="$2"
-                paddingHorizontal="$3"
-              >
-                <TextInput
-                  value={bio}
-                  onChangeText={setBio}
-                  placeholder="Tell us about yourself"
-                  placeholderTextColor="#666"
-                  maxLength={140}
-                  multiline
-                  numberOfLines={3}
-                  style={{
-                    fontSize: 16,
-                    paddingVertical: 12,
-                    color: '#fff',
-                    minHeight: 80,
-                  }}
-                />
-              </View>
-              <Text fontSize={12} color="$textSecondary" marginTop="$1">
+              <TextInput
+                style={[styles.input, styles.bioInput]}
+                value={bio}
+                onChangeText={setBio}
+                placeholder="Tell us about yourself"
+                placeholderTextColor={Colors.text.tertiary}
+                multiline
+                maxLength={140}
+                textAlignVertical="top"
+              />
+              <Text fontSize={12} color="$textTertiary" marginTop="$1">
                 {bio.length}/140
               </Text>
             </View>
@@ -130,3 +104,22 @@ export default function EditProfileScreen() {
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: Colors.border.default,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: Colors.white,
+    marginBottom: 12,
+  },
+  bioInput: {
+    height: 80,
+    textAlignVertical: 'top' as const,
+  },
+});

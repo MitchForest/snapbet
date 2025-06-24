@@ -4,6 +4,7 @@ import { Avatar } from '@/components/common/Avatar';
 import { BadgeDisplay } from '@/components/common/BadgeDisplay';
 import { getUserBadges } from '@/services/badges/badgeService';
 import { getDefaultPrimaryStat } from '@/utils/onboarding/suggestions';
+import { Colors } from '@/theme';
 
 interface FollowCardProps {
   user: {
@@ -41,7 +42,7 @@ export const FollowCard: React.FC<FollowCardProps> = ({ user, isFollowing, onTog
   const primaryStat = getDefaultPrimaryStat(user);
 
   return (
-    <View style={styles.container}>
+    <View style={styles.card}>
       <View style={styles.leftContent}>
         <Avatar
           src={user.avatar_url || undefined}
@@ -50,7 +51,7 @@ export const FollowCard: React.FC<FollowCardProps> = ({ user, isFollowing, onTog
         />
         <View style={styles.userInfo}>
           <View style={styles.nameRow}>
-            <Text style={styles.username}>@{user.username}</Text>
+            <Text style={styles.displayName}>{user.display_name || user.username}</Text>
             <BadgeDisplay badges={badges} size="small" maxBadges={2} />
           </View>
           {user.bio && (
@@ -58,9 +59,9 @@ export const FollowCard: React.FC<FollowCardProps> = ({ user, isFollowing, onTog
               {user.bio}
             </Text>
           )}
-          <View style={styles.statRow}>
-            <Text style={styles.statValue}>{primaryStat.value}</Text>
-            <Text style={styles.statLabel}>{primaryStat.label}</Text>
+          <View style={styles.stats}>
+            <Text style={styles.statText}>{primaryStat.value}</Text>
+            <Text style={styles.statText}>{primaryStat.label}</Text>
           </View>
         </View>
       </View>
@@ -71,7 +72,7 @@ export const FollowCard: React.FC<FollowCardProps> = ({ user, isFollowing, onTog
         disabled={loading}
       >
         {loading ? (
-          <ActivityIndicator size="small" color={isFollowing ? '#059669' : '#FFFFFF'} />
+          <ActivityIndicator size="small" color={isFollowing ? Colors.primaryDark : Colors.white} />
         ) : (
           <Text style={[styles.followButtonText, isFollowing && styles.followingButtonText]}>
             {isFollowing ? 'Following' : 'Follow'}
@@ -83,15 +84,10 @@ export const FollowCard: React.FC<FollowCardProps> = ({ user, isFollowing, onTog
 };
 
 const styles = StyleSheet.create({
-  container: {
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   leftContent: {
     flexDirection: 'row',
@@ -99,58 +95,53 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   userInfo: {
-    marginLeft: 12,
     flex: 1,
+    marginLeft: 12,
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    marginBottom: 2,
   },
-  username: {
+  displayName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: Colors.text.primary,
+  },
+  stats: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statText: {
+    fontSize: 14,
+    color: Colors.primaryDark,
+    marginRight: 12,
   },
   bio: {
     fontSize: 14,
-    color: '#6B7280',
-    marginTop: 2,
-  },
-  statRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
-  },
-  statValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#059669',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#9CA3AF',
+    color: Colors.text.tertiary,
   },
   followButton: {
+    backgroundColor: Colors.primaryDark,
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#059669',
-    minWidth: 90,
+    minWidth: 100,
     alignItems: 'center',
   },
   followingButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.white,
     borderWidth: 1,
-    borderColor: '#059669',
+    borderColor: Colors.primaryDark,
   },
   followButtonText: {
+    color: Colors.white,
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
   followingButtonText: {
-    color: '#059669',
+    color: Colors.primaryDark,
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text } from '@tamagui/core';
 import { ScrollView, Alert } from 'react-native';
 import { useAuthStore } from '@/stores/authStore';
@@ -21,32 +21,25 @@ export default function StatsDisplayScreen() {
   const [primaryStat, setPrimaryStat] = useState<PrimaryStat>('record');
   const [selectedBadge, setSelectedBadge] = useState<string | null>(null);
   const [userBadges, setUserBadges] = useState<string[]>([]);
+  const [showBadge, setShowBadge] = useState(true);
 
-  useEffect(() => {
-    fetchUserStatsDisplay();
-    fetchUserBadges();
-  }, [user?.id]);
-
-  const fetchUserStatsDisplay = async () => {
+  const fetchSettings = useCallback(async () => {
     if (!user?.id) return;
 
-    try {
-      const { data, error } = await (supabase as any)
-        .from('user_stats_display')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
+    const { data, error } = await supabase
+      .from('user_stats_display')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
 
-      if (data && !error) {
-        setPrimaryStat(data.primary_stat as PrimaryStat);
-        setSelectedBadge(data.selected_badge);
-      }
-    } catch (error) {
-      console.error('Error fetching stats display settings:', error);
+    if (data && !error) {
+      setPrimaryStat(data.primary_stat as PrimaryStat);
+      setShowBadge(data.show_badge ?? true);
+      setSelectedBadge(data.selected_badge || null);
     }
-  };
+  }, [user?.id]);
 
-  const fetchUserBadges = async () => {
+  const fetchUserBadges = useCallback(async () => {
     if (!user?.id) return;
 
     try {
@@ -56,34 +49,42 @@ export default function StatsDisplayScreen() {
     } catch (error) {
       console.error('Error fetching user badges:', error);
     }
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    fetchSettings();
+    fetchUserBadges();
+  }, [fetchSettings, fetchUserBadges]);
 
   const handleStatChange = async (stat: PrimaryStat) => {
     setPrimaryStat(stat);
-    await saveSettings(stat, selectedBadge);
+    await handleSave();
   };
 
   const handleBadgeChange = async (badgeId: string | null) => {
     setSelectedBadge(badgeId);
-    await saveSettings(primaryStat, badgeId);
+    await handleSave();
   };
 
-  const saveSettings = async (stat: PrimaryStat, badge: string | null) => {
+  const handleSave = async () => {
     if (!user?.id) return;
 
-    try {
-      const { error } = await (supabase as any).from('user_stats_display').upsert({
+    const { error } = await supabase
+      .from('user_stats_display')
+      .upsert({
         user_id: user.id,
-        primary_stat: stat,
-        selected_badge: badge,
+        primary_stat: primaryStat,
+        show_badge: showBadge,
+        selected_badge: selectedBadge,
         updated_at: new Date().toISOString(),
-      });
+      })
+      .select()
+      .single();
 
-      if (error) {
-        Alert.alert('Error', 'Failed to update stats display settings');
-      }
-    } catch {
-      Alert.alert('Error', 'An unexpected error occurred');
+    if (error) {
+      Alert.alert('Error', 'Failed to save settings');
+    } else {
+      Alert.alert('Success', 'Settings saved successfully');
     }
   };
 

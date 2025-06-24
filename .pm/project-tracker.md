@@ -50,16 +50,36 @@ This document tracks high-level progress across all epics, maintains key archite
 | Dec 2024 | Single stat display in feed | Reduces clutter, emphasizes user choice | Epic 2 |
 | Dec 2024 | Profile shows Posts/Bets tabs | More engaging than just stats view | Epic 2 |
 | Dec 2024 | Referral rewards on first bet | Prevents abuse while encouraging engagement | Epic 2 |
+| Dec 2024 | Referral code in localStorage during OAuth | Simpler than URL params, works across providers | Epic 2 |
+| Dec 2024 | Badge automation via cron scripts | Keep it simple for MVP, defer edge functions | Epic 2 |
+| Dec 2024 | No referral rewards for MVP | Track only, add rewards post-launch to prevent abuse | Epic 2 |
+| Dec 2024 | Notification service uses type/data pattern | More flexible despite DB having title/body columns | Epic 2 |
+| Dec 2024 | Share with expo-sharing + clipboard fallback | Native experience with universal fallback | Epic 2 |
+| Dec 2024 | File-based locks for automation scripts | Simple solution for MVP, upgrade later | Epic 2 |
+| Dec 2024 | Database-first for schema fixes | Fix root cause rather than work around issues | Epic 2, All |
+| Dec 2024 | Supabase Edge Functions for automation | Serverless, scalable, no server maintenance | Epic 2, 4-10 |
+| Dec 2024 | Bearer token auth for Edge Functions | Simple, secure, appropriate for cron jobs | Epic 2, All |
+| Dec 2024 | Standardized color system | Single source of truth with semantic variations | Epic 2, All |
+| Dec 2024 | EAS Build from day one | Smooth deployment path, early testing capability | Epic 2, All |
+| Dec 2024 | Environment-based configuration | Clear dev/staging/prod separation | Epic 2, All |
+| Dec 2024 | Mock data flag for APIs | Gradual migration from mock to real data | Epic 2, 4 |
 
 ### Established Patterns
 - **Authentication**: OAuth-only with Supabase (Google/Twitter)
-- **Error Handling**: [TBD]
-- **Data Fetching**: [TBD - React Query pattern]
-- **State Management**: Zustand for app state
-- **Component Structure**: [TBD]
+- **Error Handling**: User-friendly messages with specific error codes
+- **Data Fetching**: Direct Supabase queries (no RPC functions)
+- **State Management**: Zustand for app state, React Query for server state (future)
+- **Component Structure**: Shared hooks for common logic (useUserList pattern)
 - **Badge System**: Auto-calculated with user selection for display
 - **Stats Display**: User-customizable primary stat
 - **Navigation**: Drawer menu for non-tab screens
+- **Color System**: Centralized Colors constant with semantic naming
+- **Environment Management**: .env files with EXPO_PUBLIC_ prefix
+- **Edge Functions**: Bearer token auth, environment-based configuration
+- **Database Migrations**: Fix root issues rather than work around them
+- **Code Quality**: Zero tolerance for lint errors/warnings
+- **Type Safety**: No `any` types, proper interfaces for all data
+- **Deployment**: EAS Build for distribution, Expo Go for development
 
 ## Technology Stack Evolution
 
@@ -78,20 +98,63 @@ This document tracks high-level progress across all epics, maintains key archite
 | expo-notifications | Push notifications | Epic 2 | Engagement features |
 | [Libraries will be tracked as added] | [Why needed] | Epic # | [Reason for choice] |
 
+## Deployment Strategy
+
+### Build & Distribution
+- **Development**: Expo Go for rapid iteration
+- **Testing**: EAS Build preview profiles for TestFlight/Internal Testing  
+- **Production**: EAS Build production profiles for App Store/Play Store
+- **Updates**: OTA updates via EAS Update for non-native changes
+
+### Environment Strategy
+| Environment | Purpose | Supabase Tier | Build Profile |
+|------------|---------|---------------|---------------|
+| Development | Local development | Local Docker | Expo Go |
+| Staging | Integration testing | Free tier | preview |
+| Production | Live users | Pro tier | production |
+
+### Automation Infrastructure
+- **Badge Updates**: Supabase Edge Function (hourly)
+- **Bet Settlement**: Supabase Edge Function (every 5 min)
+- **Game Addition**: Supabase Edge Function (daily 3 AM ET)
+- **Deployment**: GitHub Actions CI/CD pipeline
+
+### Security Model
+- **API Authentication**: Supabase Auth + RLS
+- **Edge Functions**: Bearer token validation
+- **Secrets Management**: EAS Secrets + Supabase Secrets
+- **OAuth**: Google/Twitter via Supabase Auth
+
 ## Critical Gotchas & Learnings
 
 ### Things That Tripped Us Up
 - Tamagui doesn't export Button/Spinner components - use React Native equivalents
 - AuthError interface too complex to extend - create custom error types
 - Username validation needs race condition handling - implement smart caching
+- Notifications table created twice with different schemas - Epic 1 vs Epic 2
+- CREATE TABLE IF NOT EXISTS doesn't modify existing tables - check migrations carefully
+- TypeScript types for new tables not auto-generated - need manual regeneration
+- Supabase MCP tools available for schema inspection - use instead of guessing
+- Edge Functions use Deno not Node.js - different APIs and imports
+- Color literals cause massive lint warnings - centralize early
+- EAS doesn't break Expo Go - can set up deployment infrastructure from day one
 
 ### Performance Optimizations
-[Will be tracked as implemented]
+- Badge calculation on-the-fly for now - will cache in Epic 4
+- Follow suggestions use smart algorithm considering team and performance
+- Settings auto-save reduces API calls vs explicit save button
+- Edge Functions scale automatically - no server management needed
+- File-based locks prevent badge update overlaps
 
 ### Security Considerations Implemented
 - OAuth tokens in secure storage only
 - Username validation with debouncing
-- Referral code abuse prevention
+- Referral code abuse prevention (no rewards in MVP)
+- File-based locks prevent script overlap
+- RLS policies on all new tables
+- Bearer token auth for Edge Functions
+- Environment-based secrets management
+- No production credentials in development
 
 ## User Story Completion Status
 
@@ -115,7 +178,14 @@ This document tracks high-level progress across all epics, maintains key archite
 |-------|----------|---------------|-------------------|
 | Badge calculation performance | LOW | Epic 2 | Batch processing hourly |
 | Notification scaling | MEDIUM | Epic 2 | Pagination in Epic 6 |
-| [Debt items will be tracked] | HIGH/MED/LOW | Epic # | Epic # or "Post-MVP" |
+| Notification schema mismatch | HIGH | Epic 2 | Fixed in Sprint 02.06 |
+| Badge automation deployment | MEDIUM | Epic 2 | Edge Functions in Sprint 02.06 |
+| Referral rewards system | MEDIUM | Epic 2 | Post-MVP feature addition |
+| Remaining lint errors | LOW | Epic 2 | Sprint 02.06 cleanup |
+| File-based script locks | LOW | Epic 2 | Replaced with Edge Functions |
+| TypeScript type generation | LOW | Epic 2 | Manual types in Sprint 02.06 |
+| Sports API integration | MEDIUM | Epic 2 | Mock flag allows future migration |
+| Color system fragmentation | MEDIUM | Epic 2 | Centralized in Sprint 02.06 |
 
 ## Production Readiness Checklist
 
@@ -149,8 +219,12 @@ This document tracks high-level progress across all epics, maintains key archite
 | Priority | Feature | User Story | Estimated Epics | Notes |
 |----------|---------|------------|-----------------|-------|
 | P0 (Critical) | [Features from PRD exclusions] | - | - | [To be populated] |
+| P1 (High) | Referral rewards system | Growth | 1 | Deferred from Epic 2 to prevent abuse |
+| P1 (High) | Badge automation edge functions | Performance | 1 | Replace cron scripts |
 | P1 (High) | Live betting updates | Enhancement | 1-2 | Real-time odds |
 | P1 (High) | Complex parlays | Story 2 enhancement | 1 | Multi-leg bets |
+| P2 (Medium) | Notification schema cleanup | Tech debt | 0.5 | Resolve title/body mismatch |
+| P2 (Medium) | Production automation scheduling | Infrastructure | 1 | Proper cron/scheduling solution |
 | P2 (Medium) | Public tournaments | New Story | 2-3 | Contest system |
 | P3 (Low) | Web version | Platform expansion | 3-4 | Post mobile success |
 
@@ -182,13 +256,13 @@ This document tracks high-level progress across all epics, maintains key archite
 
 ## Next Steps
 
-**Current Epic**: Epic 2 - Authentication & User System (IN PROGRESS - Sprints 02.00-02.03 APPROVED, 02.04 IN PROGRESS)
-**Current Sprint**: Sprint 02.04 - Profile, Settings & Drawer (IN PROGRESS)
+**Current Epic**: Epic 2 - Authentication & User System (IN PROGRESS - Sprints 02.00-02.05 APPROVED)
+**Current Sprint**: Sprint 02.06 - Technical Debt Cleanup (NOT STARTED)
 **Blocked Items**: None
 **P0 Items in Backlog**: 0
 
 ### Epic 2 Progress Update
-With Sprints 02.00-02.03 complete, we now have:
+With Sprints 02.00-02.05 complete, we now have:
 - ✅ OAuth with Google/Twitter working
 - ✅ Welcome screen implemented
 - ✅ Username selection with validation
@@ -197,29 +271,39 @@ With Sprints 02.00-02.03 complete, we now have:
 - ✅ Follow suggestions with smart algorithm
 - ✅ Badge system infrastructure (8 types)
 - ✅ Mock users with realistic stats
-- ⏳ Profile system with Posts/Bets tabs (Sprint 02.04)
-- ⏳ Complete drawer navigation menu (Sprint 02.04)
-- ⏳ Settings screens and customization (Sprint 02.04)
-- ⏳ Notification system foundation (Sprint 02.04)
-- ⏳ Referral system and automation (Sprint 02.05)
+- ✅ Profile system with Posts/Bets tabs
+- ✅ Complete drawer navigation menu
+- ✅ Settings screens and customization
+- ✅ Notification system foundation
+- ✅ Referral system (tracking only, no rewards)
+- ✅ Badge automation scripts
+- ⏳ Technical debt cleanup (11 errors, 43 warnings)
 
-### Sprint 02.03 Key Achievements
-- Implemented all 62 NFL/NBA teams with official colors
-- Smart follow suggestions based on team preference and performance
-- Badge calculation service with proper thresholds
-- Enhanced mock user data with realistic personality-based stats
-- Database migrations for badge tracking and stats metadata
+### Sprint 02.05 Key Achievements
+- Implemented referral tracking system without rewards
+- Created memorable referral codes with username prefixes
+- Built invite screen with native share and clipboard fallback
+- Added referral code input to welcome screen
+- Developed production-ready badge automation script with file locking
+- Integrated AsyncStorage for OAuth flow persistence
 
-### New Features Added to Epic 2
-Based on review, Epic 2 has been expanded to include:
-- **Badge/Achievement System**: 8 badge types with auto-calculation ✅
-- **Stats Display Customization**: Users choose primary stat to show ✅
-- **Enhanced Profile**: Posts/Bets tabs instead of just stats (IN PROGRESS)
-- **Drawer Navigation**: Complete menu system (IN PROGRESS)
-- **Notification Foundation**: Real-time system with preferences (IN PROGRESS)
-- **Referral System**: Growth mechanics with rewards (NOT STARTED)
+### Remaining in Epic 2
+Sprint 02.06 will complete the epic with:
+- Fix notification schema mismatch (database vs service)
+- Eliminate ALL lint errors (11) and warnings (43)
+- Extract ~40 color literals to theme constants
+- Regenerate TypeScript types for new tables
+- Remove code duplication with reusable hooks
+- Create deployment documentation
+
+### Technical Decisions from Sprint 02.05
+- AsyncStorage for referral code persistence across OAuth redirect
+- File-based locking prevents concurrent badge updates
+- Native share with clipboard fallback for better UX
+- Silent handling of self-referrals
+- Badge history simplified for MVP (action and timestamp only)
 
 ---
 
 *Last Updated: December 20, 2024*
-*Updated By: Sprint 02.03 Completion & Sprint 02.04 Start* 
+*Updated By: Sprint 02.05 Completion & Review* 

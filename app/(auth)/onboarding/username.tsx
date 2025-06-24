@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, Stack } from '@tamagui/core';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Pressable, Alert, ActivityIndicator, Image } from 'react-native';
+import { Pressable, Alert, ActivityIndicator, Image, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { OnboardingProgress } from '@/components/auth/OnboardingProgress';
@@ -18,6 +18,11 @@ export default function UsernameSelectionScreen() {
   const [isValid, setIsValid] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Memoize the validation callback
+  const handleValidation = useCallback((valid: boolean) => {
+    setIsValid(valid);
+  }, []);
 
   // Get avatar URL from OAuth metadata
   const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
@@ -92,14 +97,7 @@ export default function UsernameSelectionScreen() {
         {/* Profile Picture */}
         {avatarUrl && (
           <View alignSelf="center" marginTop="$4">
-            <Image
-              source={{ uri: avatarUrl }}
-              style={{
-                width: 80,
-                height: 80,
-                borderRadius: 40,
-              }}
-            />
+            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
           </View>
         )}
 
@@ -114,7 +112,7 @@ export default function UsernameSelectionScreen() {
         </Stack>
 
         {/* Username Input */}
-        <UsernameInput value={username} onChange={setUsername} onValidation={setIsValid} />
+        <UsernameInput value={username} onChange={setUsername} onValidation={handleValidation} />
 
         {/* Suggestions */}
         <UsernameSuggestions suggestions={suggestions} onSelect={handleSuggestionSelect} />
@@ -151,3 +149,11 @@ export default function UsernameSelectionScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+});

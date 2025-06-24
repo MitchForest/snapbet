@@ -1,53 +1,54 @@
 import React from 'react';
-import { View, Text } from '@tamagui/core';
-import { Pressable } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Colors } from '@/theme';
 
 interface ProfileTabsProps {
   activeTab: 'posts' | 'bets';
   onTabChange: (tab: 'posts' | 'bets') => void;
 }
 
-export const ProfileTabs: React.FC<ProfileTabsProps> = ({ activeTab, onTabChange }) => {
+export function ProfileTabs({ activeTab, onTabChange }: ProfileTabsProps) {
   return (
-    <View
-      flexDirection="row"
-      backgroundColor="$surface"
-      borderBottomWidth={1}
-      borderBottomColor="$divider"
-    >
-      <Pressable style={{ flex: 1 }} onPress={() => onTabChange('posts')}>
-        <View
-          paddingVertical="$3"
-          alignItems="center"
-          borderBottomWidth={2}
-          borderBottomColor={activeTab === 'posts' ? '$primary' : 'transparent'}
-        >
-          <Text
-            fontSize={16}
-            fontWeight={activeTab === 'posts' ? '600' : '400'}
-            color={activeTab === 'posts' ? '$primary' : '$textSecondary'}
-          >
-            Posts
-          </Text>
-        </View>
+    <View style={styles.container}>
+      <Pressable
+        style={[styles.tab, activeTab === 'posts' && styles.activeTab]}
+        onPress={() => onTabChange('posts')}
+      >
+        <Text style={[styles.tabText, activeTab === 'posts' && styles.activeTabText]}>Posts</Text>
       </Pressable>
 
-      <Pressable style={{ flex: 1 }} onPress={() => onTabChange('bets')}>
-        <View
-          paddingVertical="$3"
-          alignItems="center"
-          borderBottomWidth={2}
-          borderBottomColor={activeTab === 'bets' ? '$primary' : 'transparent'}
-        >
-          <Text
-            fontSize={16}
-            fontWeight={activeTab === 'bets' ? '600' : '400'}
-            color={activeTab === 'bets' ? '$primary' : '$textSecondary'}
-          >
-            Bets
-          </Text>
-        </View>
+      <Pressable
+        style={[styles.tab, activeTab === 'bets' && styles.activeTab]}
+        onPress={() => onTabChange('bets')}
+      >
+        <Text style={[styles.tabText, activeTab === 'bets' && styles.activeTabText]}>Bets</Text>
       </Pressable>
     </View>
   );
-};
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.default,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.transparent,
+  },
+  activeTab: {
+    borderBottomColor: Colors.primary,
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.text.secondary,
+  },
+  activeTabText: {
+    color: Colors.primary,
+  },
+});

@@ -7,9 +7,8 @@ interface NotificationItemProps {
   notification: Notification;
   onPress: () => void;
 }
-
 export const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onPress }) => {
-  const notificationText = notificationService.getNotificationText(notification);
+  const { title, body } = notificationService.getNotificationText(notification);
   const timeAgo = formatDistanceToNow(new Date(notification.created_at));
 
   const getIcon = () => {
@@ -34,6 +33,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
         return '@';
       case 'milestone':
         return '🏆';
+      case 'system':
+        return '⚙️';
       default:
         return '🔔';
     }
@@ -54,10 +55,13 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
         </Text>
 
         <View flex={1}>
-          <Text fontSize={14} color="$textPrimary" numberOfLines={2}>
-            {notificationText}
+          <Text fontSize={15} color="$textPrimary" fontWeight="600" marginBottom="$0.5">
+            {title}
           </Text>
-          <Text fontSize={12} color="$textSecondary" marginTop="$1">
+          <Text fontSize={14} color="$textSecondary" numberOfLines={2}>
+            {body}
+          </Text>
+          <Text fontSize={12} color="$textTertiary" marginTop="$1">
             {timeAgo}
           </Text>
         </View>

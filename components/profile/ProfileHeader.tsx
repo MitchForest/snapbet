@@ -4,9 +4,26 @@ import { Pressable } from 'react-native';
 import { Avatar } from '@/components/common/Avatar';
 import { BadgeDisplay } from '@/components/common/BadgeDisplay';
 
+interface ProfileUser {
+  id: string;
+  username: string;
+  display_name?: string | null;
+  avatar_url?: string | null;
+  bio?: string | null;
+  favorite_team?: string | null;
+}
+
+interface ProfileStats {
+  balance: number;
+  win_count: number;
+  loss_count: number;
+  total_wagered: number;
+  total_won: number;
+}
+
 interface ProfileHeaderProps {
-  user: Record<string, any>;
-  stats: Record<string, any> | null;
+  user: ProfileUser;
+  stats: ProfileStats | null;
   badges: string[];
   isOwnProfile: boolean;
   isFollowing?: boolean;
@@ -65,7 +82,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     <View paddingHorizontal="$4" paddingVertical="$4" backgroundColor="$surface">
       {/* Profile Info Row */}
       <View flexDirection="row" alignItems="center" marginBottom="$3">
-        <Avatar size={80} src={user.avatar_url} />
+        <Avatar size={80} src={user.avatar_url || undefined} />
         <View flex={1} marginLeft="$3">
           <Text fontSize={24} fontWeight="600" color="$textPrimary">
             @{user.username}

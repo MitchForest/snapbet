@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text } from '@tamagui/core';
 import { ScrollView, ActivityIndicator } from 'react-native';
 import { useAuthStore } from '@/stores/authStore';
@@ -18,13 +18,9 @@ export default function FollowingScreen() {
   const [following, setFollowing] = useState<UserData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchFollowing();
-    }
-  }, [user?.id]);
+  const fetchFollowing = useCallback(async () => {
+    if (!user?.id) return;
 
-  const fetchFollowing = async () => {
     try {
       const { data, error } = await supabase
         .from('follows')
@@ -39,18 +35,28 @@ export default function FollowingScreen() {
           )
         `
         )
-        .eq('follower_id', user!.id)
+        .eq('follower_id', user.id)
         .order('created_at', { ascending: false });
 
       if (!error && data) {
-        setFollowing(data.map((item: Record<string, any>) => item.following));
+        const following = data.map((item) => {
+          const record = item as unknown as { following: UserData };
+          return record.following;
+        });
+        setFollowing(following);
       }
     } catch (error) {
       console.error('Error fetching following:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchFollowing();
+    }
+  }, [user?.id, fetchFollowing]);
 
   if (isLoading) {
     return (

@@ -26,8 +26,8 @@ export default function HowToPlayScreen() {
               👆 2. Tail or Fade
             </Text>
             <Text fontSize={14} color="$textSecondary" lineHeight={20}>
-              Follow other bettors' picks (tail) or bet against them (fade). Build your bankroll by
-              making smart decisions.
+              Follow other bettors&apos; picks (tail) or bet against them (fade). Build your
+              bankroll by making smart decisions.
             </Text>
           </View>
 

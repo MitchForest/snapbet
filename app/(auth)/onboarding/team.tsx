@@ -5,6 +5,7 @@ import { TeamSelector } from '@/components/auth/TeamSelector';
 import { OnboardingProgress } from '@/components/auth/OnboardingProgress';
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/services/supabase/client';
+import { Colors } from '@/theme';
 
 export default function TeamSelectionScreen() {
   const router = useRouter();
@@ -82,25 +83,26 @@ export default function TeamSelectionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF9F5',
+    backgroundColor: Colors.background,
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
   },
   header: {
-    marginTop: 20,
-    marginBottom: 24,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1F2937',
+    fontSize: 24,
+    fontWeight: '600',
+    color: Colors.text.primary,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6B7280',
+    color: Colors.text.secondary,
   },
   selectorContainer: {
     flex: 1,
@@ -109,22 +111,22 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   button: {
-    backgroundColor: '#059669',
-    borderRadius: 12,
+    backgroundColor: Colors.primaryDark,
     paddingVertical: 16,
+    borderRadius: 12,
     alignItems: 'center',
   },
   buttonSecondary: {
-    backgroundColor: 'transparent',
+    backgroundColor: Colors.transparent,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: Colors.border.medium,
   },
   buttonText: {
+    color: Colors.text.inverse,
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
   buttonTextSecondary: {
-    color: '#6B7280',
+    color: Colors.text.secondary,
   },
 });

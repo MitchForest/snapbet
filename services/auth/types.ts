@@ -23,7 +23,13 @@ export interface SessionData {
   user: User;
 }
 
-export type AuthErrorCode = 'USER_CANCELLED' | 'NETWORK_ERROR' | 'PROVIDER_ERROR' | 'UNKNOWN';
+export type AuthErrorCode =
+  | 'USER_CANCELLED'
+  | 'NETWORK_ERROR'
+  | 'PROVIDER_ERROR'
+  | 'INVALID_CREDENTIALS'
+  | 'UNKNOWN'
+  | 'NO_SESSION';
 
 export interface CustomAuthError {
   message: string;

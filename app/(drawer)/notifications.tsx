@@ -56,7 +56,7 @@ export default function NotificationsScreen() {
               No notifications yet
             </Text>
             <Text fontSize={14} color="$textSecondary" textAlign="center" paddingHorizontal="$4">
-              You'll see notifications here when someone interacts with your picks
+              You&apos;ll see notifications here when someone interacts with your picks
             </Text>
           </View>
         ) : (

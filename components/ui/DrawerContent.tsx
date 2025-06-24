@@ -46,7 +46,15 @@ export const DrawerContent: React.FC<DrawerContentComponentProps> = ({ navigatio
   const insets = useSafeAreaInsets();
   const { user, signOut, resetBankroll } = useAuthStore();
   const { unreadCount } = useNotifications();
-  const [userStats, setUserStats] = useState<Record<string, any> | null>(null);
+  interface UserStats {
+    balance: number;
+    win_count: number;
+    loss_count: number;
+    total_wagered: number;
+    total_won: number;
+  }
+
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
 

@@ -24,6 +24,7 @@ function RootLayoutNav() {
   // Check if user has username when authenticated
   useEffect(() => {
     async function checkUserProfile() {
+      console.log('checkUserProfile - user:', user?.id);
       if (!user) {
         setHasUsername(null);
         return;
@@ -37,6 +38,7 @@ function RootLayoutNav() {
           .eq('id', user.id)
           .single();
 
+        console.log('Profile check result:', profile);
         setHasUsername(!!profile?.username);
       } catch (error) {
         console.error('Error checking user profile:', error);
@@ -51,6 +53,7 @@ function RootLayoutNav() {
 
   // Handle navigation based on auth state
   useEffect(() => {
+    console.log('Navigation effect - isLoading:', isLoading, 'checkingProfile:', checkingProfile, 'isAuthenticated:', isAuthenticated, 'hasUsername:', hasUsername);
     if (isLoading || checkingProfile) return;
 
     const inAuthGroup = segments[0] === '(auth)';
