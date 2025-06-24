@@ -4,12 +4,16 @@ import { ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { SettingsRow } from '@/components/settings/SettingsRow';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { Colors } from '@/theme';
 
 export default function SettingsScreen() {
   const user = useAuthStore((state) => state.user);
 
   return (
-    <View flex={1} backgroundColor="$background">
+    <View flex={1} backgroundColor={Colors.background}>
+      <ScreenHeader title="Settings" />
+
       <ScrollView>
         {/* Profile Settings */}
         <View marginTop="$3">

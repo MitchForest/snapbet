@@ -12,6 +12,8 @@ import { BetsList } from '@/components/profile/BetsList';
 export default function ProfileScreen() {
   const { username } = useLocalSearchParams<{ username: string }>();
   const currentUser = useAuthStore((state) => state.user);
+
+  console.log('ProfileScreen - username param:', username);
   interface ProfileUser {
     id: string;
     username: string;

@@ -15,6 +15,7 @@ export function UsernameInput({ value, onChange, onValidation }: UsernameInputPr
   const [isChecking, setIsChecking] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
+  const [hasCheckedAvailability, setHasCheckedAvailability] = useState(false);
   const checkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const checkAvailability = useCallback(
@@ -25,6 +26,7 @@ export function UsernameInput({ value, onChange, onValidation }: UsernameInputPr
       if (!validation.valid) {
         setValidationError(validation.error || null);
         setIsAvailable(null);
+        setHasCheckedAvailability(false);
         onValidation(false);
         return;
       }
@@ -36,6 +38,7 @@ export function UsernameInput({ value, onChange, onValidation }: UsernameInputPr
       try {
         const available = await checkUsernameAvailability(username);
         setIsAvailable(available);
+        setHasCheckedAvailability(true);
         onValidation(available);
 
         if (!available) {
@@ -44,6 +47,7 @@ export function UsernameInput({ value, onChange, onValidation }: UsernameInputPr
       } catch (error) {
         console.error('Error checking username:', error);
         setValidationError('Unable to check username availability');
+        setHasCheckedAvailability(true);
         onValidation(false);
       } finally {
         setIsChecking(false);
@@ -62,6 +66,7 @@ export function UsernameInput({ value, onChange, onValidation }: UsernameInputPr
     if (!value) {
       setValidationError(null);
       setIsAvailable(null);
+      setHasCheckedAvailability(false);
       onValidation(false);
       return;
     }
@@ -113,7 +118,7 @@ export function UsernameInput({ value, onChange, onValidation }: UsernameInputPr
 
       {validationError && <Text style={styles.errorText}>{validationError}</Text>}
 
-      {!isAvailable && !validationError && value && (
+      {hasCheckedAvailability && !isAvailable && !validationError && value && (
         <Text style={styles.errorText}>Username is already taken</Text>
       )}
     </View>

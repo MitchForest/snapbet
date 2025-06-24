@@ -1,211 +1,217 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text } from '@tamagui/core';
-import { ScrollView, Alert } from 'react-native';
+import { ScrollView, Alert, Pressable, StyleSheet } from 'react-native';
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/services/supabase/client';
-import { SettingsRow } from '@/components/settings/SettingsRow';
-import { BADGES } from '@/data/badges';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { Colors } from '@/theme';
 
 type PrimaryStat = 'winRate' | 'profit' | 'roi' | 'record' | 'streak';
 
-const STAT_OPTIONS: { value: PrimaryStat; label: string; description: string }[] = [
-  { value: 'winRate', label: 'Win Rate', description: 'Show your win percentage' },
-  { value: 'profit', label: 'Profit', description: 'Show your total profit/loss' },
-  { value: 'roi', label: 'ROI', description: 'Show your return on investment' },
-  { value: 'record', label: 'Record', description: 'Show your W-L record' },
-  { value: 'streak', label: 'Streak', description: 'Show your current streak' },
+const STAT_OPTIONS = [
+  {
+    value: 'record' as PrimaryStat,
+    label: 'Win-Loss Record',
+    description: 'Show your total wins and losses',
+  },
+  {
+    value: 'winRate' as PrimaryStat,
+    label: 'Win Rate',
+    description: 'Display your win percentage',
+  },
+  {
+    value: 'profit' as PrimaryStat,
+    label: 'Total Profit',
+    description: 'Show your all-time profit/loss',
+  },
+  {
+    value: 'roi' as PrimaryStat,
+    label: 'Return on Investment',
+    description: 'Display your ROI percentage',
+  },
+  {
+    value: 'streak' as PrimaryStat,
+    label: 'Current Streak',
+    description: 'Show your current win/loss streak',
+  },
 ];
 
 export default function StatsDisplayScreen() {
-  const { user } = useAuthStore();
+  const user = useAuthStore((state) => state.user);
   const [primaryStat, setPrimaryStat] = useState<PrimaryStat>('record');
   const [selectedBadge, setSelectedBadge] = useState<string | null>(null);
-  const [userBadges, setUserBadges] = useState<string[]>([]);
   const [showBadge, setShowBadge] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   const fetchSettings = useCallback(async () => {
     if (!user?.id) return;
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('user_stats_display')
       .select('*')
       .eq('user_id', user.id)
       .single();
 
-    if (data && !error) {
+    if (data) {
       setPrimaryStat(data.primary_stat as PrimaryStat);
       setShowBadge(data.show_badge ?? true);
       setSelectedBadge(data.selected_badge || null);
     }
   }, [user?.id]);
 
-  const fetchUserBadges = useCallback(async () => {
-    if (!user?.id) return;
-
-    try {
-      const { calculateUserBadges } = await import('@/services/badges/badgeService');
-      const badges = await calculateUserBadges(user.id);
-      setUserBadges(badges);
-    } catch (error) {
-      console.error('Error fetching user badges:', error);
-    }
-  }, [user?.id]);
-
   useEffect(() => {
     fetchSettings();
-    fetchUserBadges();
-  }, [fetchSettings, fetchUserBadges]);
+  }, [fetchSettings]);
 
-  const handleStatChange = async (stat: PrimaryStat) => {
+  const handleStatChange = (stat: PrimaryStat) => {
     setPrimaryStat(stat);
-    await handleSave();
-  };
-
-  const handleBadgeChange = async (badgeId: string | null) => {
-    setSelectedBadge(badgeId);
-    await handleSave();
   };
 
   const handleSave = async () => {
     if (!user?.id) return;
 
-    const { error } = await supabase
-      .from('user_stats_display')
-      .upsert({
-        user_id: user.id,
-        primary_stat: primaryStat,
-        show_badge: showBadge,
-        selected_badge: selectedBadge,
-        updated_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
+    setIsSaving(true);
 
-    if (error) {
-      Alert.alert('Error', 'Failed to save settings');
-    } else {
+    try {
+      const { error } = await supabase
+        .from('user_stats_display')
+        .upsert({
+          user_id: user.id,
+          primary_stat: primaryStat,
+          show_badge: showBadge,
+          selected_badge: selectedBadge,
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
       Alert.alert('Success', 'Settings saved successfully');
+    } catch (error) {
+      console.error('Error saving stats display settings:', error);
+      Alert.alert('Error', 'Failed to save settings');
+    } finally {
+      setIsSaving(false);
     }
   };
 
+  const StatOptionCard = ({
+    option,
+  }: {
+    option: { value: PrimaryStat; label: string; description: string };
+  }) => (
+    <Pressable onPress={() => handleStatChange(option.value)}>
+      <View
+        backgroundColor="$surface"
+        padding="$4"
+        borderRadius="$3"
+        borderWidth={2}
+        borderColor={primaryStat === option.value ? '$primary' : '$border'}
+        marginBottom="$3"
+      >
+        <View flexDirection="row" alignItems="center" gap="$3">
+          <Text fontSize={24}>{option.value.toUpperCase()}</Text>
+          <View flex={1}>
+            <Text fontSize={16} fontWeight="600" color="$textPrimary">
+              {option.label}
+            </Text>
+            <Text fontSize={14} color="$textSecondary" marginTop="$1">
+              {option.description}
+            </Text>
+          </View>
+          {primaryStat === option.value && (
+            <View
+              width={24}
+              height={24}
+              borderRadius="$round"
+              backgroundColor="$primary"
+              justifyContent="center"
+              alignItems="center"
+            >
+              <Text fontSize={14} color="$textInverse">
+                ✓
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+    </Pressable>
+  );
+
   return (
-    <View flex={1} backgroundColor="$background">
+    <View flex={1} backgroundColor={Colors.background}>
+      <ScreenHeader title="Stats Display" />
+
       <ScrollView>
-        {/* Primary Stat Selection */}
-        <View marginTop="$3">
-          <Text fontSize={12} color="$textSecondary" paddingHorizontal="$4" marginBottom="$2">
-            PRIMARY STAT
-          </Text>
-          <Text fontSize={14} color="$textSecondary" paddingHorizontal="$4" marginBottom="$2">
-            This stat will be shown next to your username throughout the app
+        <View padding="$4">
+          <Text fontSize={14} color="$textSecondary" marginBottom="$3">
+            Choose which stat to display next to your username throughout the app
           </Text>
 
           {STAT_OPTIONS.map((option) => (
-            <SettingsRow
-              key={option.value}
-              label={option.label}
-              subtitle={option.description}
-              onPress={() => handleStatChange(option.value)}
-              customRight={
-                <View
-                  width={20}
-                  height={20}
-                  borderRadius="$round"
-                  borderWidth={2}
-                  borderColor={primaryStat === option.value ? '$primary' : '$divider'}
-                  backgroundColor={primaryStat === option.value ? '$primary' : 'transparent'}
-                  justifyContent="center"
-                  alignItems="center"
-                >
-                  {primaryStat === option.value && (
-                    <View
-                      width={8}
-                      height={8}
-                      borderRadius="$round"
-                      backgroundColor="$textInverse"
-                    />
-                  )}
-                </View>
-              }
-            />
+            <StatOptionCard key={option.value} option={option} />
           ))}
-        </View>
 
-        {/* Badge Selection */}
-        {userBadges.length > 0 && (
-          <View marginTop="$6" marginBottom="$6">
-            <Text fontSize={12} color="$textSecondary" paddingHorizontal="$4" marginBottom="$2">
-              PRIMARY BADGE
-            </Text>
-            <Text fontSize={14} color="$textSecondary" paddingHorizontal="$4" marginBottom="$2">
-              Choose which badge to display in the feed (auto-selects highest priority by default)
-            </Text>
-
-            <SettingsRow
-              label="Automatic"
-              subtitle="Always show your highest priority badge"
-              onPress={() => handleBadgeChange(null)}
-              customRight={
+          <View marginTop="$4">
+            <Pressable onPress={() => setShowBadge(!showBadge)}>
+              <View
+                flexDirection="row"
+                alignItems="center"
+                justifyContent="space-between"
+                backgroundColor="$surface"
+                padding="$4"
+                borderRadius="$3"
+              >
+                <View flex={1}>
+                  <Text fontSize={16} fontWeight="600" color="$textPrimary">
+                    Show Badge
+                  </Text>
+                  <Text fontSize={14} color="$textSecondary" marginTop="$1">
+                    Display your highest badge next to your name
+                  </Text>
+                </View>
                 <View
-                  width={20}
-                  height={20}
+                  width={24}
+                  height={24}
                   borderRadius="$round"
                   borderWidth={2}
-                  borderColor={selectedBadge === null ? '$primary' : '$divider'}
-                  backgroundColor={selectedBadge === null ? '$primary' : 'transparent'}
+                  borderColor={showBadge ? '$primary' : '$border'}
+                  backgroundColor={showBadge ? '$primary' : 'transparent'}
                   justifyContent="center"
                   alignItems="center"
                 >
-                  {selectedBadge === null && (
-                    <View
-                      width={8}
-                      height={8}
-                      borderRadius="$round"
-                      backgroundColor="$textInverse"
-                    />
+                  {showBadge && (
+                    <Text fontSize={14} color="$textInverse">
+                      ✓
+                    </Text>
                   )}
                 </View>
-              }
-            />
-
-            {userBadges.map((badgeId) => {
-              const badge = BADGES[badgeId.toUpperCase()];
-              if (!badge) return null;
-
-              return (
-                <SettingsRow
-                  key={badgeId}
-                  icon={badge.emoji}
-                  label={badge.name}
-                  subtitle={badge.description}
-                  onPress={() => handleBadgeChange(badgeId)}
-                  customRight={
-                    <View
-                      width={20}
-                      height={20}
-                      borderRadius="$round"
-                      borderWidth={2}
-                      borderColor={selectedBadge === badgeId ? '$primary' : '$divider'}
-                      backgroundColor={selectedBadge === badgeId ? '$primary' : 'transparent'}
-                      justifyContent="center"
-                      alignItems="center"
-                    >
-                      {selectedBadge === badgeId && (
-                        <View
-                          width={8}
-                          height={8}
-                          borderRadius="$round"
-                          backgroundColor="$textInverse"
-                        />
-                      )}
-                    </View>
-                  }
-                />
-              );
-            })}
+              </View>
+            </Pressable>
           </View>
-        )}
+
+          <Pressable onPress={handleSave} disabled={isSaving} style={styles.saveButton}>
+            <View
+              backgroundColor="$primary"
+              borderRadius="$3"
+              paddingVertical="$3"
+              alignItems="center"
+              opacity={isSaving ? 0.5 : 1}
+            >
+              <Text fontSize={16} fontWeight="600" color="$textInverse">
+                {isSaving ? 'Saving...' : 'Save Preferences'}
+              </Text>
+            </View>
+          </Pressable>
+        </View>
       </ScrollView>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  saveButton: {
+    marginTop: 24,
+  },
+});

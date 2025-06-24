@@ -8,7 +8,7 @@ This document tracks high-level progress across all epics, maintains key archite
 | Epic # | Epic Name | Status | Start Date | End Date | Key Outcome |
 |--------|-----------|--------|------------|----------|-------------|
 | 01 | Foundation & Infrastructure | COMPLETED | Dec 2024 | Dec 2024 | Complete dev environment and core architecture |
-| 02 | Authentication & User System | IN PROGRESS | 2024-12-19 | - | OAuth working! Dev build migration, profiles, badges |
+| 02 | Authentication & User System | COMPLETED | 2024-12-19 | 2025-01-19 | OAuth, profiles, badges, referrals - DEVELOPMENT BUILD REQUIRED |
 | 03 | Social Feed & Content | NOT STARTED | - | - | Photo/video sharing with stories |
 | 04 | Betting System | NOT STARTED | - | - | Mock betting with tail/fade mechanics |
 | 05 | Messaging & Real-time | NOT STARTED | - | - | DMs, group chats, real-time updates |
@@ -33,6 +33,85 @@ This document tracks high-level progress across all epics, maintains key archite
   - Zero linting or type errors
 - **Major Decisions**: Simple repo structure, cents for money, mock user system
 - **Ready For**: Epic 2 - Authentication can now begin
+
+### Epic 02: Authentication & User System (Dec 2024 - Jan 2025)
+- **Duration**: 1 month (8 sprints)
+- **Key Achievements**:
+  - Complete OAuth with Google and Twitter (NO EMAIL/PASSWORD)
+  - Development build migration (REQUIRED for OAuth)
+  - Multi-step onboarding flow (username → team → follow)
+  - User profiles with customizable stats display
+  - Badge system with 8 achievement types
+  - Real-time notifications infrastructure
+  - Referral tracking (rewards deferred to prevent abuse)
+  - Complete drawer navigation with all user screens
+  - Zero lint/TypeScript errors maintained
+- **Major Decisions**: 
+  - OAuth-only (no email/password)
+  - Development builds required (Expo Go can't handle OAuth)
+  - Referrals without rewards in MVP
+  - Badge auto-calculation with user selection
+  - UI/UX consistency rules established (.pm/process/ui-ux-consistency-rules.md)
+- **Critical for Future Epics**: See "Critical Information for Future Agents" section below
+
+## 🚨 CRITICAL INFORMATION FOR FUTURE AGENTS 🚨
+
+### Development Environment Setup
+**YOU MUST USE DEVELOPMENT BUILDS - EXPO GO WILL NOT WORK**
+```bash
+# One-time setup
+eas build --profile development-simulator --platform ios
+
+# Daily development
+bun expo start --dev-client  # NOT just 'bun expo start'
+```
+
+### OAuth Authentication Flow
+Our OAuth implementation has specific requirements due to Supabase quirks:
+
+1. **URL Token Parsing**: Supabase returns tokens in URL fragment with `#` not `?`
+   ```typescript
+   // We manually parse tokens from redirect URL
+   const transformedUrl = url.replace('#', '?');
+   const params = new URLSearchParams(transformedUrl.split('?')[1]);
+   ```
+
+2. **Session Detection**: Uses retry mechanism (3 attempts) for reliability
+
+3. **Google OAuth**: Requires email scope and 60-second timeout for 2FA
+   ```typescript
+   scopes: provider === 'google' ? 'https://www.googleapis.com/auth/userinfo.email' : undefined
+   ```
+
+4. **Database Trigger**: Auto-creates user records on OAuth signup
+   - Email is nullable (Twitter doesn't always provide)
+   - Username is nullable (set during onboarding)
+   - Uses schema-qualified enum types: `'google'::public.oauth_provider`
+
+### UI/UX Consistency Rules
+**MANDATORY**: Follow `.pm/process/ui-ux-consistency-rules.md`
+- Use Tamagui components (`View`, `Text`, `XStack`)
+- Use `ScreenHeader` component for all drawer screens
+- Use `Colors` constant from `@/theme` (never hardcoded colors)
+- Use `useSafeAreaInsets()` hook (not SafeAreaView)
+- Use text characters for icons ("←" for back)
+- Standard padding: 16px, Header height: 56px
+
+### Supabase Query Patterns
+When querying related tables with multiple foreign keys:
+```typescript
+// WRONG - causes TypeScript errors
+.select('follower:follower_id (...)')
+
+// CORRECT - with relationship hints
+.select('follower:users!follower_id (...)')
+```
+
+### Common Issues & Solutions
+1. **Hermes Runtime Error**: Restart Metro bundler with `--clear`
+2. **Navigation REPLACE Error**: Add 100ms delay before navigation
+3. **SecureStore Warning**: Large tokens work fine, optimization deferred
+4. **Profile Navigation**: Pass username parameter in DrawerContent
 
 ## Cross-Epic Architectural Decisions
 
@@ -66,23 +145,28 @@ This document tracks high-level progress across all epics, maintains key archite
 | Jan 2025 | Migrate from Expo Go to Dev Build | OAuth requires proper deep linking | Epic 2, All |
 | Jan 2025 | Manual token parsing for OAuth | Supabase uses # in redirect URLs | Epic 2 |
 | Jan 2025 | Development builds for OAuth | Expo Go can't handle deep links properly | Epic 2, All |
+| Jan 2025 | OAuth-only authentication | No email/password to reduce friction | Epic 2, All |
+| Jan 2025 | ScreenHeader component pattern | Consistent UI across drawer screens | Epic 2, All |
+| Jan 2025 | useUserList hook pattern | Shared logic for user lists | Epic 2, 3+ |
 
 ### Established Patterns
-- **Authentication**: OAuth-only with Supabase (Google/Twitter)
+- **Authentication**: OAuth-only with Supabase (Google/Twitter) - NO EMAIL/PASSWORD
+- **Development**: MUST use development builds (`bun expo start --dev-client`)
 - **Error Handling**: User-friendly messages with specific error codes
-- **Data Fetching**: Direct Supabase queries (no RPC functions)
+- **Data Fetching**: Direct Supabase queries with relationship hints
 - **State Management**: Zustand for app state, React Query for server state (future)
 - **Component Structure**: Shared hooks for common logic (useUserList pattern)
+- **UI Components**: Tamagui + ScreenHeader for drawer screens
 - **Badge System**: Auto-calculated with user selection for display
 - **Stats Display**: User-customizable primary stat
-- **Navigation**: Drawer menu for non-tab screens
+- **Navigation**: Drawer menu for non-tab screens, expo-router for all navigation
 - **Color System**: Centralized Colors constant with semantic naming
 - **Environment Management**: .env files with EXPO_PUBLIC_ prefix
 - **Edge Functions**: Bearer token auth, environment-based configuration
 - **Database Migrations**: Fix root issues rather than work around them
 - **Code Quality**: Zero tolerance for lint errors/warnings
 - **Type Safety**: No `any` types, proper interfaces for all data
-- **Deployment**: EAS Build for distribution, Expo Go for development
+- **Deployment**: EAS Build for distribution, development builds for dev
 
 ## Technology Stack Evolution
 

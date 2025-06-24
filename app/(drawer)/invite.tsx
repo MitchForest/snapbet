@@ -1,70 +1,73 @@
 import React from 'react';
 import { View, Text } from '@tamagui/core';
-import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
+import { ScrollView } from 'react-native';
+import { useReferral } from '@/hooks/useReferral';
 import { InviteCard } from '@/components/invite/InviteCard';
 import { ReferralStats } from '@/components/invite/ReferralStats';
-import { useReferral } from '@/hooks/useReferral';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Colors } from '@/theme';
 
 export default function InviteScreen() {
-  const { code, stats, referredUsers, isLoading, error } = useReferral();
-
-  if (isLoading) {
-    return (
-      <View flex={1} justifyContent="center" alignItems="center" backgroundColor="$background">
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
-  }
-
-  if (error || !code) {
-    return (
-      <View flex={1} justifyContent="center" alignItems="center" backgroundColor="$background">
-        <Text fontSize={16} color="$textSecondary">
-          Unable to load invite data
-        </Text>
-      </View>
-    );
-  }
+  const { code, stats, referredUsers } = useReferral();
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Header */}
-      <View marginBottom="$6">
-        <Text fontSize={28} fontWeight="bold" color="$textPrimary" marginBottom="$2">
-          Invite Friends
-        </Text>
-        <Text fontSize={16} color="$textSecondary">
-          Share your referral code and grow the SnapBet community
-        </Text>
-      </View>
+    <View flex={1} backgroundColor={Colors.background}>
+      <ScreenHeader title="Invite Friends" />
 
-      {/* Invite Card */}
-      <InviteCard referralCode={code} />
+      <ScrollView>
+        <View padding="$4" gap="$4">
+          {/* Invite Card */}
+          <InviteCard referralCode={code || ''} />
 
-      {/* Referral Stats */}
-      <ReferralStats stats={stats} referredUsers={referredUsers} />
+          {/* Referral Stats */}
+          <ReferralStats stats={stats} referredUsers={referredUsers} />
 
-      {/* Info Section */}
-      <View marginTop="$6" padding="$4" backgroundColor="$surfaceAlt" borderRadius="$3">
-        <Text fontSize={16} fontWeight="600" color="$textPrimary" marginBottom="$2">
-          How it works
-        </Text>
-        <Text fontSize={14} color="$textSecondary" lineHeight={20}>
-          When someone signs up with your code, they&apos;ll automatically follow you. Build your
-          following and compete for the top referrer badges!
-        </Text>
-      </View>
-    </ScrollView>
+          {/* How it Works */}
+          <View backgroundColor="$surface" padding="$4" borderRadius="$3">
+            <Text fontSize={18} fontWeight="600" color="$textPrimary" marginBottom="$3">
+              How it works
+            </Text>
+
+            <View gap="$3">
+              <View flexDirection="row" gap="$3">
+                <Text fontSize={24}>1️⃣</Text>
+                <View flex={1}>
+                  <Text fontSize={16} fontWeight="500" color="$textPrimary">
+                    Share your code
+                  </Text>
+                  <Text fontSize={14} color="$textSecondary" marginTop="$1">
+                    Send your unique referral code to friends
+                  </Text>
+                </View>
+              </View>
+
+              <View flexDirection="row" gap="$3">
+                <Text fontSize={24}>2️⃣</Text>
+                <View flex={1}>
+                  <Text fontSize={16} fontWeight="500" color="$textPrimary">
+                    They sign up
+                  </Text>
+                  <Text fontSize={14} color="$textSecondary" marginTop="$1">
+                    Friends use your code when creating their account
+                  </Text>
+                </View>
+              </View>
+
+              <View flexDirection="row" gap="$3">
+                <Text fontSize={24}>3️⃣</Text>
+                <View flex={1}>
+                  <Text fontSize={16} fontWeight="500" color="$textPrimary">
+                    Track your impact
+                  </Text>
+                  <Text fontSize={14} color="$textSecondary" marginTop="$1">
+                    See how many friends joined through your referral
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  content: {
-    padding: 16,
-  },
-});

@@ -12,5 +12,15 @@ const errorMessages: Record<AuthErrorCode, string> = {
 export function getAuthErrorMessage(error: CustomAuthError | null): string {
   if (!error) return '';
 
+  // Check for specific Google OAuth errors
+  if (error.message.includes('Google authentication failed')) {
+    return error.message;
+  }
+
+  // Check for timeout errors
+  if (error.message.includes('timeout')) {
+    return 'Authentication is taking longer than expected. Please try again.';
+  }
+
   return errorMessages[error.customCode] || errorMessages.UNKNOWN;
 }

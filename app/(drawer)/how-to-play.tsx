@@ -1,68 +1,71 @@
 import React from 'react';
 import { View, Text } from '@tamagui/core';
 import { ScrollView } from 'react-native';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { Colors } from '@/theme';
 
 export default function HowToPlayScreen() {
   return (
-    <View flex={1} backgroundColor="$background">
+    <View flex={1} backgroundColor={Colors.background}>
+      <ScreenHeader title="How to Play" />
+
       <ScrollView>
-        <View padding="$4">
-          <Text fontSize={24} fontWeight="600" color="$textPrimary" marginBottom="$4">
-            How to Play SnapBet
-          </Text>
-
-          <View marginBottom="$4">
-            <Text fontSize={18} fontWeight="600" color="$textPrimary" marginBottom="$2">
-              📸 1. Make Your Picks
+        <View padding="$4" gap="$4">
+          <View backgroundColor="$surface" padding="$4" borderRadius="$3">
+            <Text fontSize={24} fontWeight="bold" color="$textPrimary" marginBottom="$3">
+              Welcome to SnapBet!
             </Text>
-            <Text fontSize={14} color="$textSecondary" lineHeight={20}>
-              Share your sports betting picks with photo or video proof. Add your analysis and stake
-              amount.
+            <Text fontSize={16} color="$textSecondary" lineHeight={24}>
+              The social sports betting game where you compete with friends using virtual money.
             </Text>
           </View>
 
-          <View marginBottom="$4">
-            <Text fontSize={18} fontWeight="600" color="$textPrimary" marginBottom="$2">
-              👆 2. Tail or Fade
+          <View backgroundColor="$surface" padding="$4" borderRadius="$3">
+            <Text fontSize={20} fontWeight="600" color="$textPrimary" marginBottom="$3">
+              🎯 How It Works
             </Text>
-            <Text fontSize={14} color="$textSecondary" lineHeight={20}>
-              Follow other bettors&apos; picks (tail) or bet against them (fade). Build your
-              bankroll by making smart decisions.
+            <View gap="$3">
+              <Text fontSize={16} color="$textSecondary" lineHeight={24}>
+                1. Start with $1,000 in virtual money
+              </Text>
+              <Text fontSize={16} color="$textSecondary" lineHeight={24}>
+                2. Make picks on real games
+              </Text>
+              <Text fontSize={16} color="$textSecondary" lineHeight={24}>
+                3. Share your picks with friends
+              </Text>
+              <Text fontSize={16} color="$textSecondary" lineHeight={24}>
+                4. Tail or fade other bettors
+              </Text>
+              <Text fontSize={16} color="$textSecondary" lineHeight={24}>
+                5. Track your performance and climb the leaderboard
+              </Text>
+            </View>
+          </View>
+
+          <View backgroundColor="$surface" padding="$4" borderRadius="$3">
+            <Text fontSize={20} fontWeight="600" color="$textPrimary" marginBottom="$3">
+              💰 Bankroll Management
+            </Text>
+            <Text fontSize={16} color="$textSecondary" lineHeight={24}>
+              Your bankroll resets to $1,000 whenever you run out. Track your all-time profit and
+              ROI to show your true betting skills!
             </Text>
           </View>
 
-          <View marginBottom="$4">
-            <Text fontSize={18} fontWeight="600" color="$textPrimary" marginBottom="$2">
-              💰 3. Track Your Bankroll
+          <View backgroundColor="$surface" padding="$4" borderRadius="$3">
+            <Text fontSize={20} fontWeight="600" color="$textPrimary" marginBottom="$3">
+              🏆 Earn Badges
             </Text>
-            <Text fontSize={14} color="$textSecondary" lineHeight={20}>
-              Start with $1,000 in virtual currency. Track your wins, losses, and ROI. Reset anytime
-              to start fresh.
-            </Text>
-          </View>
-
-          <View marginBottom="$4">
-            <Text fontSize={18} fontWeight="600" color="$textPrimary" marginBottom="$2">
-              🏆 4. Earn Badges
-            </Text>
-            <Text fontSize={14} color="$textSecondary" lineHeight={20}>
-              Unlock achievements like Hot Streak, Sharp, and Profit Leader. Show off your betting
-              skills!
+            <Text fontSize={16} color="$textSecondary" lineHeight={24}>
+              Unlock achievements like Hot Streak, Sharp, and more. Display your favorite badge on
+              your profile!
             </Text>
           </View>
 
-          <View marginBottom="$4">
-            <Text fontSize={18} fontWeight="600" color="$textPrimary" marginBottom="$2">
-              ⏰ 5. 24-Hour Stories
-            </Text>
-            <Text fontSize={14} color="$textSecondary" lineHeight={20}>
-              All picks disappear after 24 hours, keeping the action fresh and the pressure on!
-            </Text>
-          </View>
-
-          <View backgroundColor="$surfaceAlt" padding="$3" borderRadius="$2" marginTop="$4">
-            <Text fontSize={12} color="$textSecondary" textAlign="center">
-              SnapBet is for entertainment purposes only. No real money wagering. Must be 21+.
+          <View backgroundColor="$surface" padding="$4" borderRadius="$3" marginBottom="$4">
+            <Text fontSize={14} color="$textSecondary" textAlign="center" lineHeight={20}>
+              Remember: This is for entertainment only. No real money is involved.
             </Text>
           </View>
         </View>

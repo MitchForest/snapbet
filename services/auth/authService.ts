@@ -125,6 +125,8 @@ class AuthService {
         options: {
           redirectTo,
           skipBrowserRedirect: true,
+          scopes:
+            provider === 'google' ? 'https://www.googleapis.com/auth/userinfo.email' : undefined,
         },
       });
 
@@ -139,9 +141,11 @@ class AuthService {
 
         // Use openAuthSessionAsync for development builds
         const result = await Promise.race([
-          WebBrowser.openAuthSessionAsync(data.url, redirectTo),
+          WebBrowser.openAuthSessionAsync(data.url, redirectTo, {
+            showInRecents: true,
+          }),
           new Promise<{ type: 'timeout' }>(
-            (resolve) => setTimeout(() => resolve({ type: 'timeout' }), 30000) // 30 second timeout
+            (resolve) => setTimeout(() => resolve({ type: 'timeout' }), 60000) // 60 second timeout for Google 2FA
           ),
         ]);
 
@@ -186,6 +190,20 @@ class AuthService {
 
             console.error('OAuth error in callback:', errorDescription);
 
+            // Check for specific Google OAuth errors
+            if (errorDescription.includes('Error getting user email from external provider')) {
+              return {
+                user: null,
+                session: null,
+                error: {
+                  message:
+                    'Google authentication failed. Please ensure you have allowed email access permissions.',
+                  status: 400,
+                  customCode: 'PROVIDER_ERROR',
+                },
+              };
+            }
+
             return {
               user: null,
               session: null,
@@ -200,10 +218,25 @@ class AuthService {
           // Give Supabase a moment to process the OAuth callback
           await new Promise((resolve) => setTimeout(resolve, 500));
 
-          // Check if we got a session
-          const { data: sessionData } = await supabase.auth.getSession();
+          // Check if we got a session with retries
+          let sessionData = null;
+          let retries = 0;
+          const maxRetries = 3;
 
-          if (sessionData.session) {
+          while (retries < maxRetries) {
+            const { data } = await supabase.auth.getSession();
+            if (data.session) {
+              sessionData = data;
+              break;
+            }
+            retries++;
+            if (retries < maxRetries) {
+              console.log(`No session found, retrying... (${retries}/${maxRetries})`);
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+            }
+          }
+
+          if (sessionData?.session) {
             console.log('✅ Found session after OAuth flow!');
             await sessionManager.saveSession(sessionData.session);
 

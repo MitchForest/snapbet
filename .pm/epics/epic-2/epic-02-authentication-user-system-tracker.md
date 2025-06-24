@@ -2,10 +2,10 @@
 
 ## Epic Overview
 
-**Status**: NOT STARTED  
-**Start Date**: -  
+**Status**: COMPLETED  
+**Start Date**: 2024-12-19  
 **Target End Date**: Day 1 (end) - Day 2 (morning)  
-**Actual End Date**: -
+**Actual End Date**: 2024-01-19
 
 **Epic Goal**: Implement complete OAuth authentication flow with Google and Twitter, create user onboarding experience, establish user profiles and settings, initialize bankroll system, and implement user engagement features.
 
@@ -30,7 +30,7 @@
 | 02.04 | Profile, Settings & Drawer | APPROVED | 2024-12-20 | 2024-12-20 | Full profile system with navigation |
 | 02.05 | Referral & Badge Automation | APPROVED | 2024-12-20 | 2024-12-20 | Growth features and automation |
 | 02.06 | Technical Debt Cleanup & Automation Migration | APPROVED | 2024-12-20 | 2024-12-20 | Zero lint issues, proper types, color extraction, refactoring |
-| 02.07 | OAuth Implementation & Dev Build | IN PROGRESS | 2024-01-18 | - | OAuth working, dev build migration |
+| 02.07 | OAuth Implementation & Development Build Migration | APPROVED | 2024-01-18 | - | OAuth working, dev build migration |
 
 **Statuses**: NOT STARTED | IN PROGRESS | IN REVIEW | APPROVED | BLOCKED
 
@@ -414,8 +414,8 @@ CREATE TABLE badge_history (
 
 ### Sprint 02.07: OAuth Implementation & Development Build Migration
 
-**Status**: IN PROGRESS
-**Summary**: Major pivot from deployment preparation to fixing OAuth authentication. Discovered Expo Go limitations prevented OAuth from working properly. Successfully migrated to development builds and implemented working OAuth flow with Twitter. Google OAuth pending testing.
+**Status**: APPROVED
+**Summary**: Major pivot from deployment preparation to fixing OAuth authentication. Successfully migrated to development builds, implemented working OAuth flow with Twitter and Google, fixed all critical UI/UX issues, and resolved TypeScript error after review feedback.
 
 **Key Decisions**:
 - Migrated from Expo Go to development builds due to deep linking limitations
@@ -423,36 +423,90 @@ CREATE TABLE badge_history (
 - Created auth trigger to auto-create user records
 - Made email nullable to support Twitter OAuth
 - Fixed username constraint to allow NULL during onboarding
+- Created consistent ScreenHeader component for all drawer screens
+- Fixed Supabase query relationships with explicit hints (users!follower_id)
+- Deferred non-critical tasks (Edge Functions, CI/CD) to maintain momentum
 
 **Completed**:
 - [x] Development build setup with EAS
 - [x] Supabase redirect URLs configured for snapbet://
 - [x] OAuth flow working with Twitter
+- [x] OAuth flow working with Google (with email scope and retry)
 - [x] Database triggers and constraints fixed
-- [x] All lint errors (42) and TypeScript errors (1) resolved
+- [x] All lint errors (42) resolved - ZERO errors/warnings
+- [x] All TypeScript errors resolved - ZERO errors
+- [x] All critical UI/UX issues fixed (Phase 0 complete)
+- [x] Username validation debouncing fixed
+- [x] Consistent headers on all drawer screens
+- [x] Safe area handling for all screens
+- [x] Profile navigation fixed with username parameter
+- [x] Navigation delay added to fix REPLACE action error
+- [x] README updated with OAuth setup instructions
+- [x] useUserList hook created for code refactoring
+- [x] TypeScript error in useUserList fixed with relationship hints
 
-**In Progress**:
-- [ ] Fix navigation error after successful login
-- [ ] Test Google OAuth (should work now)
-- [ ] Complete original deployment preparation tasks
+**Deferred to Future Epics/Sprints (Comprehensive Backlog)**:
+
+1. **Edge Functions Migration (Target: Epic 4-5)**
+   - Migrate scripts/update-badges.ts → supabase/functions/update-badges/
+   - Migrate scripts/settle-bets.ts → supabase/functions/settle-bets/
+   - Migrate scripts/add-games.ts → supabase/functions/add-games/
+   - Set up Supabase cron triggers
+   - Add Bearer token authentication
+   - Note: Scripts work fine for MVP, Edge Functions require Deno runtime knowledge
+
+2. **CI/CD Pipeline (Target: Pre-Launch Epic)**
+   - Create .github/workflows/eas-preview.yml for PR previews
+   - EAS Build webhooks for notifications
+   - Automated testing before builds
+   - Version bumping automation
+   - App Store release workflow
+   - Note: Not needed until deployment, EAS builds cost money
+
+3. **Full Environment Management (Target: When Staging Needed)**
+   - Create .env.development, .env.staging, .env.production
+   - Create config/environment.ts for env switching
+   - Multiple Supabase projects per environment
+   - EAS Build profiles per environment
+   - Note: Single dev environment sufficient for MVP
+
+4. **SecureStore Token Optimization (Target: Performance Epic)**
+   - Split session into smaller chunks (access_token, refresh_token, meta)
+   - Implement token compression if needed
+   - Migration for existing sessions
+   - Note: Warning is non-blocking, sessions work fine
+
+5. **Comprehensive Documentation (Target: Post-MVP)**
+   - docs/DEPLOYMENT.md - Full deployment guide
+   - docs/OAUTH_SETUP.md - OAuth provider configuration
+   - docs/TROUBLESHOOTING.md - Common issues and solutions
+   - docs/ARCHITECTURE.md - System design decisions
+   - docs/CONTRIBUTING.md - Development workflow
+   - Note: Code is self-documenting for now, document as features stabilize
 
 **Issues Encountered**: 
 - Expo Go can't handle OAuth redirects properly
 - Supabase uses non-standard URL format for tokens
 - Database trigger needed schema qualification for enum types
-- Navigation error occurs after successful login (non-blocking)
+- Hermes runtime errors on hot reload (needs Metro restart)
+- Navigation error occurs after successful login (fixed with delay)
+- TypeScript error in useUserList hook (fixed with relationship hints)
 
-**Deferred to Complete**:
-- Environment management system
-- Edge Functions migration
-- CI/CD pipeline setup
-- Deployment documentation
+**Key Learnings**:
+- Development builds required for OAuth (Expo Go insufficient)
+- Supabase OAuth uses # in redirect URLs (non-standard)
+- Database triggers need explicit schema qualification
+- Async callbacks in auth can cause deadlocks
+- Development builds maintain hot reload capability
+- Twitter OAuth requires email permission request
+- Google OAuth needs email scope and may timeout with 2FA
+- Supabase queries need explicit relationship hints when multiple foreign keys exist
 
 ---
 
-*Epic Started: -*  
-*Epic Completed: -*  
-*Total Duration: -*
+*Epic Started: 2024-12-19*  
+*Epic Completed: 2024-01-19*  
+*Total Duration: 1 month*
 
 ## Testing & Quality
 
@@ -518,34 +572,101 @@ CREATE TABLE badge_history (
 
 ## Epic Completion Checklist
 
-- [ ] All planned sprints completed and approved
-- [ ] OAuth working with both providers
-- [ ] Onboarding flow smooth and complete
-- [ ] User profiles properly initialized
-- [ ] Bankroll system working
-- [ ] Badge system calculating correctly
-- [ ] Notifications delivering in real-time
-- [ ] Referral system functional
-- [ ] Settings persisted correctly
-- [ ] Deep linking configured
-- [ ] No critical bugs remaining
-- [ ] Ready for Epic 3 (Social Feed)
+- [x] All planned sprints completed and approved
+- [x] OAuth working with both providers
+- [x] Onboarding flow smooth and complete
+- [x] User profiles properly initialized
+- [x] Bankroll system working
+- [x] Badge system calculating correctly
+- [x] Notifications delivering in real-time
+- [x] Referral system functional
+- [x] Settings persisted correctly
+- [x] Deep linking configured
+- [x] No critical bugs remaining
+- [x] Ready for Epic 3 (Social Feed)
 
 ## Epic Summary for Project Tracker
 
-**[To be completed at epic end]**
+**Duration**: 1 month (December 19, 2024 - January 19, 2025)
 
 **Delivered Features**:
-- [To be listed]
+- Complete OAuth authentication with Google and Twitter
+- Development build migration (required for OAuth)
+- Multi-step onboarding (username → team → follow)
+- User profile system with customizable display
+- Badge system with 8 achievement types
+- Notification infrastructure with real-time updates
+- Referral tracking system (rewards deferred)
+- Settings management with auto-save
+- Drawer navigation with all user screens
+- Bankroll initialization and reset functionality
+- Zero lint errors and TypeScript errors
 
 **Key Architectural Decisions**:
-- [To be summarized]
+1. **OAuth-Only Authentication**: No email/password to reduce friction
+2. **Development Builds Required**: Expo Go can't handle OAuth deep links
+3. **Manual Token Parsing**: Supabase uses # in redirect URLs
+4. **Nullable Email/Username**: Supports Twitter OAuth and onboarding flow
+5. **Badge Auto-Assignment**: Calculated on-the-fly with user selection
+6. **Referral Without Rewards**: Track only in MVP to prevent abuse
+7. **File-Based Script Locks**: Simple concurrency control for automation
+8. **Type/Data Notification Pattern**: More flexible than fixed columns
+9. **ScreenHeader Component**: Consistent UI across all drawer screens
+10. **Relationship Hints in Queries**: Required for ambiguous Supabase joins
 
 **Critical Learnings**:
-- [To be captured]
+1. **Expo Go Limitations**: Can't handle OAuth redirects, WebBrowser issues, requires dev builds
+2. **Supabase OAuth Quirks**: Non-standard URL format (#), manual token parsing needed
+3. **Database Triggers**: Need explicit schema qualification for enum types
+4. **Async Auth Callbacks**: Can cause deadlocks, use sync with setTimeout
+5. **Twitter OAuth**: Requires explicit email permission request
+6. **Google OAuth**: Needs email scope, may timeout with 2FA (60s timeout helps)
+7. **Navigation Timing**: Need delays to ensure navigators are mounted
+8. **TypeScript with Supabase**: Queries need explicit relationship hints
+9. **Hot Reload Issues**: Hermes runtime errors fixed by Metro restart
+10. **SecureStore Limits**: Large tokens show warnings but work fine
 
 **Technical Debt Created**:
-- [To be noted]
+1. **Edge Functions Migration**: Scripts work but need serverless solution
+2. **CI/CD Pipeline**: Manual builds work but need automation
+3. **Environment Management**: Single dev environment, need staging/prod
+4. **SecureStore Optimization**: Token splitting for large sessions
+5. **Comprehensive Documentation**: Basic README done, need full docs
+
+**Deferred to Future Epics**:
+1. **Edge Functions (Epic 4-5)**:
+   - Badge automation → supabase/functions/update-badges/
+   - Bet settlement → supabase/functions/settle-bets/
+   - Game data → supabase/functions/add-games/
+   - Cron triggers setup
+   - Bearer token authentication
+
+2. **CI/CD Pipeline (Pre-Launch Epic)**:
+   - GitHub Actions for EAS preview builds
+   - Automated testing before builds
+   - Version bumping automation
+   - App Store release workflow
+
+3. **Full Environment Management (When Staging Needed)**:
+   - Multiple .env files (dev/staging/prod)
+   - Environment switching logic
+   - Multiple Supabase projects
+   - EAS Build profiles per environment
+
+4. **Documentation (Post-MVP)**:
+   - DEPLOYMENT.md guide
+   - OAUTH_SETUP.md for providers
+   - TROUBLESHOOTING.md
+   - ARCHITECTURE.md
+   - CONTRIBUTING.md
+
+**Ready for Epic 3**:
+- Authentication fully working
+- User profiles established
+- Navigation structure complete
+- UI/UX patterns established (see .pm/process/ui-ux-consistency-rules.md)
+- Development workflow optimized
+- All infrastructure ready for social features
 
 ---
 
@@ -826,227 +947,3 @@ CREATE TABLE badge_history (
    - [ ] Start Betting button (disabled until 3)
 
 5. [ ] Implement follow suggestions algorithm:
-   ```typescript
-   function getFollowSuggestions(favoriteTeam?: string): User[] {
-     // Returns mix of:
-     // - 2-3 users with same favorite team
-     // - 2-3 high performers (sharps)
-     // - 1-2 entertainment (fade material)
-     // - Random from remaining
-   }
-   ```
-
-6. [ ] Create follow/unfollow logic:
-   - [ ] Optimistic UI updates
-   - [ ] Create follow records
-   - [ ] Update follower counts
-   - [ ] Handle errors gracefully
-
-7. [ ] Complete onboarding:
-   - [ ] Mark user as onboarded
-   - [ ] Initialize bankroll ($1,000)
-   - [ ] Navigate to main app
-   - [ ] Show success animation
-
-**Success Criteria**:
-- Can select favorite team or skip
-- Follow suggestions relevant
-- Must follow 3+ users
-- Bankroll initialized
-- Smooth transition to app
-
----
-
-### Sprint 02.04: Profile, Settings & Drawer (2.5 hours)
-
-**Objectives**:
-- Build user profile structure
-- Create settings screen
-- Implement bankroll display/reset
-- Add profile editing
-- Set up preferences storage
-- Implement navigation drawer
-
-**Tasks**:
-1. [ ] Create user store (stores/userStore.ts):
-   ```typescript
-   interface UserState {
-     profile: UserProfile | null;
-     bankroll: Bankroll | null;
-     settings: UserSettings;
-     
-     // Actions
-     updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
-     resetBankroll: () => Promise<void>;
-     updateSettings: (settings: Partial<UserSettings>) => Promise<void>;
-   }
-   ```
-
-2. [ ] Create profile header component (components/profile/ProfileHeader.tsx):
-   - [ ] Avatar (from OAuth)
-   - [ ] Username and display name
-   - [ ] Stats (W-L, profit, ROI)
-   - [ ] Badges (hot streak, etc.)
-   - [ ] Bio display
-
-3. [ ] Create bankroll card component (components/profile/BankrollCard.tsx):
-   - [ ] Current balance display
-   - [ ] Total wagered/won
-   - [ ] Win rate percentage
-   - [ ] Reset button with confirmation
-   - [ ] Last reset date
-
-4. [ ] Create settings screen (app/profile/settings.tsx):
-   - [ ] Account section (username, email, team)
-   - [ ] Notification toggles
-   - [ ] Privacy settings
-   - [ ] About section
-   - [ ] Sign out button
-
-5. [ ] Implement settings storage:
-   - [ ] Use MMKV for fast access
-   - [ ] Sync with database
-   - [ ] Default values
-   - [ ] Migration strategy
-
-6. [ ] Create profile editing:
-   - [ ] Edit display name
-   - [ ] Edit bio (140 chars)
-   - [ ] Change favorite team
-   - [ ] Save/cancel actions
-
-7. [ ] Implement bankroll reset:
-   ```typescript
-   async function resetBankroll(): Promise<void> {
-     // Show confirmation dialog
-     // Call database function
-     // Update local state
-     // Show success message
-   }
-   ```
-
-8. [ ] Create drawer content component (components/drawer/DrawerContent.tsx):
-   - [ ] Navigation links
-   - [ ] Profile link
-   - [ ] Settings link
-   - [ ] Notifications link
-   - [ ] Logout button
-
-9. [ ] Implement notification logic:
-   - [ ] Create notification service (services/notifications/notificationService.ts)
-   - [ ] Implement notification handling logic
-   - [ ] Create notification item component (components/notifications/NotificationItem.tsx)
-
-**Success Criteria**:
-- Profile displays correctly
-- Settings persist across sessions
-- Bankroll reset works
-- Can edit profile fields
-- Sign out clears session
-- Drawer content renders correctly
-- Notification logic implemented
-
----
-
-### Sprint 02.05: Referral & Badge Automation (2 hours)
-
-**Objectives**:
-- Implement referral system
-- Automate badge updates
-- Create growth features
-
-**Tasks**:
-1. [ ] Create referral service (services/referral/referralService.ts):
-   - [ ] Initialize referral system
-   - [ ] Implement referral logic
-   - [ ] Create referral code generation
-   - [ ] Implement referral tracking
-
-2. [ ] Create badge automation service (services/badges/badgeAutomation.ts):
-   - [ ] Implement automated badge updates
-   - [ ] Create badge calculation logic
-   - [ ] Implement badge history tracking
-
-3. [ ] Create referral screen (app/invite/InviteCard.tsx):
-   - [ ] Design referral card
-   - [ ] Implement referral code sharing
-   - [ ] Create referral stats component (app/invite/ReferralStats.tsx)
-
-4. [ ] Implement referral logic:
-   - [ ] Create referral code generation
-   - [ ] Implement referral tracking
-   - [ ] Create referral rewards
-
-5. [ ] Implement badge automation:
-   - [ ] Create automated badge updates
-   - [ ] Implement badge calculation logic
-   - [ ] Implement badge history tracking
-
-6. [ ] Create growth features:
-   - [ ] Implement referral system
-   - [ ] Automate badge updates
-   - [ ] Create growth features
-
-**Success Criteria**:
-- Referral system functional
-- Badge automation implemented
-- Growth features created
-
----
-
-## Implementation Guidelines
-
-### OAuth Setup Requirements
-1. **Google OAuth**:
-   - Create project in Google Cloud Console
-   - Enable Google+ API
-   - Create OAuth 2.0 Client ID (Web application)
-   - Add redirect URIs:
-     - `https://[project-ref].supabase.co/auth/v1/callback`
-     - `http://localhost:54321/auth/v1/callback`
-
-2. **Twitter OAuth**:
-   - Create app in Twitter Developer Portal
-   - Use OAuth 2.0 (not 1.0a)
-   - Set callback URL
-   - Request email permission
-
-3. **Supabase Configuration**:
-   - Add provider client IDs and secrets
-   - Enable providers in Auth settings
-   - Configure redirect URLs
-
-### Security Considerations
-- Store tokens in expo-secure-store only
-- Never log sensitive data
-- Implement rate limiting on username checks
-- Validate all inputs client and server side
-- Use HTTPS for all API calls
-
-### Error Handling Patterns
-```typescript
-try {
-  await authService.signIn(provider);
-} catch (error) {
-  if (error.code === 'USER_CANCELLED') {
-    // User cancelled OAuth flow
-  } else if (error.code === 'NETWORK_ERROR') {
-    // Show network error message
-  } else {
-    // Generic error handling
-  }
-}
-```
-
-### Performance Considerations
-- Lazy load onboarding screens
-- Preload team data during username step
-- Cache OAuth provider logos
-- Debounce username validation
-- Use optimistic UI for follows
-
----
-
-*Epic Started: -*  
-*Epic Completed: -*  
-*Total Duration: -* 

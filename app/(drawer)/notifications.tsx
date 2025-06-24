@@ -3,6 +3,8 @@ import { View, Text } from '@tamagui/core';
 import { ScrollView, RefreshControl, Pressable } from 'react-native';
 import { useNotifications } from '@/hooks/useNotifications';
 import { NotificationItem } from '@/components/notifications/NotificationItem';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { Colors } from '@/theme';
 
 export default function NotificationsScreen() {
   const { notifications, isLoading, markAsRead, markAllAsRead, refetch } = useNotifications();
@@ -20,16 +22,21 @@ export default function NotificationsScreen() {
 
   if (isLoading && notifications.length === 0) {
     return (
-      <View flex={1} justifyContent="center" alignItems="center" backgroundColor="$background">
-        <Text fontSize={16} color="$textSecondary">
-          Loading notifications...
-        </Text>
+      <View flex={1} backgroundColor={Colors.background}>
+        <ScreenHeader title="Notifications" />
+        <View flex={1} justifyContent="center" alignItems="center">
+          <Text fontSize={16} color="$textSecondary">
+            Loading notifications...
+          </Text>
+        </View>
       </View>
     );
   }
 
   return (
-    <View flex={1} backgroundColor="$background">
+    <View flex={1} backgroundColor={Colors.background}>
+      <ScreenHeader title="Notifications" />
+
       {notifications.length > 0 && (
         <View
           paddingHorizontal="$4"

@@ -1,87 +1,43 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import { View, Text } from '@tamagui/core';
-import { ScrollView, ActivityIndicator } from 'react-native';
-import { useAuthStore } from '@/stores/authStore';
-import { supabase } from '@/services/supabase/client';
+import { FlatList, ActivityIndicator } from 'react-native';
 import { UserListItem } from '@/components/common/UserListItem';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { useUserList } from '@/hooks/useUserList';
+import { Colors } from '@/theme';
 
 export default function FollowersScreen() {
-  const user = useAuthStore((state) => state.user);
-  interface UserData {
-    id: string;
-    username: string;
-    display_name?: string;
-    avatar_url?: string;
-    bio?: string;
-  }
-
-  const [followers, setFollowers] = useState<UserData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchFollowers = useCallback(async () => {
-    if (!user?.id) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('follows')
-        .select(
-          `
-          follower:follower_id (
-            id,
-            username,
-            display_name,
-            avatar_url,
-            bio
-          )
-        `
-        )
-        .eq('following_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (!error && data) {
-        const followers = data.map((item) => {
-          const record = item as unknown as { follower: UserData };
-          return record.follower;
-        });
-        setFollowers(followers);
-      }
-    } catch (error) {
-      console.error('Error fetching followers:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (user?.id) {
-      fetchFollowers();
-    }
-  }, [user?.id, fetchFollowers]);
+  const { users: followers, loading: isLoading } = useUserList({ type: 'followers' });
 
   if (isLoading) {
     return (
-      <View flex={1} justifyContent="center" alignItems="center" backgroundColor="$background">
-        <ActivityIndicator size="large" color="#10b981" />
+      <View flex={1} backgroundColor={Colors.background}>
+        <ScreenHeader title="Followers" />
+        <View flex={1} justifyContent="center" alignItems="center">
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
       </View>
     );
   }
 
   return (
-    <View flex={1} backgroundColor="$background">
-      <ScrollView>
-        {followers.length === 0 ? (
+    <View flex={1} backgroundColor={Colors.background}>
+      <ScreenHeader title="Followers" />
+
+      <FlatList
+        data={followers}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <UserListItem user={item} onPress={() => {}} />}
+        ListEmptyComponent={
           <View flex={1} justifyContent="center" alignItems="center" paddingVertical="$8">
-            <Text fontSize={18} color="$textSecondary" marginBottom="$2">
+            <Text fontSize={16} color="$textSecondary">
               No followers yet
             </Text>
-            <Text fontSize={14} color="$textSecondary" textAlign="center" paddingHorizontal="$4">
-              Share your picks to gain followers
-            </Text>
           </View>
-        ) : (
-          followers.map((user) => <UserListItem key={user.id} user={user} />)
-        )}
-      </ScrollView>
+        }
+        // eslint-disable-next-line react-native/no-inline-styles
+        contentContainerStyle={followers.length === 0 ? { flex: 1 } : undefined}
+      />
     </View>
   );
 }

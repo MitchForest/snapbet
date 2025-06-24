@@ -68,22 +68,29 @@ function RootLayoutNav() {
     const inAuthGroup = segments[0] === '(auth)';
     const inDrawerGroup = segments[0] === '(drawer)';
 
-    if (!isAuthenticated) {
-      // Not authenticated, redirect to welcome
-      if (!inAuthGroup) {
-        router.replace('/(auth)/welcome');
+    // Add a small delay to ensure routes are mounted
+    const navigationTimer = setTimeout(() => {
+      if (!isAuthenticated) {
+        // Not authenticated, redirect to welcome
+        if (!inAuthGroup) {
+          router.replace('/(auth)/welcome');
+        }
+      } else if (hasUsername === false) {
+        // Authenticated but no username, redirect to onboarding
+        if (segments.join('/') !== '(auth)/onboarding/username') {
+          router.replace('/(auth)/onboarding/username');
+        }
+      } else if (hasUsername === true) {
+        // Authenticated with username, redirect to main app
+        if (!inDrawerGroup) {
+          router.replace({
+            pathname: '/(drawer)/(tabs)/index',
+          });
+        }
       }
-    } else if (hasUsername === false) {
-      // Authenticated but no username, redirect to onboarding
-      if (segments.join('/') !== '(auth)/onboarding/username') {
-        router.replace('/(auth)/onboarding/username');
-      }
-    } else if (hasUsername === true) {
-      // Authenticated with username, redirect to main app
-      if (!inDrawerGroup) {
-        router.replace('/(drawer)/(tabs)');
-      }
-    }
+    }, 100);
+
+    return () => clearTimeout(navigationTimer);
   }, [isAuthenticated, hasUsername, isLoading, checkingProfile, segments, router]);
 
   // Show loading screen while checking auth

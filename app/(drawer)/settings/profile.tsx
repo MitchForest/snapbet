@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Colors } from '@/theme';
 
 export default function EditProfileScreen() {
@@ -42,11 +43,13 @@ export default function EditProfileScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View flex={1} backgroundColor="$background">
+    <View flex={1} backgroundColor={Colors.background}>
+      <ScreenHeader title="Edit Profile" />
+
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <ScrollView>
           <View padding="$4" gap="$4">
             {/* Display Name */}
@@ -100,8 +103,8 @@ export default function EditProfileScreen() {
             </Pressable>
           </View>
         </ScrollView>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 

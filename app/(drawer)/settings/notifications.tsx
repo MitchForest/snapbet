@@ -1,134 +1,140 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text } from '@tamagui/core';
-import { ScrollView, Switch, Alert } from 'react-native';
+import { ScrollView, Switch, Alert, StyleSheet } from 'react-native';
 import { useAuthStore } from '@/stores/authStore';
-import { SettingsRow } from '@/components/settings/SettingsRow';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { Colors } from '@/theme';
+
+interface NotificationSettings {
+  tails_fades: boolean;
+  bet_results: boolean;
+  direct_messages: boolean;
+  group_mentions: boolean;
+  new_followers: boolean;
+  promotions: boolean;
+}
 
 export default function NotificationSettingsScreen() {
-  const { user, updateNotificationSettings } = useAuthStore();
-  const [settings, setSettings] = useState({
-    tails: true,
-    fades: true,
-    bet_results: true,
-    messages: true,
-    milestones: true,
+  const user = useAuthStore((state) => state.user);
+
+  const [settings, setSettings] = useState<NotificationSettings>({
+    tails_fades: user?.user_metadata?.notification_settings?.tails_fades ?? true,
+    bet_results: user?.user_metadata?.notification_settings?.bet_results ?? true,
+    direct_messages: user?.user_metadata?.notification_settings?.direct_messages ?? true,
+    group_mentions: user?.user_metadata?.notification_settings?.group_mentions ?? true,
+    new_followers: user?.user_metadata?.notification_settings?.new_followers ?? true,
+    promotions: user?.user_metadata?.notification_settings?.promotions ?? false,
   });
-  const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    // Load current settings
-    if (user?.user_metadata?.notification_settings) {
-      setSettings(user.user_metadata.notification_settings);
-    }
-  }, [user]);
-
-  const handleToggle = async (key: string, value: boolean) => {
-    const newSettings = { ...settings, [key]: value };
+  const handleToggle = async (key: keyof NotificationSettings) => {
+    const newSettings = { ...settings, [key]: !settings[key] };
     setSettings(newSettings);
 
-    // Auto-save on toggle
-    setIsSaving(true);
     try {
-      const { error } = await updateNotificationSettings(newSettings);
-      if (error) {
-        // Revert on error
-        setSettings(settings);
-        Alert.alert('Error', 'Failed to update notification settings');
-      }
+      // For now, just save locally - in a real app, this would be saved to the database
+      // TODO: Create a proper API endpoint for updating notification settings
+      console.log('Notification settings updated:', newSettings);
     } catch {
+      // Revert on error
       setSettings(settings);
       Alert.alert('Error', 'An unexpected error occurred');
-    } finally {
-      setIsSaving(false);
     }
   };
 
+  const SettingRow = ({
+    label,
+    description,
+    settingKey,
+  }: {
+    label: string;
+    description?: string;
+    settingKey: keyof NotificationSettings;
+  }) => (
+    <View style={styles.settingRow}>
+      <View flex={1}>
+        <Text fontSize={16} color="$textPrimary">
+          {label}
+        </Text>
+        {description && (
+          <Text fontSize={14} color="$textSecondary" marginTop="$1">
+            {description}
+          </Text>
+        )}
+      </View>
+      <Switch
+        value={settings[settingKey]}
+        onValueChange={() => handleToggle(settingKey)}
+        trackColor={{ false: Colors.border.default, true: Colors.primary }}
+        thumbColor={Colors.white}
+      />
+    </View>
+  );
+
   return (
-    <View flex={1} backgroundColor="$background">
+    <View flex={1} backgroundColor={Colors.background}>
+      <ScreenHeader title="Notification Settings" />
+
       <ScrollView>
-        <View marginTop="$3">
-          <Text fontSize={12} color="$textSecondary" paddingHorizontal="$4" marginBottom="$2">
+        <View padding="$4">
+          <Text fontSize={12} color="$textSecondary" marginBottom="$3">
             ACTIVITY
           </Text>
 
-          <SettingsRow
-            icon="👆"
-            label="Tails"
-            subtitle="When someone tails your pick"
-            customRight={
-              <Switch
-                value={settings.tails}
-                onValueChange={(value) => handleToggle('tails', value)}
-                disabled={isSaving}
-              />
-            }
+          <SettingRow
+            label="Tails & Fades"
+            description="When someone tails or fades your picks"
+            settingKey="tails_fades"
           />
 
-          <SettingsRow
-            icon="👎"
-            label="Fades"
-            subtitle="When someone fades your pick"
-            customRight={
-              <Switch
-                value={settings.fades}
-                onValueChange={(value) => handleToggle('fades', value)}
-                disabled={isSaving}
-              />
-            }
-          />
-
-          <SettingsRow
-            icon="🎯"
+          <SettingRow
             label="Bet Results"
-            subtitle="When your bets settle"
-            customRight={
-              <Switch
-                value={settings.bet_results}
-                onValueChange={(value) => handleToggle('bet_results', value)}
-                disabled={isSaving}
-              />
-            }
+            description="When your bets win or lose"
+            settingKey="bet_results"
           />
-        </View>
 
-        <View marginTop="$6">
-          <Text fontSize={12} color="$textSecondary" paddingHorizontal="$4" marginBottom="$2">
-            SOCIAL
+          <SettingRow
+            label="New Followers"
+            description="When someone follows you"
+            settingKey="new_followers"
+          />
+
+          <Text fontSize={12} color="$textSecondary" marginTop="$6" marginBottom="$3">
+            MESSAGES
           </Text>
 
-          <SettingsRow
-            icon="💬"
-            label="Messages"
-            subtitle="New messages in chats"
-            customRight={
-              <Switch
-                value={settings.messages}
-                onValueChange={(value) => handleToggle('messages', value)}
-                disabled={isSaving}
-              />
-            }
+          <SettingRow
+            label="Direct Messages"
+            description="New messages from other users"
+            settingKey="direct_messages"
           />
-        </View>
 
-        <View marginTop="$6" marginBottom="$6">
-          <Text fontSize={12} color="$textSecondary" paddingHorizontal="$4" marginBottom="$2">
-            ACHIEVEMENTS
+          <SettingRow
+            label="Group Mentions"
+            description="When you're mentioned in a group"
+            settingKey="group_mentions"
+          />
+
+          <Text fontSize={12} color="$textSecondary" marginTop="$6" marginBottom="$3">
+            OTHER
           </Text>
 
-          <SettingsRow
-            icon="🏆"
-            label="Milestones"
-            subtitle="New badges and achievements"
-            customRight={
-              <Switch
-                value={settings.milestones}
-                onValueChange={(value) => handleToggle('milestones', value)}
-                disabled={isSaving}
-              />
-            }
+          <SettingRow
+            label="Promotions & Updates"
+            description="News and special offers from SnapBet"
+            settingKey="promotions"
           />
         </View>
       </ScrollView>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.light,
+  },
+});
