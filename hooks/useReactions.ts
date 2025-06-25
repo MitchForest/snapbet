@@ -1,0 +1,215 @@
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { reactionService, ReactionSummary } from '@/services/engagement/reactionService';
+import { subscriptionManager } from '@/services/realtime/subscriptionManager';
+import { useAuth } from '@/hooks/useAuth';
+import { toastService } from '@/services/toastService';
+
+// Simple debounce implementation
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): T & { cancel: () => void } {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+
+  const debounced = (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+
+  debounced.cancel = () => {
+    if (timeout) clearTimeout(timeout);
+  };
+
+  return debounced as T & { cancel: () => void };
+}
+
+interface UseReactionsResult {
+  reactions: ReactionSummary[];
+  userReaction: string | null;
+  totalReactions: number;
+  isLoading: boolean;
+  toggleReaction: (emoji: string) => void;
+  refreshReactions: () => Promise<void>;
+}
+
+export function useReactions(postId: string): UseReactionsResult {
+  const { user } = useAuth();
+  const [reactions, setReactions] = useState<ReactionSummary[]>([]);
+  const [userReaction, setUserReaction] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Track pending reaction changes for rollback
+  const previousUserReaction = useRef<string | null>(null);
+  const isSubscribed = useRef(false);
+
+  // Calculate total reactions
+  const totalReactions = useMemo(() => reactions.reduce((sum, r) => sum + r.count, 0), [reactions]);
+
+  // Load reactions and user's reaction
+  const loadReactions = useCallback(async () => {
+    try {
+      setIsLoading(true);
+
+      // Load aggregated reactions
+      const reactionSummary = await reactionService.getReactions(postId);
+      setReactions(reactionSummary);
+
+      // Load user's reaction if logged in
+      if (user) {
+        const userEmoji = await reactionService.getUserReaction(postId, user.id);
+        setUserReaction(userEmoji);
+        previousUserReaction.current = userEmoji;
+      }
+    } catch (err: any) {
+      console.error('Failed to load reactions:', err);
+      toastService.showError('Failed to load reactions');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [postId, user]);
+
+  // Optimistic reaction update
+  const updateReactionsOptimistically = useCallback(
+    (emoji: string, isAdding: boolean, previousEmoji: string | null) => {
+      setReactions((prev) => {
+        const newReactions = [...prev];
+
+        // Handle previous emoji removal
+        if (previousEmoji) {
+          const prevIndex = newReactions.findIndex((r) => r.emoji === previousEmoji);
+          if (prevIndex >= 0) {
+            newReactions[prevIndex] = {
+              ...newReactions[prevIndex],
+              count: Math.max(0, newReactions[prevIndex].count - 1),
+            };
+            // Remove if count is 0
+            if (newReactions[prevIndex].count === 0) {
+              newReactions.splice(prevIndex, 1);
+            }
+          }
+        }
+
+        // Handle new emoji
+        if (isAdding) {
+          const emojiIndex = newReactions.findIndex((r) => r.emoji === emoji);
+          if (emojiIndex >= 0) {
+            newReactions[emojiIndex] = {
+              ...newReactions[emojiIndex],
+              count: newReactions[emojiIndex].count + 1,
+            };
+          } else {
+            newReactions.push({ emoji, count: 1 });
+          }
+        }
+
+        // Sort by count
+        return newReactions.sort((a, b) => b.count - a.count);
+      });
+    },
+    []
+  );
+
+  // Debounced toggle reaction
+  const toggleReactionDebounced = useMemo(
+    () =>
+      debounce(async (emoji: string) => {
+        if (!user) {
+          toastService.showError('Please sign in to react');
+          return;
+        }
+
+        try {
+          const result = await reactionService.toggleReaction(postId, emoji);
+
+          if (result.removed) {
+            toastService.showSuccess('Reaction removed');
+          }
+        } catch (err: any) {
+          // Rollback on error
+          const currentReaction = userReaction;
+          setUserReaction(previousUserReaction.current);
+
+          // Rollback reaction counts
+          if (currentReaction && currentReaction !== previousUserReaction.current) {
+            // Was adding/changing
+            updateReactionsOptimistically(
+              previousUserReaction.current || '',
+              !!previousUserReaction.current,
+              currentReaction
+            );
+          } else if (!currentReaction && previousUserReaction.current) {
+            // Was removing
+            updateReactionsOptimistically(previousUserReaction.current, true, null);
+          }
+
+          const errorMessage = err.message || 'Failed to update reaction';
+          toastService.showError(errorMessage);
+        }
+      }, 300),
+    [postId, user, userReaction, updateReactionsOptimistically]
+  );
+
+  // Toggle reaction handler
+  const toggleReaction = useCallback(
+    (emoji: string) => {
+      if (!user) {
+        toastService.showError('Please sign in to react');
+        return;
+      }
+
+      // Store current state for potential rollback
+      previousUserReaction.current = userReaction;
+
+      // Optimistic update
+      const isRemoving = userReaction === emoji;
+      const newReaction = isRemoving ? null : emoji;
+
+      setUserReaction(newReaction);
+      updateReactionsOptimistically(emoji, !isRemoving, userReaction);
+
+      // Debounced API call
+      toggleReactionDebounced(emoji);
+    },
+    [user, userReaction, updateReactionsOptimistically, toggleReactionDebounced]
+  );
+
+  // Refresh reactions
+  const refreshReactions = useCallback(async () => {
+    await loadReactions();
+  }, [loadReactions]);
+
+  // Set up real-time subscription
+  useEffect(() => {
+    if (isSubscribed.current) return;
+
+    const cleanup = subscriptionManager.subscribeToPost(postId, {
+      onReaction: (payload) => {
+        // Reload reactions to get accurate counts
+        // This is simpler than trying to sync individual changes
+        loadReactions();
+      },
+    });
+
+    isSubscribed.current = true;
+
+    return () => {
+      cleanup();
+      isSubscribed.current = false;
+      toggleReactionDebounced.cancel(); // Cancel pending debounced calls
+    };
+  }, [postId, loadReactions, toggleReactionDebounced]);
+
+  // Initial load
+  useEffect(() => {
+    loadReactions();
+  }, [loadReactions]);
+
+  return {
+    reactions,
+    userReaction,
+    totalReactions,
+    isLoading,
+    toggleReaction,
+    refreshReactions,
+  };
+}

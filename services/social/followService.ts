@@ -1,6 +1,6 @@
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/services/supabase/client';
-import { Storage, CacheUtils } from '@/services/storage/storageService';
+import { Storage, CacheUtils, StorageKeys } from '@/services/storage/storageService';
 import { privacyService } from '@/services/privacy/privacyService';
 import { followRequestService } from './followRequestService';
 
@@ -61,9 +61,11 @@ class FollowService {
 
   private async loadCachedStates() {
     // Load follow states from MMKV storage
-    const cachedStates = Storage.general.get<Record<string, FollowState>>('follow_states');
+    const cachedStates = Storage.general.get<Record<string, FollowState>>(
+      StorageKeys.SOCIAL.FOLLOW_STATES
+    );
     if (cachedStates) {
-      Object.entries(cachedStates).forEach(([key, state]) => {
+      Object.entries(cachedStates).forEach(([key, state]: [string, FollowState]) => {
         if (!CacheUtils.isExpired(state.lastChecked, this.FOLLOW_STATE_TTL)) {
           this.followStateCache.set(key, state);
         }
@@ -76,7 +78,7 @@ class FollowService {
     this.followStateCache.forEach((state, key) => {
       states[key] = state;
     });
-    Storage.general.set('follow_states', states);
+    Storage.general.set(StorageKeys.SOCIAL.FOLLOW_STATES, states);
   }
 
   async getFollowState(targetUserId: string, currentUserId?: string): Promise<FollowState> {
@@ -482,7 +484,7 @@ class FollowService {
     this.countCallbacks.clear();
 
     // Clear persisted cache
-    Storage.general.delete('follow_states');
+    Storage.general.delete(StorageKeys.SOCIAL.FOLLOW_STATES);
   }
 }
 

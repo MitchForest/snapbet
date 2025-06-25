@@ -171,20 +171,7 @@ export function useFeed() {
     };
   }, [user?.id, setPosts]);
 
-  // Handle follow/unfollow to invalidate cache
-  useEffect(() => {
-    const handleFollowChange = () => {
-      feedService.clearCache();
-      refetch();
-    };
-
-    // Listen for custom follow change events
-    window.addEventListener('follow-change', handleFollowChange);
-
-    return () => {
-      window.removeEventListener('follow-change', handleFollowChange);
-    };
-  }, [refetch]);
+  
 
   return {
     posts,

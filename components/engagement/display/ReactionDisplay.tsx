@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, withTiming, useSharedValue } from 'react-native-reanimated';
 import { ReactionListSheet } from '../sheets/ReactionListSheet';
-import { toastService } from '@/services/toastService';
+import { WhoReactedModal } from '../WhoReactedModal';
 import { Colors } from '@/theme';
 
 interface ReactionDisplayProps {
@@ -16,11 +16,13 @@ function ReactionBubble({
   count,
   isUserReaction,
   index,
+  onPress,
 }: {
   emoji: string;
   count: number;
   isUserReaction: boolean;
   index: number;
+  onPress: () => void;
 }) {
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
@@ -39,23 +41,22 @@ function ReactionBubble({
   }));
 
   return (
-    <Animated.View
-      style={[styles.reactionBubble, isUserReaction && styles.userReactionBubble, animatedStyle]}
-    >
-      <Text style={styles.reactionEmoji}>{emoji}</Text>
-      <Text style={[styles.reactionCount, isUserReaction && styles.userReactionCount]}>
-        {count}
-      </Text>
-    </Animated.View>
+    <Pressable onPress={onPress}>
+      <Animated.View
+        style={[styles.reactionBubble, isUserReaction && styles.userReactionBubble, animatedStyle]}
+      >
+        <Text style={styles.reactionEmoji}>{emoji}</Text>
+        <Text style={[styles.reactionCount, isUserReaction && styles.userReactionCount]}>
+          {count}
+        </Text>
+      </Animated.View>
+    </Pressable>
   );
 }
 
-export function ReactionDisplay({
-  reactions,
-  userReaction,
-  postId: _postId,
-}: ReactionDisplayProps) {
+export function ReactionDisplay({ reactions, userReaction, postId }: ReactionDisplayProps) {
   const [showAllReactions, setShowAllReactions] = useState(false);
+  const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
 
   // Show top 3 reactions
   const displayReactions = reactions.slice(0, 3);
@@ -65,9 +66,11 @@ export function ReactionDisplay({
   const handlePress = () => {
     if (hasMore) {
       setShowAllReactions(true);
-    } else {
-      toastService.showComingSoon('Reaction details');
     }
+  };
+
+  const handleReactionPress = (emoji: string) => {
+    setSelectedEmoji(emoji);
   };
 
   if (reactions.length === 0) {
@@ -84,6 +87,7 @@ export function ReactionDisplay({
             count={reaction.count}
             isUserReaction={userReaction === reaction.emoji}
             index={index}
+            onPress={() => handleReactionPress(reaction.emoji)}
           />
         ))}
 
@@ -101,6 +105,15 @@ export function ReactionDisplay({
         onClose={() => setShowAllReactions(false)}
         reactions={reactions}
       />
+
+      {selectedEmoji && (
+        <WhoReactedModal
+          postId={postId}
+          emoji={selectedEmoji}
+          isOpen={!!selectedEmoji}
+          onClose={() => setSelectedEmoji(null)}
+        />
+      )}
     </>
   );
 }

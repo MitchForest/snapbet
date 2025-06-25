@@ -145,7 +145,7 @@ export class FeedService {
 
     // Filter out expired posts
     const now = new Date().toISOString();
-    return cached.posts.filter((post) => post.expires_at > now);
+    return cached.posts.filter((post: PostWithType) => post.expires_at > now);
   }
 
   // Cache feed posts

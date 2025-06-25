@@ -1,6 +1,6 @@
 import { supabase } from '@/services/supabase/client';
 import { followService } from '@/services/social/followService';
-import { Storage } from '@/services/storage/storageService';
+import { Storage, StorageKeys } from '@/services/storage/storageService';
 
 interface PrivacySettings {
   is_private: boolean;
@@ -33,16 +33,17 @@ export class PrivacyService {
   }
 
   private async loadCachedSettings() {
-    const cached =
-      Storage.general.get<Record<string, { settings: PrivacySettings; timestamp: number }>>(
-        'privacy_settings_cache'
-      );
+    const cached = Storage.general.get<
+      Record<string, { settings: PrivacySettings; timestamp: number }>
+    >(StorageKeys.PRIVACY.SETTINGS_CACHE);
     if (cached) {
-      Object.entries(cached).forEach(([userId, data]) => {
-        if (Date.now() - data.timestamp < this.CACHE_TTL) {
-          this.privacyCache.set(userId, data);
+      Object.entries(cached).forEach(
+        ([userId, data]: [string, { settings: PrivacySettings; timestamp: number }]) => {
+          if (Date.now() - data.timestamp < this.CACHE_TTL) {
+            this.privacyCache.set(userId, data);
+          }
         }
-      });
+      );
     }
   }
 
@@ -51,7 +52,7 @@ export class PrivacyService {
     this.privacyCache.forEach((data, userId) => {
       cacheData[userId] = data;
     });
-    Storage.general.set('privacy_settings_cache', cacheData);
+    Storage.general.set(StorageKeys.PRIVACY.SETTINGS_CACHE, cacheData);
   }
 
   async getPrivacySettings(userId: string): Promise<PrivacySettings> {

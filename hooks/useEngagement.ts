@@ -1,4 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { useComments } from './useComments';
+import { useReactions } from './useReactions';
+import { supabase } from '@/services/supabase/client';
+import { PostType } from '@/types/content';
 
 interface EngagementData {
   comments: Array<{
@@ -24,9 +28,10 @@ interface EngagementData {
   userAction: 'tail' | 'fade' | null;
 }
 
+// Keep the mock data generator for posts that don't have real data yet
 const REACTIONS = ['🔥', '💰', '😂', '😭', '💯', '🎯'];
 
-function generateReactions(hash: number): Array<{ emoji: string; count: number }> {
+function generateMockReactions(hash: number): Array<{ emoji: string; count: number }> {
   // Generate 2-4 reactions based on hash
   const numReactions = 2 + (hash % 3);
   const reactions: Array<{ emoji: string; count: number }> = [];
@@ -45,32 +50,118 @@ function generateReactions(hash: number): Array<{ emoji: string; count: number }
   return reactions.sort((a, b) => b.count - a.count);
 }
 
-export function useEngagement(postId: string): EngagementData {
-  return useMemo(() => {
-    // Generate deterministic hash from postId
-    const hash = postId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+export function useEngagement(postId: string, postType?: PostType): EngagementData {
+  // Use real hooks for comments and reactions
+  const { comments } = useComments(postId);
+  const { reactions, userReaction } = useReactions(postId);
 
-    // Generate base counts
-    const baseTailCount = (hash % 50) + 5;
-    const baseFadeCount = (hash % 30) + 2;
+  // State for tail/fade counts
+  const [tailCount, setTailCount] = useState(0);
+  const [fadeCount, setFadeCount] = useState(0);
+  const [userAction, setUserAction] = useState<'tail' | 'fade' | null>(null);
+  const [isLoadingCounts, setIsLoadingCounts] = useState(true);
 
-    return {
-      comments: [], // Empty for MVP
-      reactions: generateReactions(hash),
-      tailCount: baseTailCount,
-      fadeCount: baseFadeCount,
-      // Add slight randomness for realism (will change on re-renders)
-      animatedCounts: {
-        tail: baseTailCount + Math.floor(Math.random() * 3),
-        fade: baseFadeCount + Math.floor(Math.random() * 2),
-      },
-      userReaction: null,
-      userAction: null,
+  // Load tail/fade counts for pick posts
+  useEffect(() => {
+    if (postType !== PostType.PICK) {
+      setIsLoadingCounts(false);
+      return;
+    }
+
+    const loadPickActionCounts = async () => {
+      try {
+        // Get all pick actions for this post
+        const { data: pickActions, error } = await supabase
+          .from('pick_actions')
+          .select('action_type, user_id')
+          .eq('post_id', postId);
+
+        if (error) throw error;
+
+        // Count tails and fades
+        const counts = pickActions?.reduce(
+          (acc, action) => {
+            if (action.action_type === 'tail') {
+              acc.tail++;
+            } else if (action.action_type === 'fade') {
+              acc.fade++;
+            }
+            return acc;
+          },
+          { tail: 0, fade: 0 }
+        ) || { tail: 0, fade: 0 };
+
+        setTailCount(counts.tail);
+        setFadeCount(counts.fade);
+
+        // Check if current user has tailed or faded
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (user) {
+          const userPickAction = pickActions?.find((action) => action.user_id === user.id);
+          if (userPickAction) {
+            setUserAction(userPickAction.action_type as 'tail' | 'fade');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load pick action counts:', error);
+        // Use fallback mock data on error
+        const hash = postId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        setTailCount((hash % 50) + 5);
+        setFadeCount((hash % 30) + 2);
+      } finally {
+        setIsLoadingCounts(false);
+      }
     };
-  }, [postId]);
+
+    loadPickActionCounts();
+  }, [postId, postType]);
+
+  // Add slight animation variation to counts
+  const animatedCounts = useMemo(() => {
+    if (isLoadingCounts) {
+      return { tail: 0, fade: 0 };
+    }
+
+    // Add slight randomness for realism (will change on re-renders)
+    return {
+      tail: tailCount + Math.floor(Math.random() * 3),
+      fade: fadeCount + Math.floor(Math.random() * 2),
+    };
+  }, [tailCount, fadeCount, isLoadingCounts]);
+
+  // If no real reactions data yet, use mock data as fallback
+  const displayReactions = useMemo(() => {
+    if (reactions.length > 0) {
+      return reactions;
+    }
+
+    // Fallback to mock data
+    const hash = postId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return generateMockReactions(hash);
+  }, [reactions, postId]);
+
+  return {
+    comments: comments.slice(0, 5).map((c) => ({
+      id: c.id,
+      user: {
+        username: c.user.username,
+        avatar_url: c.user.avatar_url || undefined,
+      },
+      content: c.content,
+      created_at: c.created_at || '',
+    })), // Return only first 5 for preview
+    reactions: displayReactions,
+    tailCount,
+    fadeCount,
+    animatedCounts,
+    userReaction,
+    userAction,
+  };
 }
 
-// Mock comment data generator for future use
+// Keep the mock comment generator for components that might need it
 export function generateMockComments(postId: string, count: number = 5) {
   const hash = postId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const usernames = ['sportsfan22', 'betmaster', 'luckycharm', 'thegoat', 'rookie2024'];

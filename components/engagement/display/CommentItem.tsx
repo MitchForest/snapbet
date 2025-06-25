@@ -9,14 +9,16 @@ interface CommentItemProps {
     id: string;
     user: {
       username: string;
-      avatar_url?: string;
+      avatar_url?: string | null;
     };
     content: string;
-    created_at: string;
+    created_at: string | null;
+    user_id?: string;
   };
+  onDelete?: () => void;
 }
 
-export function CommentItem({ comment }: CommentItemProps) {
+export function CommentItem({ comment, onDelete }: CommentItemProps) {
   const getTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -36,7 +38,7 @@ export function CommentItem({ comment }: CommentItemProps) {
     <View style={styles.container}>
       <Avatar
         size={32}
-        src={comment.user.avatar_url}
+        src={comment.user.avatar_url || undefined}
         fallback={comment.user.username[0]?.toUpperCase() || '?'}
       />
 
@@ -44,14 +46,26 @@ export function CommentItem({ comment }: CommentItemProps) {
         <View style={styles.header}>
           <Text style={styles.username}>@{comment.user.username}</Text>
           <Text style={styles.dot}> • </Text>
-          <Text style={styles.timestamp}>{getTimeAgo(comment.created_at)}</Text>
+          <Text style={styles.timestamp}>
+            {comment.created_at ? getTimeAgo(comment.created_at) : ''}
+          </Text>
         </View>
 
         <Text style={styles.text}>{comment.content}</Text>
 
-        <Pressable onPress={handleReply} style={styles.replyButton}>
-          <Text style={styles.replyText}>Reply</Text>
-        </Pressable>
+        <View style={styles.actions}>
+          <Pressable onPress={handleReply} style={styles.actionButton}>
+            <Text style={styles.actionText}>Reply</Text>
+          </Pressable>
+          {onDelete && (
+            <>
+              <Text style={styles.separator}>•</Text>
+              <Pressable onPress={onDelete} style={styles.actionButton}>
+                <Text style={[styles.actionText, styles.deleteText]}>Delete</Text>
+              </Pressable>
+            </>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -90,13 +104,25 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     lineHeight: 20,
   },
-  replyButton: {
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 8,
-    alignSelf: 'flex-start',
+    gap: 8,
   },
-  replyText: {
+  actionButton: {
+    paddingVertical: 2,
+  },
+  actionText: {
     fontSize: 12,
     color: Colors.text.secondary,
     fontWeight: '500',
+  },
+  separator: {
+    fontSize: 12,
+    color: Colors.text.tertiary,
+  },
+  deleteText: {
+    color: Colors.error,
   },
 });

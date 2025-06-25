@@ -8,7 +8,6 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { toastService } from '@/services/toastService';
 import { Colors, OpacityColors } from '@/theme';
 
 const REACTIONS = ['🔥', '💰', '😂', '😭', '💯', '🎯'];
@@ -75,8 +74,6 @@ export function ReactionPicker({ onSelect, currentReaction, style }: ReactionPic
   const handleSelect = (emoji: string) => {
     if (onSelect) {
       onSelect(emoji);
-    } else {
-      toastService.showComingSoon('Reactions');
     }
   };
 

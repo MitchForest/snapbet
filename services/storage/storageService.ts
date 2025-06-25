@@ -1,118 +1,147 @@
 import { MMKV } from 'react-native-mmkv';
 
-// Create separate MMKV instances for different domains
-const feedStorage = new MMKV({
-  id: 'snapbet-feed',
-  encryptionKey: undefined, // Add encryption in production
-});
+// This declaration is used to inform TypeScript about the existence of a global property
+// that is injected by React Native's JSI environment. This prevents type errors.
+declare const global: { nativeCallSyncHook: unknown };
 
-const settingsStorage = new MMKV({
-  id: 'snapbet-settings',
-  encryptionKey: undefined,
-});
+// --- Lazy-loaded and debugger-safe MMKV instances ---
 
-const generalStorage = new MMKV({
-  id: 'snapbet-general',
-  encryptionKey: undefined,
-});
+let feedStorageInstance: MMKV | null = null;
+let settingsStorageInstance: MMKV | null = null;
+let generalStorageInstance: MMKV | null = null;
 
-// Type-safe storage keys
+// In-memory fallback for remote debugging environments where JSI is not available.
+const createInMemoryStorage = (): MMKV => {
+  const memoryStore = new Map<string, string | number | boolean>();
+  console.warn(
+    'MMKV is not available in the remote debugger. Using in-memory storage. Data will not be persisted.'
+  );
+  return {
+    clearAll: () => memoryStore.clear(),
+    delete: (key: string) => memoryStore.delete(key),
+    set: (key: string, value: string | number | boolean) => {
+      memoryStore.set(key, value);
+    },
+    getString: (key: string) => memoryStore.get(key) as string | undefined,
+    getNumber: (key: string) => memoryStore.get(key) as number | undefined,
+    getBoolean: (key: string) => memoryStore.get(key) as boolean | undefined,
+    getAllKeys: () => Array.from(memoryStore.keys()),
+    contains: (key: string) => memoryStore.has(key),
+    recrypt: () => {
+      console.warn('MMKV.recrypt is not available in in-memory storage.');
+    },
+  } as unknown as MMKV;
+};
+
+const getStorageInstance = (id: string): MMKV => {
+  // Check if running in a remote debugger (where JSI is not available)
+  if (__DEV__ && typeof global.nativeCallSyncHook === 'undefined') {
+    return createInMemoryStorage();
+  }
+  try {
+    return new MMKV({
+      id: `snapbet-${id}`,
+      // TODO: Replace with a secure keychain/keystore solution for production
+      encryptionKey: 'snapbet-super-secret-key',
+    });
+  } catch (e) {
+    console.error(`Failed to create MMKV instance for ID: ${id}`, e);
+    // Fallback to in-memory storage on any initialization error
+    return createInMemoryStorage();
+  }
+};
+
+// Lazy getters that initialize storage on first use
+const getFeedStorage = (): MMKV => {
+  if (!feedStorageInstance) {
+    feedStorageInstance = getStorageInstance('feed-storage');
+  }
+  return feedStorageInstance;
+};
+
+const getSettingsStorage = (): MMKV => {
+  if (!settingsStorageInstance) {
+    settingsStorageInstance = getStorageInstance('settings-storage');
+  }
+  return settingsStorageInstance;
+};
+
+const getGeneralStorage = (): MMKV => {
+  if (!generalStorageInstance) {
+    generalStorageInstance = getStorageInstance('general-storage');
+  }
+  return generalStorageInstance;
+};
+
+// --- Storage Keys (restored for compatibility) ---
 export const StorageKeys = {
   FEED: {
     CACHED_POSTS: 'feed_cached_posts',
-    LAST_REFRESH: 'feed_last_refresh',
     CURSOR: 'feed_cursor',
   },
-  SETTINGS: {
-    USER_PREFERENCES: 'user_preferences',
-    CAMERA_SETTINGS: 'camera_settings',
-    NOTIFICATION_SETTINGS: 'notification_settings',
+  PRIVACY: {
+    SETTINGS_CACHE: 'privacy_settings_cache',
   },
-  GENERAL: {
-    VIEWED_STORIES: 'viewed_stories',
-    DRAFT_POST: 'draft_post',
-    SEARCH_HISTORY: 'search_history',
+  SOCIAL: {
+    FOLLOW_STATES: 'follow_states',
   },
-} as const;
-
-// Type-safe storage interface
-interface StorageInterface {
-  set: <T>(key: string, value: T) => void;
-  get: <T>(key: string) => T | null;
-  delete: (key: string) => void;
-  clearAll: () => void;
-  contains: (key: string) => boolean;
-}
-
-// Storage wrapper with JSON serialization
-class MMKVStorage implements StorageInterface {
-  constructor(private storage: MMKV) {}
-
-  set<T>(key: string, value: T): void {
-    try {
-      const serialized = JSON.stringify(value);
-      this.storage.set(key, serialized);
-    } catch (error) {
-      console.error(`Failed to store ${key}:`, error);
-    }
-  }
-
-  get<T>(key: string): T | null {
-    try {
-      const value = this.storage.getString(key);
-      return value ? JSON.parse(value) : null;
-    } catch (error) {
-      console.error(`Failed to retrieve ${key}:`, error);
-      return null;
-    }
-  }
-
-  delete(key: string): void {
-    this.storage.delete(key);
-  }
-
-  clearAll(): void {
-    this.storage.clearAll();
-  }
-
-  contains(key: string): boolean {
-    return this.storage.contains(key);
-  }
-}
-
-// Export storage instances
-export const Storage = {
-  feed: new MMKVStorage(feedStorage),
-  settings: new MMKVStorage(settingsStorage),
-  general: new MMKVStorage(generalStorage),
+  SEARCH: {
+    RECENT_SEARCHES: 'recent_searches',
+  },
 };
 
-// Cache utilities
+// --- Cache Utils (restored for compatibility) ---
 export const CacheUtils = {
-  isExpired: (timestamp: number, ttlMs: number): boolean => {
-    return Date.now() - timestamp > ttlMs;
+  isExpired: (timestamp: number, ttl: number): boolean => {
+    return Date.now() - timestamp > ttl;
   },
-
-  getCacheKey: (prefix: string, ...parts: string[]): string => {
-    return [prefix, ...parts].join(':');
+  getCacheKey: (prefix: string, key: string): string => {
+    return `${prefix}:${key}`;
   },
 };
 
-// Migration utility for AsyncStorage -> MMKV
-export async function migrateFromAsyncStorage(
-  asyncStorageKey: string,
-  mmkvKey: string,
-  storage: StorageInterface
-): Promise<void> {
-  try {
-    // Dynamic import to avoid require
-    const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
-    const value = await AsyncStorage.getItem(asyncStorageKey);
+// --- Generic Storage Wrapper (restored for compatibility) ---
+// This wrapper mimics the old API, handling JSON parsing automatically.
+const createStorageWrapper = (storageInstance: MMKV) => ({
+  get: <T>(key: string): T | null => {
+    const value = storageInstance.getString(key);
     if (value) {
-      storage.set(mmkvKey, JSON.parse(value));
-      await AsyncStorage.removeItem(asyncStorageKey);
+      try {
+        return JSON.parse(value) as T;
+      } catch (e) {
+        console.error(`[Storage] Failed to parse JSON for key "${key}"`, e);
+        return null;
+      }
     }
-  } catch (error) {
-    console.error('Migration failed:', error);
-  }
-}
+    return null;
+  },
+  set: (key: string, value: unknown): void => {
+    try {
+      const stringValue = JSON.stringify(value);
+      storageInstance.set(key, stringValue);
+    } catch (e) {
+      console.error(`[Storage] Failed to stringify value for key "${key}"`, e);
+    }
+  },
+  delete: (key: string): void => {
+    storageInstance.delete(key);
+  },
+  clearAll: (): void => {
+    storageInstance.clearAll();
+  },
+});
+
+// --- Exported Storage API (restored for compatibility) ---
+// This provides the `Storage.general`, `Storage.feed`, etc. properties
+// that the rest of the application code expects.
+export const Storage = {
+  get general() {
+    return createStorageWrapper(getGeneralStorage());
+  },
+  get feed() {
+    return createStorageWrapper(getFeedStorage());
+  },
+  get settings() {
+    return createStorageWrapper(getSettingsStorage());
+  },
+};

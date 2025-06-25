@@ -36,7 +36,7 @@ export function PostCard({ post, onPress }: PostCardProps) {
   const [showReactions, setShowReactions] = useState(false);
 
   // Get engagement data
-  const engagement = useEngagement(post.id);
+  const engagement = useEngagement(post.id, post.post_type);
 
   // Check if post is expired
   const isExpired = new Date(post.expires_at) < new Date();
@@ -49,7 +49,7 @@ export function PostCard({ post, onPress }: PostCardProps) {
   };
 
   const handleReactionSelect = (_emoji: string) => {
-    toastService.showComingSoon('Reactions');
+    // Reactions are now handled by the ReactionPicker and useReactions hook
     setShowReactions(false);
   };
 

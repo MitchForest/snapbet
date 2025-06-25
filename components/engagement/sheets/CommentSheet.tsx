@@ -8,13 +8,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { BaseSheet } from './BaseSheet';
 import { CommentItem } from '../display/CommentItem';
-import { toastService } from '@/services/toastService';
 import { Colors } from '@/theme';
-import { generateMockComments } from '@/hooks/useEngagement';
+import { useComments } from '@/hooks/useComments';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '@/hooks/useAuth';
 
 interface CommentSheetProps {
   postId: string;
@@ -24,56 +25,88 @@ interface CommentSheetProps {
 
 export function CommentSheet({ postId, isVisible, onClose }: CommentSheetProps) {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const [comment, setComment] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
-  // For demo purposes, show some mock comments
-  const mockComments = generateMockComments(postId, 0); // Start with 0, can change to show mock data
+  // Use the real comments hook
+  const { comments, isLoading, isAdding, hasMore, total, addComment, deleteComment, loadMore } =
+    useComments(postId);
 
-  const handleSubmit = () => {
-    if (!comment.trim() || isSubmitting) return;
+  const handleSubmit = async () => {
+    if (!comment.trim() || isAdding) return;
 
-    setIsSubmitting(true);
-    // Simulate submission
-    setTimeout(() => {
-      toastService.showComingSoon('Comments');
+    try {
+      await addComment(comment.trim());
       setComment('');
-      setIsSubmitting(false);
-    }, 300);
+      // Keep keyboard open for multiple comments
+      inputRef.current?.focus();
+    } catch {
+      // Error already handled by hook
+    }
+  };
+
+  const handleDelete = async (commentId: string) => {
+    try {
+      await deleteComment(commentId);
+    } catch {
+      // Error already handled by hook
+    }
   };
 
   const remainingChars = 280 - comment.length;
   const isOverLimit = remainingChars < 0;
+
+  const renderFooter = () => {
+    if (!hasMore) return null;
+    return (
+      <View style={styles.loadingMore}>
+        <ActivityIndicator size="small" color={Colors.primary} />
+      </View>
+    );
+  };
 
   return (
     <BaseSheet isVisible={isVisible} onClose={onClose} height="70%" keyboardAvoidingEnabled>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Comments</Text>
+          <Text style={styles.title}>Comments {total > 0 && `(${total})`}</Text>
           <Pressable onPress={onClose} style={styles.closeButton}>
             <Text style={styles.closeText}>✕</Text>
           </Pressable>
         </View>
 
         {/* Comments List */}
-        <FlatList
-          data={mockComments}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <CommentItem comment={item} />}
-          contentContainerStyle={styles.listContent}
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>💬</Text>
-              <Text style={styles.emptyTitle}>No comments yet</Text>
-              <Text style={styles.emptyText}>Be the first to share your thoughts!</Text>
-              <View style={styles.comingSoonBadge}>
-                <Text style={styles.comingSoonText}>Coming Soon</Text>
+        {isLoading && comments.length === 0 ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+          </View>
+        ) : (
+          <FlatList
+            data={comments}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <CommentItem
+                comment={item}
+                onDelete={
+                  user && item.user_id === user.id ? () => handleDelete(item.id) : undefined
+                }
+              />
+            )}
+            contentContainerStyle={styles.listContent}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={renderFooter}
+            ListEmptyComponent={
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyIcon}>💬</Text>
+                <Text style={styles.emptyTitle}>No comments yet</Text>
+                <Text style={styles.emptyText}>Be the first to share your thoughts!</Text>
               </View>
-            </View>
-          }
-        />
+            }
+          />
+        )}
 
         {/* Comment Composer */}
         <KeyboardAvoidingView
@@ -93,6 +126,7 @@ export function CommentSheet({ postId, isVisible, onClose }: CommentSheetProps) 
                 maxLength={300} // Allow slight overflow for UX
                 onSubmitEditing={handleSubmit}
                 returnKeyType="send"
+                editable={!isAdding}
               />
               <View style={styles.inputActions}>
                 <Text style={[styles.charCount, isOverLimit && styles.charCountError]}>
@@ -100,20 +134,24 @@ export function CommentSheet({ postId, isVisible, onClose }: CommentSheetProps) 
                 </Text>
                 <Pressable
                   onPress={handleSubmit}
-                  disabled={!comment.trim() || isOverLimit || isSubmitting}
+                  disabled={!comment.trim() || isOverLimit || isAdding}
                   style={[
                     styles.sendButton,
-                    (!comment.trim() || isOverLimit) && styles.sendButtonDisabled,
+                    (!comment.trim() || isOverLimit || isAdding) && styles.sendButtonDisabled,
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.sendText,
-                      (!comment.trim() || isOverLimit) && styles.sendTextDisabled,
-                    ]}
-                  >
-                    Send
-                  </Text>
+                  {isAdding ? (
+                    <ActivityIndicator size="small" color={Colors.white} />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.sendText,
+                        (!comment.trim() || isOverLimit) && styles.sendTextDisabled,
+                      ]}
+                    >
+                      Send
+                    </Text>
+                  )}
                 </Pressable>
               </View>
             </View>
@@ -149,9 +187,18 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: Colors.text.secondary,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   listContent: {
     flexGrow: 1,
     paddingVertical: 16,
+  },
+  loadingMore: {
+    paddingVertical: 16,
+    alignItems: 'center',
   },
   emptyState: {
     flex: 1,
@@ -174,18 +221,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.text.secondary,
     textAlign: 'center',
-    marginBottom: 24,
-  },
-  comingSoonBadge: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  comingSoonText: {
-    color: Colors.white,
-    fontSize: 12,
-    fontWeight: '600',
   },
   composer: {
     borderTopWidth: 1,
@@ -226,6 +261,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 16,
     backgroundColor: Colors.primary,
+    minWidth: 60,
+    alignItems: 'center',
   },
   sendButtonDisabled: {
     backgroundColor: Colors.gray[200],

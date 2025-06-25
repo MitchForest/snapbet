@@ -354,6 +354,65 @@ For privacy and security features, enforce at multiple levels:
 
 Never rely on just one layer for security-critical features.
 
+## React Native Specific Standards
+
+### Platform Awareness
+**CRITICAL**: React Native is NOT a web browser. It has its own runtime and APIs.
+
+### Forbidden APIs (Will Cause Crashes)
+The following browser/DOM APIs do NOT exist in React Native and must NEVER be used:
+- `window.*` (addEventListener, removeEventListener, location, etc.)
+- `document.*` (getElementById, querySelector, etc.)
+- `localStorage` (use AsyncStorage or MMKV)
+- `fetch` with credentials (use proper auth headers)
+- Any DOM manipulation
+
+### Required React Native Patterns
+
+#### Event Communication
+```typescript
+// CORRECT: React Native EventEmitter
+import { DeviceEventEmitter } from 'react-native';
+
+// WRONG: Browser events
+window.addEventListener('custom-event', handler); // WILL CRASH
+```
+
+#### Storage
+```typescript
+// CORRECT: React Native storage
+import { storageService } from '@/services/storage/storageService'; // MMKV
+
+// WRONG: Browser storage
+localStorage.setItem('key', 'value'); // WILL CRASH
+```
+
+#### Navigation
+```typescript
+// CORRECT: React Navigation
+import { useRouter } from 'expo-router';
+const router = useRouter();
+router.push('/screen');
+
+// WRONG: Browser navigation
+window.location.href = '/page'; // WILL CRASH
+```
+
+### Testing Requirements
+Before ANY sprint handoff:
+1. **iOS Simulator**: Must run without crashes
+2. **Android Emulator**: Must run without crashes
+3. **Build Evidence**: Screenshot of running app required
+4. **Platform Checks**: Use `Platform.OS` when needed
+
+### Development Environment Setup
+Your IDE/editor MUST be configured to:
+1. Flag browser-specific APIs as errors
+2. Use React Native TypeScript definitions
+3. Enable React Native ESLint rules
+
+Failure to understand platform differences is grounds for sprint rejection.
+
 ---
 
 *Last Updated: January 2025*
