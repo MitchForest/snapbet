@@ -1,127 +1,110 @@
-export const UI_CATEGORIES = {
+export interface UICategory {
+  name: string;
+  icon: string;
+  effects: string[];
+}
+
+export const UI_CATEGORIES: Record<string, UICategory> = {
   WINS: {
     name: 'Wins',
     icon: '🏆',
     effects: [
-      // Tier 0
       'fire',
-      'money',
-      'confetti',
-      'trending_up',
-      'too_cool',
-      'flex',
-      // Tier 1
       'fire_level_2',
-      'money_level_2',
-      'celebration_level_2',
-      'cool_level_2',
-      'muscle_level_2',
-      // Tier 2
       'fire_level_3',
+      'money',
+      'money_level_2',
       'money_level_3',
+      'confetti',
+      'celebration_level_2',
       'celebration_level_3',
+      'big_w',
+      'trending_up',
+      'flex',
+      'too_cool',
+      'cool_level_2',
       'cool_level_3',
+      'vibing',
+      'bussin',
+      'poggers',
+      'to_the_moon',
+      'diamond_hands',
+      'diamond_hands_preview',
     ],
   },
   LOSSES: {
     name: 'Losses',
     icon: '😭',
     effects: [
-      // Tier 0
       'tears',
-      'rough_patch',
-      'mind_blown',
-      'nervous',
-      // Tier 1
       'tears_level_2',
-      // Tier 2
       'tears_level_3',
+      'skull',
+      'big_l',
+      'mind_blown',
+      'sweating_bullets',
+      'rage_quit',
+      'down_bad',
+      'rough_patch',
+      'f_in_chat',
+      'nervous',
     ],
   },
   VIBES: {
     name: 'Vibes',
     icon: '🎭',
     effects: [
-      // Tier 0
-      'skull',
       'crying_laughing',
       'no_cap',
       'clown_check',
-      'vibing',
-      'bussin',
       'sus',
-      'big_w',
-      'big_l',
+      'gg_ez',
       'side_eye',
       'chefs_kiss',
-      'this_you',
       'npc_mode',
-      // Tier 1
+      'this_you',
+      'good_vibes',
+      'stay_salty',
+      'no_chill',
       'sheesh',
       'ratio',
       'touch_grass',
-      'built_different',
-      'caught_4k',
-      // Tier 2
-      'toxic',
-      'rizz',
       'main_character',
+      'rizz',
+      'toxic',
     ],
   },
   HYPE: {
     name: 'Hype',
     icon: '⚡',
     effects: [
-      // Tier 0
       'rocket',
-      'gg_ez',
-      'rage_quit',
-      'poggers',
-      'f_in_chat',
-      'game_time',
-      'menace',
-      'no_chill',
-      'stay_salty',
-      // Tier 1
       'sports_level_2',
-      // Tier 2
       'sports_level_3',
+      'menace',
+      'muscle_level_2',
+      'built_different',
+      'caught_4k',
+      'boosted',
+      'game_time',
     ],
   },
   WILDCARDS: {
-    name: 'Wild Cards',
+    name: 'Wild',
     icon: '🎲',
     effects: [
-      // Tier 0
-      'good_vibes',
       'sparkle',
-      'diamond_hands_preview',
-      // Tier 1
+      'sparkle_level_2',
+      'sparkle_level_3',
       'dice_roll',
       'storm',
-      'sparkle_level_2',
-      'diamond_hands',
-      // Tier 2
-      'sparkle_level_3',
       'slot_machine',
+      'bet_slip_drop',
     ],
   },
   BETTING: {
     name: 'Betting',
     icon: '💰',
-    effects: [
-      // Tier 0
-      'sweating_bullets',
-      'down_bad',
-      'bet_slip_drop',
-      'boosted',
-      'to_the_moon',
-      'bag_alert_preview',
-      'buzzer_beater_preview',
-      // Tier 1
-      'buzzer_beater',
-      // Tier 2
-      'bag_alert',
-    ],
+    effects: ['bag_alert_preview', 'bag_alert', 'buzzer_beater_preview', 'buzzer_beater'],
   },
-} as const;
+};

@@ -1,18 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text } from '@tamagui/core';
-import { StyleSheet, Pressable, Alert } from 'react-native';
-import { Camera, FlashMode } from 'expo-camera';
-import { useMediaPermissions } from '@/hooks/useMediaPermissions';
+import React, { useState, useRef } from 'react';
+import { View, TouchableOpacity, StyleSheet, Text, Alert, ActivityIndicator } from 'react-native';
+import { Camera } from 'expo-camera';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useCamera, CapturedMedia } from '@/hooks/useCamera';
-import { useEffects } from '@/hooks/useEffects';
 import { CameraControls } from './CameraControls';
 import { PermissionRequest } from './PermissionRequest';
-import { EffectSelector } from '@/components/effects/EffectSelector';
-import { EmojiEffectsManager } from '@/components/effects/EmojiEffectsManager';
-import { EffectPreviewManager } from '@/components/effects/utils/effectPreview';
-import { Colors } from '@/theme';
+import { Stack } from '@tamagui/core';
+import ViewShot from 'react-native-view-shot';
+import { EmojiEffectsManager } from '../effects/EmojiEffectsManager';
+import { EffectSelector } from '../effects/EffectSelector';
+import { EffectPreviewManager } from '../effects/utils/effectPreview';
 import { useAuth } from '@/hooks/useAuth';
-import { EmojiEffect } from '@/types/effects';
+import { getEffectById } from '../effects/constants/allEffects';
+import { useMediaPermissions } from '@/hooks/useMediaPermissions';
 
 interface CameraViewProps {
   onCapture: (media: CapturedMedia) => void;
@@ -20,231 +20,147 @@ interface CameraViewProps {
 }
 
 export function CameraView({ onCapture, onClose }: CameraViewProps) {
-  const { user } = useAuth();
-  const [showEffectSelector, setShowEffectSelector] = useState(false);
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
-  const userBadges = user?.user_metadata?.badges || [];
-
-  const { permissions, hasAllPermissions, requestAllPermissions, openSettings } =
-    useMediaPermissions();
   const {
+    cameraRef,
     facing,
     flash,
     mode,
     isRecording,
-    capturedMedia,
-    cameraRef,
-    toggleFacing,
-    toggleFlash,
-    setMode,
     capturePhoto,
     startRecording,
     stopRecording,
+    toggleFlash,
+    capturedMedia,
+    setMode,
     pickFromGallery,
   } = useCamera();
 
-  const { selectedEffect, setSelectedEffectId, isEffectUnlocked } = useEffects(userBadges);
+  const { permissions, hasAllPermissions, requestAllPermissions, openSettings } =
+    useMediaPermissions();
+  const viewShotRef = useRef<ViewShot>(null);
+  const [selectedEffectId, setSelectedEffectId] = useState<string | null>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const { user } = useAuth();
+  const userBadges = user?.user_metadata?.badges || [];
 
-  // Request permissions on mount
-  useEffect(() => {
-    if (!hasAllPermissions && permissions.camera === null) {
-      requestAllPermissions();
-    }
-  }, [hasAllPermissions, permissions.camera, requestAllPermissions]);
+  // Get the selected effect
+  const selectedEffect = selectedEffectId ? getEffectById(selectedEffectId) : null;
 
-  // Handle capture based on mode
-  const handleCapture = () => {
-    // Don't allow capture if effect is in preview mode
-    if (isPreviewMode) {
-      Alert.alert('Effect Preview', 'Unlock this effect to capture with it');
-      return;
-    }
+  // Check if in preview mode
+  const isPreviewMode = selectedEffectId
+    ? EffectPreviewManager.getInstance().isPreviewActive(selectedEffectId)
+    : false;
 
-    if (mode === 'photo') {
-      capturePhoto();
-    } else {
-      if (isRecording) {
-        stopRecording();
-      } else {
-        startRecording();
-      }
-    }
-  };
-
-  // Handle preview for locked effects
-  const handlePreviewLocked = async (effect: EmojiEffect) => {
-    const previewManager = EffectPreviewManager.getInstance();
-    const canPreview = await previewManager.canPreview(effect.id);
-
-    if (!canPreview) {
-      Alert.alert(
-        'Preview Unavailable',
-        'You can preview this effect once per day. Try again tomorrow!'
-      );
-      return;
-    }
-
-    // Start preview
-    const started = await previewManager.startPreview(effect, () => {
-      // Preview ended callback
-      setSelectedEffectId(null);
-      setIsPreviewMode(false);
-    });
-
-    if (started) {
-      setSelectedEffectId(effect.id);
-      setIsPreviewMode(true);
-    }
-  };
-
-  // Listen for captured media and pass along with effect
-  useEffect(() => {
+  // Handle captured media
+  React.useEffect(() => {
     if (capturedMedia) {
-      // Pass the captured media with the selected effect ID
-      const mediaWithEffect = {
-        ...capturedMedia,
-        effectId: selectedEffect?.id || null,
-      };
-      onCapture(mediaWithEffect as CapturedMedia);
+      onCapture({ ...capturedMedia, effectId: selectedEffectId });
     }
-  }, [capturedMedia, onCapture, selectedEffect]);
+  }, [capturedMedia, selectedEffectId, onCapture]);
 
-  // Check if current effect is unlocked
-  useEffect(() => {
-    if (selectedEffect && !isEffectUnlocked(selectedEffect)) {
-      setIsPreviewMode(true);
-    } else {
-      setIsPreviewMode(false);
+  const handleCapture = async () => {
+    if (isCapturing || isPreviewMode) return;
+
+    setIsCapturing(true);
+    try {
+      if (mode === 'video') {
+        if (isRecording) {
+          stopRecording();
+        } else {
+          await startRecording();
+        }
+      } else {
+        // For photos with effects, capture the ViewShot
+        if (selectedEffectId && viewShotRef.current?.capture) {
+          try {
+            const uri = await viewShotRef.current.capture();
+            onCapture({ uri, type: 'photo', effectId: selectedEffectId });
+          } catch {
+            // Fallback to regular capture if ViewShot fails
+            await capturePhoto();
+          }
+        } else {
+          // No effect, use regular camera capture
+          await capturePhoto();
+        }
+      }
+    } catch (error) {
+      console.error('Capture error:', error);
+      Alert.alert('Error', 'Failed to capture media');
+    } finally {
+      setIsCapturing(false);
     }
-  }, [selectedEffect, isEffectUnlocked]);
+  };
 
-  // Show permission request if needed
-  if (!hasAllPermissions) {
+  const handleRequestPermissions = async () => {
+    await requestAllPermissions();
+  };
+
+  if (permissions.camera === null) {
     return (
       <PermissionRequest
         type="both"
-        onRequestPermission={async () => {
-          await requestAllPermissions();
-        }}
+        onRequestPermission={handleRequestPermissions}
         onOpenSettings={openSettings}
       />
     );
   }
 
-  // Get flash icon
-  const getFlashIcon = () => {
-    switch (flash) {
-      case FlashMode.on:
-        return '⚡';
-      case FlashMode.off:
-        return '⚡';
-      case FlashMode.auto:
-        return 'A⚡';
-      default:
-        return '⚡';
-    }
-  };
+  if (!hasAllPermissions) {
+    return (
+      <Stack flex={1} alignItems="center" justifyContent="center" backgroundColor="$background">
+        <Text style={styles.permissionText}>
+          Camera permission is required to use this feature.
+        </Text>
+        <TouchableOpacity onPress={handleRequestPermissions} style={styles.permissionButton}>
+          <Text style={styles.permissionButtonText}>Grant Permission</Text>
+        </TouchableOpacity>
+      </Stack>
+    );
+  }
 
   return (
-    <View flex={1} backgroundColor="black">
-      <Camera ref={cameraRef} style={StyleSheet.absoluteFillObject} type={facing} flashMode={flash}>
+    <View style={styles.container}>
+      <ViewShot
+        ref={viewShotRef}
+        style={StyleSheet.absoluteFillObject}
+        options={{ format: 'jpg', quality: 0.9 }}
+      >
+        <Camera
+          ref={cameraRef}
+          style={StyleSheet.absoluteFillObject}
+          type={facing}
+          flashMode={flash}
+        />
+
         {/* Effect Overlay */}
         {selectedEffect && (
-          <EmojiEffectsManager
-            effect={selectedEffect}
-            isActive={!isRecording}
-            performanceTier="medium"
-          />
-        )}
-
-        {/* Top Controls */}
-        <View
-          position="absolute"
-          top={0}
-          left={0}
-          right={0}
-          paddingTop="$12"
-          paddingHorizontal="$4"
-          flexDirection="row"
-          justifyContent="space-between"
-          alignItems="center"
-          backgroundColor="rgba(0,0,0,0.3)"
-          paddingBottom="$3"
-        >
-          {/* Close Button */}
-          <Pressable onPress={onClose} style={styles.topButton}>
-            <Text color="white" fontSize={24}>
-              ✕
-            </Text>
-          </Pressable>
-
-          {/* Right Controls */}
-          <View flexDirection="row" gap="$3">
-            {/* Effect Button */}
-            <Pressable
-              onPress={() => setShowEffectSelector(!showEffectSelector)}
-              style={styles.topButton}
-            >
-              <Text color="white" fontSize={20}>
-                {selectedEffect ? selectedEffect.preview : '✨'}
-              </Text>
-            </Pressable>
-
-            {/* Flash Button */}
-            <Pressable onPress={toggleFlash} style={styles.topButton}>
-              <Text
-                color={flash === FlashMode.off ? Colors.gray[400] : Colors.camera.flashActive}
-                fontSize={20}
-              >
-                {getFlashIcon()}
-              </Text>
-            </Pressable>
-
-            {/* Flip Camera Button */}
-            <Pressable onPress={toggleFacing} style={styles.topButton}>
-              <Text color="white" fontSize={20}>
-                🔄
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Recording Indicator */}
-        {isRecording && (
-          <View
-            position="absolute"
-            top="$20"
-            alignSelf="center"
-            backgroundColor={Colors.camera.recordingRed}
-            paddingHorizontal="$3"
-            paddingVertical="$1"
-            borderRadius="$2"
-          >
-            <Text color="white" fontSize="$2" fontWeight="600">
-              ● REC
-            </Text>
-          </View>
+          <EmojiEffectsManager effect={selectedEffect} isActive={true} performanceTier="medium" />
         )}
 
         {/* Preview Mode Indicator */}
         {isPreviewMode && (
-          <View
-            position="absolute"
-            bottom={180}
-            alignSelf="center"
-            backgroundColor="rgba(0,0,0,0.8)"
-            paddingHorizontal="$4"
-            paddingVertical="$2"
-            borderRadius="$3"
-          >
-            <Text color="white" fontSize="$3" fontWeight="500">
-              Preview Mode - Unlock to use
-            </Text>
+          <View style={styles.previewIndicator}>
+            <Text style={styles.previewText}>Preview Mode - Unlock to use</Text>
           </View>
         )}
-      </Camera>
+      </ViewShot>
 
-      {/* Bottom Controls */}
+      {/* Header Controls */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={onClose} style={styles.headerButton}>
+          <MaterialIcons name="close" size={28} color="white" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={toggleFlash} style={styles.headerButton}>
+          <MaterialIcons
+            name={flash === 'off' ? 'flash-off' : flash === 'on' ? 'flash-on' : 'flash-auto'}
+            size={28}
+            color="white"
+          />
+        </TouchableOpacity>
+      </View>
+
+      {/* Camera Controls */}
       <CameraControls
         mode={mode}
         isRecording={isRecording}
@@ -253,15 +169,17 @@ export function CameraView({ onCapture, onClose }: CameraViewProps) {
         onModeChange={setMode}
       />
 
-      {/* Effect Selector - Inline at bottom */}
-      {showEffectSelector && (
-        <View position="absolute" bottom={100} left={0} right={0}>
-          <EffectSelector
-            onSelectEffect={setSelectedEffectId}
-            currentEffectId={selectedEffect?.id || null}
-            userBadges={userBadges}
-            onPreviewLocked={handlePreviewLocked}
-          />
+      {/* Effect Selector */}
+      <EffectSelector
+        onSelectEffect={setSelectedEffectId}
+        currentEffectId={selectedEffectId}
+        userBadges={userBadges}
+      />
+
+      {/* Capturing Indicator */}
+      {isCapturing && (
+        <View style={styles.capturingOverlay}>
+          <ActivityIndicator size="large" color="white" />
         </View>
       )}
     </View>
@@ -269,10 +187,65 @@ export function CameraView({ onCapture, onClose }: CameraViewProps) {
 }
 
 const styles = StyleSheet.create({
-  topButton: {
+  container: {
+    flex: 1,
+    backgroundColor: 'black',
+  },
+  header: {
+    position: 'absolute',
+    top: 60,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    zIndex: 10,
+  },
+  headerButton: {
     width: 44,
     height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  permissionText: {
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  permissionButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  permissionButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  previewIndicator: {
+    position: 'absolute',
+    top: 120,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 20,
+  },
+  previewText: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    color: 'white',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  capturingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 30,
   },
 });

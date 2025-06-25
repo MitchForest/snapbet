@@ -6,6 +6,7 @@ export interface EmojiEffect {
   tier: 0 | 1 | 2;
   physics: PhysicsType;
   emoji: string;
+  size?: number;
   count: number;
   duration: number;
   preview: string;
@@ -167,4 +168,19 @@ export interface ParticleConfig {
   physics: PhysicsType;
   duration: number;
   delay: number;
+}
+
+// Props for new particle components
+export interface ParticleProps {
+  emoji: string;
+  size: number;
+  groupIndex: number;
+  particleIndex: number;
+  totalInGroup: number;
+  config: {
+    physics: PhysicsType;
+    duration: number;
+    delay: number;
+  };
+  onAnimationComplete?: () => void;
 }
