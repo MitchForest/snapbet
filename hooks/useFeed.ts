@@ -6,6 +6,7 @@ import { feedService, FeedCursor } from '@/services/feed/feedService';
 import { useFeedPagination } from './useFeedPagination';
 import { getFollowingIds } from '@/services/api/followUser';
 import * as Haptics from 'expo-haptics';
+import { eventEmitter, FeedEvents } from '@/utils/eventEmitter';
 
 export function useFeed() {
   const { user } = useAuth();
@@ -66,7 +67,7 @@ export function useFeed() {
     };
 
     loadInitialPosts();
-  }, [user?.id]); // Don't include refreshPosts to avoid loops
+  }, [user?.id, cachedPosts, refreshPosts]); // Don't include refreshPosts to avoid loops
 
   // Refresh with haptic feedback
   const refetch = useCallback(async () => {
@@ -85,6 +86,24 @@ export function useFeed() {
       setRefreshing(false);
     }
   }, [refreshPosts]);
+
+  // Listen for follow status changes to refresh feed
+  useEffect(() => {
+    const subscription = eventEmitter.addListener(
+      FeedEvents.FOLLOW_STATUS_CHANGED,
+      ({ userId, isFollowing }) => {
+        // Refresh the feed when someone is followed/unfollowed
+        // This ensures the feed shows posts from newly followed users
+        // or removes posts from unfollowed users
+        console.log(`Follow status changed for user ${userId}: ${isFollowing}`);
+        refetch();
+      }
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [refetch]);
 
   // Set up real-time subscription
   useEffect(() => {
@@ -170,8 +189,6 @@ export function useFeed() {
       }
     };
   }, [user?.id, setPosts]);
-
-  
 
   return {
     posts,

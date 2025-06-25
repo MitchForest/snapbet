@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { CameraView } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
@@ -54,6 +55,10 @@ export function useCamera(): UseCameraReturn {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
+  import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+
+  // ... (rest of the file is the same until capturePhoto)
+
   const capturePhoto = async () => {
     if (!cameraRef.current) return;
 
@@ -61,16 +66,26 @@ export function useCamera(): UseCameraReturn {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.9,
-        skipProcessing: false,
+        quality: 1, // Capture at high quality, we will compress next
+        skipProcessing: true, // Avoids native compression
       });
 
       if (photo) {
+        // More robust compression to handle HDR photos
+        const manipulatedImage = await manipulateAsync(
+          photo.uri,
+          [{ resize: { width: 1200 } }], // Resize to a reasonable width
+          {
+            compress: 0.9,
+            format: SaveFormat.JPEG, // Explicitly save as JPEG
+          }
+        );
+
         setCapturedMedia({
-          uri: photo.uri,
+          uri: manipulatedImage.uri,
           type: 'photo',
-          width: photo.width,
-          height: photo.height,
+          width: manipulatedImage.width,
+          height: manipulatedImage.height,
         });
       }
     } catch (error) {
@@ -125,7 +140,7 @@ export function useCamera(): UseCameraReturn {
   const pickFromGallery = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        mediaTypes: ImagePicker.MediaType.All,
         allowsEditing: false,
         quality: 0.9,
         videoMaxDuration: 30,

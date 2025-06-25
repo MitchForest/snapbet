@@ -93,12 +93,13 @@ During MVP development, we prioritize:
    - Review code quality
    - Check for unauthorized changes
 
-2. **Run Quality Checks**
+2. **Run Quality Checks (MANDATORY)**
    ```bash
    bun run lint      # Must be 0 errors, 0 warnings
    bun run typecheck # Must be 0 errors
-   bun run build     # If exists, must succeed
    ```
+   
+   **Note**: Full build testing is done at epic end, not sprint end
 
 3. **Code Review**
    - No `any` types
@@ -126,37 +127,64 @@ During MVP development, we prioritize:
    # Final quality checks
    bun run lint      # MUST be 0 errors, 0 warnings
    bun run typecheck # MUST be 0 errors
-   bun run build     # MUST succeed
    ```
 
-2. **Refactoring Review**
+2. **Full Build Testing (MANDATORY)**
+   
+   **Clean Environment:**
+   ```bash
+   rm -rf .expo node_modules/.cache .tamagui ios/build android/build
+   ```
+   
+   **Prebuild for Both Platforms:**
+   ```bash
+   bun expo prebuild --platform ios --clean
+   bun expo prebuild --platform android --clean
+   ```
+   
+   **Run on Both Platforms:**
+   ```bash
+   # Must test BOTH platforms
+   bun expo run:ios
+   bun expo run:android
+   ```
+   
+   **Verification Requirements:**
+   - [ ] iOS app launches without crashes
+   - [ ] Android app launches without crashes
+   - [ ] All epic features functional on both platforms
+   - [ ] No runtime errors in console
+   - [ ] Native features work (camera, permissions, etc.)
+   - [ ] Take screenshots as proof of working builds
+
+3. **Handle Build Issues**
+   - If builds fail, create immediate fix-build sprint
+   - Document all issues and resolutions
+   - Re-run entire verification after fixes
+   - Epic CANNOT be marked complete until builds pass
+
+4. **Refactoring Review**
    - Identify code duplication
    - Find optimization opportunities
    - Improve component structure
    - Enhance type safety
    - Remove any hacks or quick fixes
 
-3. **UI/UX Testing**
-   - Test in emulator/simulator
+5. **UI/UX Testing**
+   - Test in both iOS and Android
    - Verify all screens render correctly
    - Check navigation flows
    - Ensure theme consistency
    - Test responsive behavior
    - Validate user interactions
 
-4. **Codebase Health**
-   - Ensure DRY principles
-   - Verify SOLID principles
-   - Check for proper abstractions
-   - Validate error boundaries
-   - Review performance implications
-
-5. **Documentation Updates**
+6. **Documentation Updates**
    - Complete epic summary
    - Update project tracker
    - Document lessons learned
    - Note technical debt (if any)
    - Record architectural decisions
+   - Include build verification results
 
 ## Review Standards
 

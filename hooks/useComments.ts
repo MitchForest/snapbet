@@ -143,7 +143,7 @@ export function useComments(postId: string): UseCommentsResult {
 
         await commentService.deleteComment(commentId);
         toastService.showSuccess('Comment deleted');
-      } catch (err: any) {
+      } catch (err) {
         // Rollback on error
         if (commentToDelete) {
           setComments((prev) => {
@@ -156,7 +156,7 @@ export function useComments(postId: string): UseCommentsResult {
           setTotal((prev) => prev + 1);
         }
 
-        const errorMessage = err.message || 'Failed to delete comment';
+        const errorMessage = err instanceof Error ? err.message : 'Failed to delete comment';
         setError(errorMessage);
         toastService.showError(errorMessage);
       }
@@ -220,8 +220,10 @@ export function useComments(postId: string): UseCommentsResult {
 
   // Initial load
   useEffect(() => {
-    loadComments(true);
-  }, [postId]);
+    if (postId) {
+      loadComments();
+    }
+  }, [postId, loadComments]);
 
   return {
     comments,

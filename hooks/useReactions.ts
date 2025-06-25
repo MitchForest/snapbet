@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toastService } from '@/services/toastService';
 
 // Simple debounce implementation
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
@@ -60,7 +61,7 @@ export function useReactions(postId: string): UseReactionsResult {
         setUserReaction(userEmoji);
         previousUserReaction.current = userEmoji;
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to load reactions:', err);
       toastService.showError('Failed to load reactions');
     } finally {
@@ -124,7 +125,7 @@ export function useReactions(postId: string): UseReactionsResult {
           if (result.removed) {
             toastService.showSuccess('Reaction removed');
           }
-        } catch (err: any) {
+        } catch (err) {
           // Rollback on error
           const currentReaction = userReaction;
           setUserReaction(previousUserReaction.current);
@@ -142,7 +143,7 @@ export function useReactions(postId: string): UseReactionsResult {
             updateReactionsOptimistically(previousUserReaction.current, true, null);
           }
 
-          const errorMessage = err.message || 'Failed to update reaction';
+          const errorMessage = err instanceof Error ? err.message : 'Failed to update reaction';
           toastService.showError(errorMessage);
         }
       }, 300),
@@ -183,7 +184,7 @@ export function useReactions(postId: string): UseReactionsResult {
     if (isSubscribed.current) return;
 
     const cleanup = subscriptionManager.subscribeToPost(postId, {
-      onReaction: (payload) => {
+      onReaction: (_payload) => {
         // Reload reactions to get accurate counts
         // This is simpler than trying to sync individual changes
         loadReactions();

@@ -1,7 +1,6 @@
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/services/supabase/client';
 import { Storage, CacheUtils, StorageKeys } from '@/services/storage/storageService';
-import { privacyService } from '@/services/privacy/privacyService';
 import { followRequestService } from './followRequestService';
 
 interface FollowState {
@@ -133,7 +132,8 @@ class FollowService {
 
   async toggleFollow(
     targetUserId: string,
-    currentlyFollowing: boolean
+    currentlyFollowing: boolean,
+    targetUserIsPrivate: boolean // Argument instead of service call
   ): Promise<{ success: boolean; error?: string; isPending?: boolean }> {
     try {
       const userId = await this.getCurrentUserId();
@@ -164,9 +164,7 @@ class FollowService {
         return { success: true };
       } else {
         // Follow - check if target is private
-        const targetPrivacy = await privacyService.getPrivacySettings(targetUserId);
-
-        if (targetPrivacy.is_private) {
+        if (targetUserIsPrivate) {
           // Create follow request
           const result = await followRequestService.createFollowRequest(targetUserId);
 

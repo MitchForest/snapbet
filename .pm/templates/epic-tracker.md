@@ -122,6 +122,56 @@
 ### Gotchas for Future Development
 - **[Gotcha title]**: [Detailed explanation of the issue and how to avoid it]
 
+## Build Testing & Verification
+
+### Epic-End Build Process (MANDATORY)
+
+Before marking an epic as complete, the following build verification MUST be performed:
+
+1. **Clean all caches:**
+   ```bash
+   rm -rf .expo node_modules/.cache .tamagui ios/build android/build
+   ```
+
+2. **Force clean prebuild for both platforms:**
+   ```bash
+   bun expo prebuild --platform ios --clean
+   bun expo prebuild --platform android --clean
+   ```
+
+3. **Run full quality checks:**
+   ```bash
+   bun run lint      # MUST return 0 errors, 0 warnings
+   bun run typecheck # MUST return 0 errors
+   ```
+
+4. **Test builds on both platforms:**
+   ```bash
+   # iOS
+   bun expo run:ios
+   
+   # Android
+   bun expo run:android
+   ```
+
+5. **Verification checklist:**
+   - [ ] App launches without crashes on iOS
+   - [ ] App launches without crashes on Android
+   - [ ] All epic features work on both platforms
+   - [ ] No console errors during runtime
+   - [ ] Camera/permissions work (if applicable)
+   - [ ] Navigation works properly
+   - [ ] Screenshots taken of working app
+
+### Build Issues Resolution
+If any build issues are encountered:
+1. Create a fix-build sprint immediately
+2. Document all errors and resolutions
+3. Update dependencies if needed
+4. Re-run the entire verification process
+
+**NO EPIC CAN BE MARKED COMPLETE WITHOUT SUCCESSFUL BUILDS ON BOTH PLATFORMS**
+
 ## Epic Completion Checklist
 
 - [ ] All planned sprints completed and approved

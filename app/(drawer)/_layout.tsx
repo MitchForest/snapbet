@@ -26,6 +26,7 @@ export default function DrawerLayout() {
         name="camera"
         options={{
           drawerItemStyle: { display: 'none' },
+          presentation: 'fullScreenModal',
         }}
       />
       <Drawer.Screen

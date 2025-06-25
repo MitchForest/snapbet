@@ -93,8 +93,8 @@ class ReactionService {
 
         return { reaction: newReaction, removed: false };
       }
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to toggle reaction');
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to toggle reaction');
     }
   }
 
@@ -124,8 +124,8 @@ class ReactionService {
       return Object.entries(aggregated)
         .map(([emoji, count]) => ({ emoji, count: count as number }))
         .sort((a, b) => b.count - a.count);
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to fetch reactions');
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to fetch reactions');
     }
   }
 
@@ -147,8 +147,8 @@ class ReactionService {
       }
 
       return reaction?.emoji || null;
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to fetch user reaction');
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to fetch user reaction');
     }
   }
 
@@ -195,8 +195,8 @@ class ReactionService {
         total: count || 0,
         hasMore: (count || 0) > offset + limit,
       };
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to fetch reaction users');
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to fetch reaction users');
     }
   }
 

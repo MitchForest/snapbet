@@ -78,7 +78,7 @@ export function WhoReactedModal({ postId, emoji, isOpen, onClose }: WhoReactedMo
       setPage(0);
       loadUsers(0);
     }
-  }, [isOpen, postId, emoji]);
+  }, [isOpen, postId, emoji, loadUsers]);
 
   // Handle load more
   const handleLoadMore = () => {

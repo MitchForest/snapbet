@@ -35,7 +35,7 @@ export function useMutualFollows(userIds: string[]): UseMutualFollowsReturn {
     };
 
     fetchMutualFollows();
-  }, [currentUser?.id, userIds.join(',')]); // Join userIds to create stable dependency
+  }, [currentUser?.id, userIds]);
 
   const checkMutualFollow = (userId: string): boolean => {
     return mutualFollows.get(userId) || false;

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { followService } from '@/services/social/followService';
+import { privacyService } from '@/services/privacy/privacyService'; // Import privacyService
 import { toastService } from '@/services/toastService';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -27,32 +28,36 @@ export function useFollowState(
   const [isPending, setIsPending] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [targetUserIsPrivate, setTargetUserIsPrivate] = useState(false);
 
-  // Fetch initial follow state
+  // Fetch initial follow state and privacy settings
   useEffect(() => {
     if (!currentUser?.id || !targetUserId) {
       setIsInitializing(false);
       return;
     }
 
-    const fetchFollowState = async () => {
+    const fetchInitialState = async () => {
       try {
-        const state = await followService.getFollowState(targetUserId, currentUser.id);
+        const [state, reverseState, privacySettings] = await Promise.all([
+          followService.getFollowState(targetUserId, currentUser.id),
+          followService.getFollowState(currentUser.id, targetUserId),
+          privacyService.getPrivacySettings(targetUserId),
+        ]);
+
         setIsFollowing(state.isFollowing);
         setIsMutual(state.isMutual);
         setIsPending(state.isPending || false);
-
-        // Also check if they follow us
-        const reverseState = await followService.getFollowState(currentUser.id, targetUserId);
         setIsFollower(reverseState.isFollowing);
+        setTargetUserIsPrivate(privacySettings.is_private);
       } catch (error) {
-        console.error('Error fetching follow state:', error);
+        console.error('Error fetching initial follow state:', error);
       } finally {
         setIsInitializing(false);
       }
     };
 
-    fetchFollowState();
+    fetchInitialState();
   }, [currentUser?.id, targetUserId]);
 
   // Subscribe to real-time updates
@@ -89,7 +94,11 @@ export function useFollowState(
     setIsLoading(true);
 
     try {
-      const result = await followService.toggleFollow(targetUserId, isFollowing);
+      const result = await followService.toggleFollow(
+        targetUserId,
+        isFollowing,
+        targetUserIsPrivate
+      );
 
       if (!result.success) {
         // Revert on error
@@ -117,7 +126,15 @@ export function useFollowState(
     } finally {
       setIsLoading(false);
     }
-  }, [currentUser?.id, targetUserId, isFollowing, isFollower, isLoading, options]);
+  }, [
+    currentUser?.id,
+    targetUserId,
+    isFollowing,
+    isFollower,
+    isLoading,
+    options,
+    targetUserIsPrivate,
+  ]);
 
   return {
     isFollowing,

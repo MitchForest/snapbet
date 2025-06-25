@@ -413,6 +413,172 @@ Your IDE/editor MUST be configured to:
 
 Failure to understand platform differences is grounds for sprint rejection.
 
+## Build Testing Requirements
+
+### Sprint-Level Requirements
+At the end of EVERY sprint:
+```bash
+bun run lint      # MUST return 0 errors, 0 warnings
+bun run typecheck # MUST return 0 errors
+```
+
+No sprint can be approved with ANY errors or warnings.
+
+### Epic-Level Requirements
+At the end of EVERY epic, full platform testing is MANDATORY:
+
+1. **Environment Cleanup**
+   ```bash
+   rm -rf .expo node_modules/.cache .tamagui ios/build android/build
+   ```
+
+2. **Platform Prebuilds**
+   ```bash
+   bun expo prebuild --platform ios --clean
+   bun expo prebuild --platform android --clean
+   ```
+
+3. **Platform Testing**
+   ```bash
+   bun expo run:ios     # Must run without crashes
+   bun expo run:android # Must run without crashes
+   ```
+
+4. **Verification Checklist**
+   - [ ] Both platforms build successfully
+   - [ ] Both platforms launch without crashes
+   - [ ] All features work on both platforms
+   - [ ] No platform-specific bugs
+   - [ ] Screenshots taken as evidence
+
+### Common Build Issues & Solutions
+
+**MMKV Crash**: See sprint-x-fix-build.md for lazy initialization pattern
+
+**Missing Native Modules**: Always run `prebuild --clean` after adding dependencies
+
+**Platform-Specific Code**: Use `Platform.OS` checks when needed:
+```typescript
+import { Platform } from 'react-native';
+
+const styles = {
+  shadow: Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+    },
+    android: {
+      elevation: 4,
+    },
+  }),
+};
+```
+
+### Build Failure Protocol
+If builds fail at epic end:
+1. Create fix-build sprint immediately
+2. Document all errors in sprint tracker
+3. Fix all issues
+4. Re-run full verification
+5. Epic remains IN PROGRESS until builds pass
+
+## Service Architecture Standards
+
+### Service Independence (CRITICAL)
+Services must NEVER call other services directly. This prevents circular dependencies and makes testing easier.
+
+**BAD - Circular Dependency:**
+```typescript
+// services/followService.ts
+import { privacyService } from './privacyService';
+
+export class FollowService {
+  async toggleFollow(targetId: string) {
+    const isPrivate = await privacyService.isUserPrivate(targetId); // ❌ Creates cycle
+    if (isPrivate) {
+      // handle private account
+    }
+  }
+}
+```
+
+**GOOD - Dependency Injection:**
+```typescript
+// services/followService.ts
+export class FollowService {
+  async toggleFollow(targetId: string, targetUserData: { isPrivate: boolean }) {
+    if (targetUserData.isPrivate) { // ✅ No service dependency
+      // handle private account
+    }
+  }
+}
+
+// hooks/useFollow.ts
+const targetUser = await userService.getUser(targetId);
+await followService.toggleFollow(targetId, { isPrivate: targetUser.is_private });
+```
+
+### Data Flow Architecture
+```
+UI Components
+    ↓
+Custom Hooks (orchestration layer)
+    ↓
+Services (pure business logic)
+    ↓
+Supabase/External APIs
+```
+
+Services should ONLY flow downward, never sideways to other services.
+
+### Modal Navigation Standards
+**NEVER use manual Modal components in screen files:**
+```typescript
+// ❌ WRONG - Manual modal
+export default function CameraScreen() {
+  return (
+    <Modal visible={true} animationType="slide">
+      <CameraView />
+    </Modal>
+  );
+}
+
+// ✅ CORRECT - Router-managed modal
+// In _layout.tsx:
+<Stack.Screen 
+  name="camera" 
+  options={{ 
+    presentation: 'fullScreenModal',
+    animation: 'slide_from_bottom'
+  }}
+/>
+
+// In camera.tsx:
+export default function CameraScreen() {
+  return <CameraView />; // Router handles modal presentation
+}
+```
+
+### Image Processing Standards
+Always handle modern image formats explicitly:
+```typescript
+import * as ImageManipulator from 'expo-image-manipulator';
+
+export async function processImage(uri: string) {
+  // Convert any format (including HDR) to standard JPEG
+  const processed = await ImageManipulator.manipulateAsync(
+    uri,
+    [{ resize: { width: 1080 } }],
+    { 
+      compress: 0.8, 
+      format: ImageManipulator.SaveFormat.JPEG // Force JPEG to avoid HDR issues
+    }
+  );
+  return processed.uri;
+}
+```
+
 ---
 
 *Last Updated: January 2025*

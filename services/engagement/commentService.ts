@@ -100,8 +100,8 @@ class CommentService {
       }
 
       return { comment: comment as CommentWithUser };
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to add comment');
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to add comment');
     }
   }
 
@@ -127,8 +127,8 @@ class CommentService {
       if (error) throw error;
 
       return { success: true };
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to delete comment');
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to delete comment');
     }
   }
 
@@ -173,8 +173,8 @@ class CommentService {
         hasMore: (count || 0) > offset + limit,
         total: count || 0,
       };
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to fetch comments');
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to fetch comments');
     }
   }
 
@@ -205,8 +205,8 @@ class CommentService {
       }
 
       return comment as CommentWithUser;
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to fetch comment');
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to fetch comment');
     }
   }
 }

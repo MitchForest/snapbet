@@ -75,6 +75,7 @@ export function EmojiEffectsManager({
       'rotate',
       'fadeIn',
       'slideIn',
+      'explodeOut', // Add explodeOut here
     ],
     ExpressiveParticle: [
       'crashDown',

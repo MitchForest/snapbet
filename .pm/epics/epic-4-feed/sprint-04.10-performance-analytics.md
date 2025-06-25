@@ -5,7 +5,7 @@
 **Sprint Number**: 04.10  
 **Sprint Name**: Performance Analytics  
 **Duration**: 1.5 hours  
-**Status**: NOT STARTED  
+**Status**: DEFERRED TO EPIC 5
 **Dependencies**: Sprint 04.05 (Engagement Backend) - Need real bet data to analyze
 
 **Sprint Goal**: Build comprehensive performance analytics and visualization for user profiles, completing the missing features from Epic 8.

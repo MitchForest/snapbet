@@ -21,17 +21,18 @@
 | Sprint # | Sprint Name | Status | Start Date | End Date | Key Deliverable |
 |----------|-------------|--------|------------|----------|-----------------|
 | 04.01 | Feed Infrastructure | APPROVED | 2024-12-19 | 2024-12-19 | Following-only feed with FlashList |
-| 04.02 | Search & Discovery | NOT STARTED | - | - | User search and discovery sections |
-| 04.03 | Following System | NOT STARTED | - | - | Optimistic follow/unfollow |
-| 04.04 | Privacy & Follow Requests | NOT STARTED | - | - | Private accounts with requests |
-| 04.05 | Engagement Backend | NOT STARTED | - | - | Comments, reactions, tail/fade |
+| 04.02 | Search & Discovery | APPROVED | TBD | TBD | User search and discovery sections |
+| 04.03 | Following System | APPROVED | 2024-12-19 | 2024-12-19 | Optimistic follow/unfollow |
+| 04.04 | Privacy & Follow Requests | APPROVED WITH COMMENDATION | 2024-12-20 | 2024-12-20 | Private accounts with requests |
+| 04.05 | Engagement Backend | NEEDS_MAJOR_REVISION | 2025-01-10 | 2025-01-10 | Comments, reactions, tail/fade |
 | 04.06 | Story Viewer | NOT STARTED | - | - | Full-screen story experience |
 | 04.07 | Content Moderation | NOT STARTED | - | - | Reporting and blocking |
 | 04.08 | Referral Rewards | NOT STARTED | - | - | $100 weekly bonus implementation |
 | 04.09 | Performance & Polish | NOT STARTED | - | - | 60 FPS optimization |
-| 04.10 | Performance Analytics | NOT STARTED | - | - | Sport/bet type analytics |
 
-**Total Duration**: ~13.5-14.5 hours (10 sprints)
+**Total Duration**: ~12 hours (9 sprints)
+
+**Note**: Performance Analytics (originally Sprint 04.10) moved to Epic 5 where it belongs after betting system is implemented.
 
 **Statuses**: NOT STARTED | IN PROGRESS | IN REVIEW | APPROVED | BLOCKED
 
@@ -66,12 +67,7 @@ The social layer builds on Epic 3's content creation with a performant feed, dis
    - Rationale: Keep social features separate from betting logic
    - Trade-offs: Some features incomplete until Epic 5
 
-6. **Complete performance analytics**: Finish Epic 8 features
-   - Alternatives considered: Defer to separate epic
-   - Rationale: Natural fit with profile enhancements
-   - Trade-offs: Slightly longer epic but more complete feature set
-
-7. **Unified MMKV Storage Service** (NEW - from Sprint 04.01)
+6. **Unified MMKV Storage Service** (NEW - from Sprint 04.01)
    - Alternatives considered: Continue with AsyncStorage
    - Rationale: 30x performance improvement, consistent API
    - Trade-offs: Migration effort paid off immediately
@@ -144,7 +140,7 @@ hooks/
 - `StoryViewer` - Full-screen story viewer - Sprint 04.06
 - `ReportModal` - Content reporting flow - Sprint 04.07
 - `ReferralCard` - Referral sharing component - Sprint 04.08
-- `PerformanceTab` - Analytics dashboard - Sprint 04.10
+- `PerformanceTab` - Analytics dashboard - Sprint 04.09
 
 ## Sprint Execution Log
 
@@ -170,7 +166,7 @@ hooks/
 **Issues Encountered**: None - smooth implementation
 
 ### Sprint 04.02: Search & Discovery
-**Status**: NOT STARTED
+**Status**: APPROVED
 **Summary**: [Pending implementation]
 
 [Continue for each completed sprint]
@@ -187,6 +183,75 @@ hooks/
 | Issue | Severity | Sprint | Status | Resolution |
 |-------|----------|--------|--------|------------|
 | React hook dependency warning | LOW | 04.01 | ACCEPTED | Intentional to prevent re-renders |
+
+## Mid-Epic Refactoring (Between Sprint 04.04 and 04.05)
+
+### Critical Issues Discovered
+
+**1. Circular Dependencies in Services**
+- **Problem**: followService ↔ privacyService ↔ followRequestService created require cycles
+- **Root Cause**: Services calling each other directly for data
+- **Solution**: Dependency Injection Pattern
+  ```typescript
+  // BAD: Circular dependency
+  class FollowService {
+    async toggleFollow(targetId: string) {
+      const isPrivate = await privacyService.isUserPrivate(targetId); // Creates cycle
+    }
+  }
+  
+  // GOOD: Accept required data as parameters
+  class FollowService {
+    async toggleFollow(targetId: string, isPrivate: boolean) {
+      // No direct service dependency
+    }
+  }
+  ```
+- **Lesson**: Services should accept data as parameters, not fetch from other services
+
+**2. Modal Navigation Architecture**
+- **Problem**: Camera screen used `<Modal>` component causing navigation crashes
+- **Root Cause**: Fighting between manual Modal and Expo Router navigation
+- **Solution**: Use router's modal presentation
+  ```typescript
+  // BAD: Manual modal
+  export default function CameraScreen() {
+    return <Modal visible={true}>...</Modal>;
+  }
+  
+  // GOOD: Router-managed modal
+  // In _layout.tsx:
+  <Stack.Screen 
+    name="camera" 
+    options={{ presentation: 'fullScreenModal' }}
+  />
+  ```
+- **Lesson**: Let the router manage all navigation, including modals
+
+**3. Image Processing for Modern Devices**
+- **Problem**: HDR images from iPhone cameras causing compression failures
+- **Solution**: Use expo-image-manipulator with explicit JPEG conversion
+- **Lesson**: Always handle modern media formats explicitly
+
+**4. Animation Registry Pattern**
+- **Problem**: Missing animation definitions causing runtime warnings
+- **Solution**: Central animation registry with all animations defined
+- **Lesson**: Register all custom animations in a central location
+
+### Architectural Patterns Established
+
+1. **Service Layer Independence**: Services should be pure functions/classes that don't depend on other services
+2. **Data Flow Direction**: UI → Hooks → Services (never Services → Services)
+3. **Navigation Consistency**: All navigation through Expo Router, no manual modals
+4. **Media Handling**: Always process modern formats to standard formats
+5. **Animation Management**: Central registry for all custom animations
+
+### Impact on Future Sprints
+
+These patterns must be followed in all remaining sprints:
+- Sprint 04.05 (Engagement): Services must not call each other
+- Sprint 04.06 (Story Viewer): Use router modal presentation
+- Sprint 04.07+ : Apply all patterns consistently
 
 ## Refactoring Completed
 
@@ -212,11 +277,16 @@ hooks/
 - **Real-time subscriptions**: Monitor performance with high follow counts
 - **FlashList**: Requires estimatedItemSize for optimal performance
 - **MMKV**: Different API than AsyncStorage, but worth the migration
+- **Service Dependencies**: NEVER have services call other services - pass data as parameters
+- **Modal Navigation**: Always use Expo Router's presentation options, never manual `<Modal>`
+- **Image Processing**: Modern devices produce HDR images that need explicit conversion
+- **Circular Dependencies**: Will cause "Require cycle" warnings and potential runtime failures
+- **Animation Definitions**: All custom animations must be registered in the central registry
 
 ## Epic Completion Checklist
 
 - [x] Sprint 04.01 completed and approved
-- [ ] Sprint 04.02-04.10 pending
+- [ ] Sprint 04.02-04.09 pending
 - [ ] User stories for this epic fully addressed
 - [ ] Code refactored and cleaned up
 - [ ] Documentation updated

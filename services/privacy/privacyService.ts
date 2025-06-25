@@ -1,6 +1,6 @@
 import { supabase } from '@/services/supabase/client';
-import { followService } from '@/services/social/followService';
 import { Storage, StorageKeys } from '@/services/storage/storageService';
+import { followService } from '@/services/social/followService'; // Keep this import for now
 
 interface PrivacySettings {
   is_private: boolean;

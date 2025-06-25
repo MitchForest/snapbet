@@ -1,5 +1,4 @@
 import { supabase } from '@/services/supabase/client';
-import { followService } from './followService';
 import { differenceInDays } from 'date-fns';
 
 export type FollowRequestStatus = 'pending' | 'accepted' | 'rejected' | 'expired';
@@ -86,7 +85,8 @@ class FollowRequestService {
   }
 
   async createFollowRequest(
-    targetUserId: string
+    targetUserId: string,
+    isAlreadyFollowing: boolean // Argument instead of service call
   ): Promise<{ success: boolean; error?: string; requestId?: string }> {
     try {
       const {
@@ -97,8 +97,7 @@ class FollowRequestService {
       }
 
       // Check if user is already following
-      const followState = await followService.getFollowState(targetUserId, user.id);
-      if (followState.isFollowing) {
+      if (isAlreadyFollowing) {
         return { success: false, error: 'Already following this user' };
       }
 

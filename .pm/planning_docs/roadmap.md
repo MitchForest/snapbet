@@ -232,18 +232,18 @@ App store submission, analytics, marketing site, and go-live checklist.
   - Share functionality
   - Track referral success
 
-- **Performance Analytics**
-  - 7-day rolling stats
-  - Sport-specific breakdown
-  - Bet type analysis
-  - Time-based patterns
-  - Visual charts
+- **Performance & Polish**
+  - 60 FPS scrolling optimization
+  - Loading states and skeletons
+  - Error boundaries
+  - Network status handling
+  - Haptic feedback
 
 ---
 
 ## Epic 5: Betting & Bankroll System
 
-**Goal**: Complete betting functionality with weekly reset system
+**Goal**: Complete betting functionality with weekly reset system and performance analytics
 
 ### Core Features
 - **Games Display**
@@ -286,6 +286,15 @@ App store submission, analytics, marketing site, and go-live checklist.
   - Link to original pick
   - Real-time count updates
   - Performance tracking
+
+- **Performance Analytics**
+  - 7-day rolling stats
+  - Sport-specific breakdown
+  - Bet type analysis (spread vs total vs ML)
+  - Time-based patterns
+  - Visual charts and graphs
+  - Best/worst performing areas
+  - ROI and win rate tracking
 
 ---
 
