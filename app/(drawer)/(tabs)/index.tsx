@@ -12,24 +12,17 @@ const mockStories = [
 ];
 
 export default function FeedScreen() {
+  console.log('FeedScreen rendering...');
   return (
-    <View flex={1} backgroundColor="$background">
-      <StoriesBar
-        stories={mockStories}
-        onStoryPress={(story) => console.log('Story pressed:', story)}
-        onAddStoryPress={() => console.log('Add story pressed')}
-      />
-
-      <ScrollView>
-        <View flex={1} justifyContent="center" alignItems="center" paddingVertical="$8">
-          <Text fontSize={24} color="$textPrimary" fontWeight="600">
-            Feed coming soon
-          </Text>
-          <Text fontSize={16} color="$textSecondary" marginTop="$2">
-            Your friends&apos; bets will appear here
-          </Text>
-        </View>
-      </ScrollView>
+    <View flex={1} backgroundColor="#FAF9F5">
+      <View flex={1} justifyContent="center" alignItems="center" padding={20}>
+        <Text fontSize={24} color="#1F2937" fontWeight="600">
+          Feed Screen - Demo Mode
+        </Text>
+        <Text fontSize={16} color="#6B7280" marginTop={8}>
+          App is working! Navigation successful.
+        </Text>
+      </View>
     </View>
   );
 }

@@ -22,12 +22,12 @@ export default function DrawerLayout() {
           title: 'Home',
         }}
       />
-      <Drawer.Screen
+      {/* <Drawer.Screen
         name="camera"
         options={{
           drawerItemStyle: { display: 'none' },
         }}
-      />
+      /> */}
       <Drawer.Screen
         name="notifications"
         options={{
