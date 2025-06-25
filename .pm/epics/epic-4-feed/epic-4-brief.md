@@ -4,7 +4,7 @@
 
 **Epic Goal**: Build the complete social layer of SnapBet including the feed, user profiles, following system, search/discovery, and all social interactions that make betting a shared experience.
 
-**Duration**: Day 3 of Development (10-12 hours)
+**Duration**: Day 3 of Development (13-14 hours)
 **Dependencies**: Epic 3 (Camera & Content) must be complete
 **Outcome**: Full social platform with feed, profiles, following, and discovery
 
@@ -437,6 +437,56 @@
 - [ ] Blocked users list works
 - [ ] Can unblock users
 - [ ] Admin panel shows reports
+
+---
+
+### Sprint 4.10: Performance Analytics (1.5 hours)
+
+**Goal**: Build comprehensive performance analytics for user profiles
+
+**Features**:
+
+#### 7-Day Rolling Stats
+- Win/Loss/Push record
+- Total profit/loss display
+- ROI percentage calculation
+- Win rate with trend indicators
+
+#### Sport-Specific Breakdown
+- Performance by sport (NFL, NBA, etc.)
+- Best performing sport highlighted
+- Profit/loss by sport
+- Favorite teams analysis
+
+#### Bet Type Analysis
+- Spread vs Total vs Moneyline comparison
+- Success rate by bet type
+- Visual charts (pie/bar)
+- Recommendations based on data
+
+#### Time-Based Patterns
+- Best day of week performance
+- Prime time vs day games
+- Streak visualization
+- Profit trend line chart
+
+**Technical Tasks**:
+- Create performance calculation service
+- Build analytics components
+- Implement chart visualizations
+- Add performance tab to profiles
+- Query optimization for speed
+- Cache calculations
+- Handle empty states
+
+**Acceptance Criteria**:
+- [ ] Performance tab shows in profiles
+- [ ] All calculations accurate
+- [ ] Charts render at 60 FPS
+- [ ] Sport breakdown complete
+- [ ] Bet type analysis visual
+- [ ] Time patterns detected
+- [ ] Empty states handled
 
 ---
 

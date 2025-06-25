@@ -9,14 +9,13 @@ This document tracks high-level progress across all epics, maintains key archite
 |--------|-----------|--------|------------|----------|-------------|
 | 01 | Foundation & Infrastructure | COMPLETED | Dec 2024 | Dec 2024 | Complete dev environment and core architecture |
 | 02 | Authentication & User System | COMPLETED | 2024-12-19 | 2025-01-19 | OAuth, profiles, badges, referrals - DEVELOPMENT BUILD REQUIRED |
-| 03 | Social Feed & Content | IN PROGRESS | 2025-01-20 | - | Photo/video sharing with stories |
-| 04 | Betting System | NOT STARTED | - | - | Mock betting with tail/fade mechanics |
-| 05 | Messaging & Real-time | NOT STARTED | - | - | DMs, group chats, real-time updates |
-| 06 | Discovery & Polish | NOT STARTED | - | - | Search, explore, notifications, UI polish |
-| 07 | RAG - Intelligent Insights | NOT STARTED | - | - | Pattern recognition and analysis |
-| 08 | RAG - Content Generation | NOT STARTED | - | - | AI-powered captions and suggestions |
-| 09 | RAG - Social Intelligence | NOT STARTED | - | - | Smart recommendations and notifications |
-| 10 | Launch Preparation | NOT STARTED | - | - | Testing, optimization, deployment |
+| 03 | Camera & Content Creation | IN PROGRESS | 2025-01-20 | - | Photo/video sharing with effects and badges |
+| 04 | Feed & Social Engagement | NOT STARTED | - | - | Complete social platform with discovery |
+| 05 | Betting & Bankroll System | NOT STARTED | - | - | Mock betting with tail/fade mechanics |
+| 06 | Messaging & Real-time | NOT STARTED | - | - | DMs, group chats, real-time updates |
+| 07 | Polish & Feature Completion | NOT STARTED | - | - | Push notifications, deep links, optimization |
+| 08 | AI-Powered Intelligence | NOT STARTED | - | - | Smart discovery, notifications, content generation |
+| 09 | Launch Preparation | NOT STARTED | - | - | App store prep, final polish, deployment |
 
 **Statuses**: NOT STARTED | IN PROGRESS | COMPLETED | BLOCKED
 
@@ -260,12 +259,12 @@ When querying related tables with multiple foreign keys:
 
 | User Story | Status | Fully Enabled By Epics | Notes |
 |------------|--------|------------------------|-------|
-| Story 1: Social Pick Sharing | PARTIAL | Epic 1, 2, 3 | Auth/profiles ready, need camera/feed |
-| Story 2: Tail/Fade Decisions | NOT STARTED | Epic 3, 4 | Betting logic and UI |
-| Story 3: Ephemeral Content | NOT STARTED | Epic 1, 3 | Auto-expiration system |
-| Story 4: Group Coordination | NOT STARTED | Epic 5 | Messaging system |
-| Story 5: Performance Tracking | PARTIAL | Epic 2, 4, 6 | Badge system started, need full stats |
-| Story 6: AI Insights (RAG) | NOT STARTED | Epic 7, 8, 9 | Phase 2 features |
+| Story 1: Social Pick Sharing | PARTIAL | Epic 1, 2, 3, 4 | Auth/profiles ready, need camera/feed |
+| Story 2: Tail/Fade Decisions | NOT STARTED | Epic 4, 5 | Social UI in Epic 4, betting logic in Epic 5 |
+| Story 3: Ephemeral Content | PARTIAL | Epic 1, 3, 4 | Schema ready, need expiration implementation |
+| Story 4: Group Coordination | NOT STARTED | Epic 6 | Messaging system |
+| Story 5: Performance Tracking | PARTIAL | Epic 2, 3, 4, 5 | Badge system started, need full analytics |
+| Story 6: AI Insights (RAG) | NOT STARTED | Epic 8 | Phase 2 features |
 
 ## Refactoring & Technical Debt
 
@@ -420,7 +419,7 @@ config/environment.ts  # Environment switcher
 
 ## Next Steps
 
-**Current Epic**: Epic 3 - Social Feed & Content (IN PROGRESS)
+**Current Epic**: Epic 3 - Camera & Content Creation (IN PROGRESS)
 **Prerequisites**: 
 - Development build installed on simulator
 - OAuth authentication working
@@ -434,22 +433,72 @@ config/environment.ts  # Environment switcher
   - Upload service with retry logic
   - Tab bar integration complete
   - Migrated from deprecated expo-av to expo-video
+- Sprint 03.00 - Profile & Badge Catchup ✅
+  - Implemented 8 weekly badges system
+  - Database migration with weekly calculations
+  - Badge count globally available for effect gating
+  - **Note**: Type fixes deferred to Sprint 3.07 for cleanup
+- Sprint 03.03 - Post Type System ✅
+  - Infrastructure for three post types (content, pick, outcome)
+  - Placeholder overlays for future bet integration
+  - Caption input functionality
+  - PostCard component for feed display
+  - Type-based expiration logic
+- Sprint 03.04 - Content Composition ✅
+  - Complete content creation flow
+  - Caption input with character counter
+  - Post/story destination selection
+  - Story service implementation
+  - Navigation and error handling
+  - **Note**: Effect tracking deferred to Sprint 3.07
+- Sprint 03.05 - Feed Display ✅
+  - Complete feed with PostCard components
+  - Horizontal story bar
+  - Video autoplay with performance optimization
+  - Real-time updates via Supabase
+  - Beautiful empty state
+  - **Note**: Toast component API to be fixed in Sprint 3.07
+- Sprint 03.06 - Engagement UI ✅
+  - Complete engagement UI system
+  - Custom bottom sheet with swipe-to-dismiss
+  - 6-reaction picker with animations
+  - Tail/fade buttons for pick posts
+  - Toast service for "coming soon" messaging
+  - **Note**: Minor cleanup items deferred to Sprint 3.07
 
-**Next Sprint**: 03.01 - Emoji Effects System + 03.0X - Process Effects
-- Implement emoji-based effects system
-- 48+ base effects across 17 categories
-- Badge-based unlocks from Epic 2
-- React Native Reanimated 2 for performance
-- Haptic feedback integration
-- 73+ total effects with tiers
+**Next Sprint**: 03.07 - Epic Cleanup & QA
+- Fix all `any` types (8 in badge services)
+- Resolve camera import errors (13 TypeScript errors)
+- Fix Toast component API
+- Replace all color literals (24 warnings)
+- Complete effect tracking in camera
+- Achieve 0 lint errors, 0 type errors
+- Manual testing of all Epic 1-3 features
 
 **Critical Notes for Epic 3**:
-1. Must use development builds (camera won't work in Expo Go)
-2. Follow UI/UX consistency rules (.pm/process/ui-ux-consistency-rules.md)
-3. Use established patterns (useUserList hook, ScreenHeader component)
-4. Maintain zero lint/TypeScript errors
-5. **expo-av is DEPRECATED** - always use expo-video for video playback
-6. Emoji effects approach chosen over Lottie - zero dependencies, better performance
+- Camera API needs migration to new expo-camera hooks
+- Toast component has interface mismatch
+- 39 total lint issues (15 errors, 24 warnings)
+- 18 total TypeScript errors
+- All features functional but need code quality cleanup
+
+### Upcoming: Epic 4 - Feed & Social Engagement
+**Duration**: ~13.5-14.5 hours (10 sprints)
+**Key Features**:
+- Following-only feed with FlashList
+- Search & discovery sections
+- Private accounts with follow requests
+- Comments, reactions, and sharing
+- Story viewer
+- Content moderation
+- Referral rewards ($100 weekly bonus)
+- Performance analytics (completing Epic 8 features)
+
+**Why Epic 4 is Critical**:
+- Completes the social layer of the app
+- Enables viral growth through tail/fade UI
+- Incorporates all remaining Epic 8 features
+- Sets foundation for Epic 5 (betting system)
 
 ## Key Technical Decisions Log
 

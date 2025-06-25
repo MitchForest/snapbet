@@ -19,8 +19,14 @@ export const BadgeDisplay: React.FC<BadgeDisplayProps> = ({
     return null;
   }
 
-  // Get badge objects
-  const badgeObjects = badges.map((id) => BADGES[id.toUpperCase()]).filter(Boolean);
+  // Get badge objects - handle both uppercase and lowercase IDs
+  const badgeObjects = badges
+    .map((id) => {
+      const upperKey = id.toUpperCase();
+      const lowerKey = id.toLowerCase();
+      return BADGES[upperKey] || BADGES[lowerKey];
+    })
+    .filter(Boolean);
 
   // Sort by priority
   const sortedBadges = badgeObjects.sort((a, b) => b.priority - a.priority);

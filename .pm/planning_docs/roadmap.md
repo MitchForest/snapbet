@@ -3,13 +3,13 @@
 ## Project Overview
 
 **Timeline**: 7 Days  
-**Phase 1**: Core MVP (Days 1-3)  
-**Phase 2**: AI Enhancement (Days 4-7)  
+**Phase 1**: Core MVP (Days 1-4)  
+**Phase 2**: AI Enhancement & Polish (Days 5-7)  
 **Platform**: Mobile-first (React Native/Expo)
 
 ---
 
-## Epic 1: Foundation & Infrastructure
+## Epic 1: Foundation & Infrastructure (COMPLETED)
 
 **Goal**: Set up the complete development environment and core architecture with ephemeral-first design
 
@@ -48,7 +48,7 @@
 
 ---
 
-## Epic 2: Authentication & User System
+## Epic 2: Authentication & User System (COMPLETED)
 
 **Goal**: Complete user authentication, profiles, and privacy controls
 
@@ -94,7 +94,7 @@
 
 ---
 
-## Epic 3: Camera & Content Creation
+## Epic 3: Camera & Content Creation (IN PROGRESS)
 
 **Goal**: Build camera-first content creation with emoji effects
 
@@ -134,11 +134,21 @@
   - Select destination (feed/story)
   - Set appropriate expiration
 
+- **Weekly Badge System**
+  - 🔥 Hot Right Now (3+ wins this week)
+  - 💰 Week's Profit King
+  - 🌊 Riding the Wave
+  - 🎯 This Week's Sharp (70%+)
+  - 🎪 Fade God
+  - ⚡ Most Active (10+ picks)
+  - 👻 Ghost (inactive 3+ days)
+  - 🏆 Sunday Sweep
+
 ---
 
 ## Epic 4: Feed & Social Engagement
 
-**Goal**: Create engaging social feed with ephemeral content
+**Goal**: Create complete social platform with feed, profiles, and discovery
 
 ### Core Features
 - **Feed Implementation**
@@ -147,27 +157,36 @@
   - Three content types display
   - Pull-to-refresh
   - Infinite scroll
+  - Real-time updates
 
-- **Post Features**
+- **Search & Discovery**
+  - User search functionality
+  - Hot bettors (this week)
+  - Trending picks (today)
+  - Fade material section
+  - Team-based discovery
+  - Your favorite teams content
+
+- **Following System**
+  - Follow/unfollow with optimistic updates
+  - Following/followers lists
+  - Mutual follow indicators
+  - Private accounts with follow requests
+  - Request notifications
+
+- **Social Engagement**
   - Emoji reactions (6 types)
   - Text comments (280 chars)
   - View counts
-  - Expiration timers
   - Share to story/DM
+  - Tail/fade UI (buttons only)
 
-- **Stories System**
-  - Horizontal story bar
+- **Story System**
   - Full-screen viewer
+  - Progress bars
   - Auto-advance
   - View tracking
-  - 24-hour expiration
-
-- **Content Expiration**
-  - Pick posts: Game end time
-  - Other posts: 24 hours
-  - Visual countdown indicators
-  - Auto-removal from feed
-  - Soft delete implementation
+  - Reply to story → DM
 
 - **Content Moderation**
   - Report posts/users
@@ -175,6 +194,19 @@
   - Block user functionality
   - Hide blocked users' content
   - Admin review queue
+
+- **Referral Rewards**
+  - $100 weekly bankroll bonus
+  - Deep link integration
+  - Share functionality
+  - Track referral success
+
+- **Performance Analytics**
+  - 7-day rolling stats
+  - Sport-specific breakdown
+  - Bet type analysis
+  - Time-based patterns
+  - Visual charts
 
 ---
 
@@ -217,50 +249,16 @@
   - Push notifications
   - Outcome post prompts
 
----
-
-## Epic 6: Tail/Fade & Social Betting
-
-**Goal**: Build viral betting mechanics with shared outcomes
-
-### Core Features
-- **Tail Mechanics**
+- **Tail/Fade Mechanics**
   - One-tap to copy bet
-  - Same stake amount
+  - Smart opposite calculation
   - Link to original pick
   - Real-time count updates
-  - Notification to poster
-
-- **Fade Mechanics**
-  - One-tap opposite bet
-  - Smart opposite calculation
-  - Link as fade
-  - Track fade performance
-  - Build "fade god" reputation
-
-- **Social Proof**
-  - Live tail/fade counts
-  - List of who tailed/faded
-  - Influence scoring
-  - Performance impact display
-
-- **Restrictions**
-  - Disable 5 min before game
-  - Cannot tail/fade own picks
-  - Cannot tail/fade twice
-  - Respect private accounts
-  - Bankroll requirements
-
-- **Pick Sharing**
-  - From bet confirmation
-  - "Share Pick" button
-  - Auto-create pick post
-  - Enable tail/fade buttons
-  - Track engagement
+  - Performance tracking
 
 ---
 
-## Epic 7: Messaging & Real-time
+## Epic 6: Messaging & Real-time
 
 **Goal**: Private ephemeral conversations with betting integration
 
@@ -302,192 +300,206 @@
 
 ---
 
-## Epic 8: Profiles & Discovery
+## Epic 7: Polish & Feature Completion
 
-**Goal**: User profiles, discovery, and weekly achievements
+**Goal**: Complete remaining features and polish for launch readiness
 
 ### Core Features
-- **User Profiles**
-  - Posts tab (ephemeral content)
-  - Bets/Picks tab (permanent record)
-  - Performance stats display
-  - Follow/unfollow
-  - Follow requests (private accounts)
+- **Push Notifications**
+  - FCM/APNs setup
+  - Notification categories
+  - Rich notifications
+  - Badge counts
+  - Sound preferences
 
-- **Weekly Badge System**
-  - 🔥 Hot Right Now (3+ wins this week)
-  - 💰 Week's Profit King
-  - 🌊 Riding the Wave
-  - 🎯 This Week's Sharp (70%+)
-  - 🎪 Fade God
-  - ⚡ Most Active (10+ picks)
-  - 👻 Ghost (inactive 3+ days)
-  - 🏆 Sunday Sweep
+- **Deep Linking**
+  - Universal links setup
+  - App links configuration
+  - Share to app flows
+  - OAuth callback handling
+  - Referral code links
 
-- **Discovery Features**
-  - User search
-  - Team-based discovery
-  - Trending picks (today)
-  - Hot bettors (this week)
-  - Fade material section
+- **Performance Optimization**
+  - Image compression
+  - Lazy loading
+  - Cache strategies
+  - Bundle optimization
+  - Memory management
 
-- **Performance Tracking**
-  - Rolling 7-day stats
-  - Sport-specific breakdown
-  - Bet type analysis
-  - Time-based patterns
-  - Visual charts
+- **Error Handling**
+  - Global error boundaries
+  - Network error states
+  - Retry mechanisms
+  - Offline mode
+  - Error tracking (Sentry)
 
-- **Profile Management**
-  - Edit display name/pic
-  - Privacy controls
-  - Block/unblock users
-  - Bankroll visibility
-  - Stats preferences
+- **Loading States**
+  - Skeleton screens
+  - Progressive loading
+  - Optimistic updates
+  - Smooth transitions
+  - Pull-to-refresh
+
+- **Edge Function Migration**
+  - Badge calculations
+  - Bet settlement
+  - Game updates
+  - Scheduled jobs
+  - Cron triggers
 
 ---
 
-## Epic 9: AI-Powered Discovery
+## Epic 8: AI-Powered Intelligence
 
-**Goal**: Smart friend recommendations and feed algorithm
+**Goal**: Add AI/RAG features for smart discovery and assistance
 
 ### Core Features
-- **Friend Recommendations**
+- **Friend Discovery ("Find Your Tribe")**
   - Analyze betting patterns
   - Match favorite teams
   - Similar risk profiles
   - Compatible bet types
-  - Active time alignment
+  - Daily recommendations
 
-- **"Find Your Tribe" Algorithm**
-  - Daily suggestions
-  - Show reasoning ("Bets 68% NBA unders like you")
-  - Compatibility scoring
-  - Success prediction
-  - Diverse recommendations
-
-- **Feed Algorithm** (Upgrade from following-only)
+- **Smart Feed Algorithm**
   - Mix following + recommended
   - Based on teams you bet
   - Betting style matching
   - Time-based relevance
   - Engagement optimization
 
-- **Discovery Surfaces**
-  - "Bettors Like You" section
-  - Post-bet recommendations
-  - Similar bettor alerts
-  - Tribe notifications
-  - Weekly summaries
+- **Intelligent Notifications**
+  - Learn user patterns
+  - Priority filtering
+  - Consensus alerts ("3 trusted friends bet Lakers")
+  - Time-based delivery
+  - Bundling similar notifications
 
-- **AI Content Moderation**
+- **AI Content Generation**
+  - Smart caption suggestions
+  - Betting insight generation
+  - Pattern recognition alerts
+  - Performance summaries
+  - Weekly recap generation
+
+- **Context-Aware Features**
+  - Best time to post suggestions
+  - What to share recommendations
+  - Betting opportunity alerts
+  - Risk management insights
+  - Trend identification
+
+- **AI Moderation**
   - Toxic content detection
   - Spam identification
-  - Harmful pattern recognition
+  - Pattern recognition
   - Priority flagging
-  - Automated actions
+  - Learning from decisions
 
 ---
 
-## Epic 10: Intelligent Notifications & Safety
+## Epic 9: Launch Preparation
 
-**Goal**: Smart notification system with enhanced safety features
+**Goal**: Final polish and deployment readiness
 
 ### Core Features
-- **Smart Notifications**
-  - Learn user patterns
-  - Priority filtering
-  - Consensus alerts ("3 people you trust bet Lakers")
-  - Time-based delivery
-  - Importance scoring
+- **App Store Preparation**
+  - App icons (all sizes)
+  - Screenshots
+  - App Store descriptions
+  - Privacy policy
+  - Terms of service
 
-- **Notification Types**
-  - Tail/fade alerts
-  - Win/loss results
-  - New followers
-  - Badge achievements
-  - Trending picks
+- **Play Store Preparation**
+  - Feature graphics
+  - Promotional materials
+  - Content rating
+  - Data safety form
+  - Target audience
 
-- **Intelligent Bundling**
-  - Group similar notifications
-  - Daily summaries
-  - Peak time delivery
-  - Quiet hour respect
-  - Context awareness
+- **Final UI Polish**
+  - Animation refinement
+  - Haptic feedback
+  - Sound effects
+  - Dark mode support
+  - Accessibility features
 
-- **AI Safety Features**
-  - Harassment detection
-  - Pattern recognition
-  - User behavior analysis
-  - Automated interventions
-  - Risk scoring
+- **Analytics Setup**
+  - Event tracking
+  - User flows
+  - Conversion funnels
+  - Performance metrics
+  - Crash reporting
 
-- **Advanced Moderation**
-  - AI-powered review queue
-  - Severity classification
-  - Context understanding
-  - False positive reduction
-  - Learning from decisions
+- **Launch Infrastructure**
+  - Production environment
+  - Monitoring setup
+  - Backup strategies
+  - Support system
+  - Update mechanism
 
 ---
 
 ## Implementation Timeline
 
-### Phase 1: Core MVP (Days 1-3)
-**Day 1**: Epics 1-2 (Foundation & Auth)  
-**Day 2**: Epics 3-4 (Camera & Feed)  
-**Day 3**: Epics 5-7 (Betting, Tail/Fade, Messaging)
+### Phase 1: Core MVP (Days 1-4)
+**Day 1**: Epic 1-2 (Foundation & Auth) ✅  
+**Day 2**: Epic 3 (Camera & Content) 🚧  
+**Day 3**: Epic 4 (Feed & Social)  
+**Day 4**: Epic 5 (Betting System)
 
-### Phase 2: AI Enhancement (Days 4-7)
-**Day 4**: Epic 8 (Profiles & Discovery)  
-**Day 5**: Epic 9 (AI Discovery)  
-**Day 6**: Epic 10 (Smart Notifications)  
-**Day 7**: Polish, Testing & Launch
+### Phase 2: Enhancement (Days 5-6)
+**Day 5**: Epic 6 (Messaging)  
+**Day 6**: Epic 7 (Polish & Features)
+
+### Phase 3: AI & Launch (Day 7)
+**Day 7 AM**: Epic 8 (AI Features)  
+**Day 7 PM**: Epic 9 (Launch Prep)
 
 ---
 
 ## Technical Milestones
 
-### Day 1 Complete
-- [ ] OAuth working
-- [ ] Users can onboard
-- [ ] Database ready
-- [ ] Jobs scheduled
+### Day 1 Complete ✅
+- [x] OAuth working
+- [x] Users can onboard
+- [x] Database ready
+- [x] Jobs scheduled
 
 ### Day 2 Complete  
 - [ ] Camera captures media
-- [ ] Feed displays posts
-- [ ] Stories working
-- [ ] Effects apply
+- [ ] Effects system working
+- [ ] Posts can be created
+- [ ] Stories functional
 
 ### Day 3 Complete
-- [ ] Bets can be placed
-- [ ] Tail/fade functional
-- [ ] Messages sending
-- [ ] MVP feature complete
+- [ ] Feed displays posts
+- [ ] Search/discovery works
+- [ ] Following system active
+- [ ] Social features complete
 
 ### Day 4 Complete
-- [ ] Profiles polished
-- [ ] Badges calculating
-- [ ] Discovery working
-- [ ] Search functional
+- [ ] Bets can be placed
+- [ ] Tail/fade functional
+- [ ] Bankroll system works
+- [ ] MVP feature complete
 
 ### Day 5 Complete
-- [ ] AI recommendations live
-- [ ] Feed algorithm active
-- [ ] Tribe finding works
-- [ ] Smart suggestions
+- [ ] Messages sending
+- [ ] Groups functional
+- [ ] Real-time working
+- [ ] Notifications active
 
 ### Day 6 Complete
-- [ ] Notifications intelligent
-- [ ] Safety features active
-- [ ] All AI integrated
 - [ ] Performance optimized
+- [ ] Errors handled
+- [ ] Edge functions migrated
+- [ ] Deep links working
 
 ### Day 7 Complete
-- [ ] App polished
-- [ ] Demo recorded
-- [ ] Deployed to TestFlight
+- [ ] AI features integrated
+- [ ] App store ready
+- [ ] Analytics tracking
 - [ ] Ready for launch
 
 ---

@@ -1,20 +1,26 @@
 import React from 'react';
-import { Slot } from 'expo-router';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { TamaguiProvider } from '@tamagui/core';
-import config from '@/theme';
+import { AuthProvider } from '@/components/auth/AuthProvider';
+import { ToastProvider } from '@/components/common/ToastProvider';
+import { config } from '@/theme';
 
 function RootLayoutNav() {
   console.log('RootLayoutNav rendering...');
-  return <Slot />;
+  return <Stack screenOptions={{ headerShown: false }} />;
 }
 
 export default function RootLayout() {
   console.log('RootLayout rendering...');
   return (
-    <TamaguiProvider config={config}>
-      <StatusBar style="dark" />
-      <RootLayoutNav />
-    </TamaguiProvider>
+    <AuthProvider>
+      <TamaguiProvider config={config}>
+        <ToastProvider>
+          <StatusBar style="dark" />
+          <RootLayoutNav />
+        </ToastProvider>
+      </TamaguiProvider>
+    </AuthProvider>
   );
 }

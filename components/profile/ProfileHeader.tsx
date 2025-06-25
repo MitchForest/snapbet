@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text } from '@tamagui/core';
 import { Pressable } from 'react-native';
 import { Avatar } from '@/components/common/Avatar';
-import { BadgeDisplay } from '@/components/common/BadgeDisplay';
+import { WeeklyBadgeGrid } from '@/components/badges/WeeklyBadgeGrid';
 
 interface ProfileUser {
   id: string;
@@ -78,6 +78,18 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     }
   }, [user?.id]);
 
+  // Load badges when viewing profile
+  React.useEffect(() => {
+    const loadBadges = async () => {
+      if (user?.id) {
+        const { updateUserBadges } = await import('@/services/badges/badgeService');
+        await updateUserBadges(user.id);
+      }
+    };
+
+    loadBadges();
+  }, [user?.id]);
+
   return (
     <View paddingHorizontal="$4" paddingVertical="$4" backgroundColor="$surface">
       {/* Profile Info Row */}
@@ -102,12 +114,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </Text>
       )}
 
-      {/* Badges */}
-      {badges.length > 0 && (
-        <View marginBottom="$3">
-          <BadgeDisplay badges={badges} size="large" showAll />
-        </View>
-      )}
+      {/* Weekly Badges */}
+      <View marginBottom="$3">
+        <WeeklyBadgeGrid badges={badges} />
+      </View>
 
       {/* Stats Row */}
       <View flexDirection="row" justifyContent="space-around" marginBottom="$3">

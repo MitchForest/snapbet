@@ -317,3 +317,5 @@ export const Colors = {
   white: '#FFFFFF',
   black: '#000000',
 } as const;
+
+export { OpacityColors } from './colors/opacity';

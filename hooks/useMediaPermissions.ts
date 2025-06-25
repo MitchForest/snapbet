@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import * as Camera from 'expo-camera';
+import { useCameraPermissions } from 'expo-camera';
 import * as MediaLibrary from 'expo-media-library';
 import { Alert, Linking, Platform } from 'react-native';
 
@@ -18,43 +18,25 @@ interface UseMediaPermissionsReturn {
 }
 
 export function useMediaPermissions(): UseMediaPermissionsReturn {
-  const [permissions, setPermissions] = useState<MediaPermissions>({
-    camera: null,
-    mediaLibrary: null,
-  });
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [mediaLibraryPermission, setMediaLibraryPermission] = useState<boolean | null>(null);
 
-  // Check permissions on mount
+  // Check media library permissions on mount
   useEffect(() => {
-    checkPermissions();
+    checkMediaLibraryPermission();
   }, []);
 
-  const checkPermissions = async () => {
-    const [cameraStatus, mediaLibraryStatus] = await Promise.all([
-      Camera.getCameraPermissionsAsync(),
-      MediaLibrary.getPermissionsAsync(),
-    ]);
-
-    setPermissions({
-      camera: cameraStatus.granted,
-      mediaLibrary: mediaLibraryStatus.granted,
-    });
+  const checkMediaLibraryPermission = async () => {
+    const { granted } = await MediaLibrary.getPermissionsAsync();
+    setMediaLibraryPermission(granted);
   };
 
-  const requestCameraPermission = async (): Promise<boolean> => {
-    const { status: existingStatus } = await Camera.getCameraPermissionsAsync();
-
-    if (existingStatus === 'granted') {
-      return true;
-    }
-
-    if (existingStatus === 'denied') {
+  const requestCamera = async (): Promise<boolean> => {
+    const result = await requestCameraPermission();
+    if (!result.granted && result.status === 'denied') {
       showPermissionDeniedAlert('Camera');
-      return false;
     }
-
-    const { granted } = await Camera.requestCameraPermissionsAsync();
-    setPermissions((prev) => ({ ...prev, camera: granted }));
-    return granted;
+    return result.granted;
   };
 
   const requestMediaLibraryPermission = async (): Promise<boolean> => {
@@ -70,13 +52,13 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
     }
 
     const { granted } = await MediaLibrary.requestPermissionsAsync();
-    setPermissions((prev) => ({ ...prev, mediaLibrary: granted }));
+    setMediaLibraryPermission(granted);
     return granted;
   };
 
   const requestAllPermissions = async (): Promise<boolean> => {
     const [camera, mediaLibrary] = await Promise.all([
-      requestCameraPermission(),
+      requestCamera(),
       requestMediaLibraryPermission(),
     ]);
 
@@ -102,12 +84,17 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
     }
   };
 
+  const permissions: MediaPermissions = {
+    camera: cameraPermission?.granted ?? null,
+    mediaLibrary: mediaLibraryPermission,
+  };
+
   const hasAllPermissions = permissions.camera === true && permissions.mediaLibrary === true;
 
   return {
     permissions,
     hasAllPermissions,
-    requestCameraPermission,
+    requestCameraPermission: requestCamera,
     requestMediaLibraryPermission,
     requestAllPermissions,
     openSettings,

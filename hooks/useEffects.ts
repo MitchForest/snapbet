@@ -1,17 +1,33 @@
 import { useState, useCallback, useMemo } from 'react';
 import { ALL_EFFECTS, getEffectById } from '@/components/effects/constants/allEffects';
 import { EmojiEffect, EffectCategory, EffectWithUnlockStatus } from '@/types/effects';
-import { hasRequiredBadge } from '@/utils/effects/badgeRequirements';
+import { useAuthStore } from '@/stores/authStore';
 
-export function useEffects(userBadges: string[]) {
+export function useEffects() {
   const [selectedEffectId, setSelectedEffectId] = useState<string | null>(null);
+  const weeklyBadgeCount = useAuthStore((state) => state.weeklyBadgeCount);
 
-  // Check if a specific effect is unlocked
+  // Check if a specific effect is unlocked based on badge count
   const isEffectUnlocked = useCallback(
     (effect: EmojiEffect): boolean => {
-      return hasRequiredBadge(effect, userBadges);
+      // Tier 0 effects are always unlocked
+      if (effect.tier === 0) {
+        return true;
+      }
+
+      // Tier 1 effects require at least 1 badge
+      if (effect.tier === 1) {
+        return weeklyBadgeCount >= 1;
+      }
+
+      // Tier 2 effects require at least 3 badges
+      if (effect.tier === 2) {
+        return weeklyBadgeCount >= 3;
+      }
+
+      return false;
     },
-    [userBadges]
+    [weeklyBadgeCount]
   );
 
   // Get all effects with their unlock status for a category
@@ -55,5 +71,6 @@ export function useEffects(userBadges: string[]) {
     isEffectUnlocked,
     getAvailableEffects,
     unlockedEffectCount,
+    weeklyBadgeCount,
   };
 }

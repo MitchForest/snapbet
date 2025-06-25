@@ -4,6 +4,7 @@ import { authService } from '@/services/auth/authService';
 import { OAuthProvider, CustomAuthError } from '@/services/auth/types';
 import { supabase } from '@/services/supabase/client';
 import { getPendingReferralCode, trackReferral } from '@/services/referral/referralService';
+import { getUserBadgeCount } from '@/services/badges/badgeService';
 
 interface AuthState {
   user: User | null;
@@ -12,6 +13,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isOnboarding: boolean;
   error: CustomAuthError | null;
+  weeklyBadgeCount: number;
 
   // Actions
   signIn: (provider: OAuthProvider) => Promise<void>;
@@ -31,6 +33,8 @@ interface AuthState {
     bio?: string;
   }) => Promise<{ error: Error | null }>;
   resetBankroll: () => Promise<{ error: Error | null }>;
+  setWeeklyBadgeCount: (count: number) => void;
+  refreshBadgeCount: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, _get) => ({
@@ -40,6 +44,7 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
   isAuthenticated: false,
   isOnboarding: false,
   error: null,
+  weeklyBadgeCount: 0,
 
   signIn: async (provider: OAuthProvider) => {
     set({ isLoading: true, error: null });
@@ -65,6 +70,10 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
           isLoading: false,
           error: null,
         });
+
+        // Load badge count after sign in
+        const badgeCount = await getUserBadgeCount(response.user.id);
+        set({ weeklyBadgeCount: badgeCount });
 
         // Process pending referral code if this is a new user
         setTimeout(async () => {
@@ -104,6 +113,7 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
         isAuthenticated: false,
         isLoading: false,
         error: null,
+        weeklyBadgeCount: 0,
       });
     } catch {
       set({
@@ -128,6 +138,12 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
           isAuthenticated: true,
           error: null,
         });
+
+        // Refresh badge count
+        if (refreshResponse.user) {
+          const badgeCount = await getUserBadgeCount(refreshResponse.user.id);
+          set({ weeklyBadgeCount: badgeCount });
+        }
       }
     } catch (error) {
       console.error('Failed to refresh session:', error);
@@ -153,6 +169,12 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
         isLoading: false,
         error: null,
       });
+
+      // Load badge count if user exists
+      if (user) {
+        const badgeCount = await getUserBadgeCount(user.id);
+        set({ weeklyBadgeCount: badgeCount });
+      }
     } catch (error) {
       console.error('checkSession error:', error);
       set({
@@ -161,6 +183,7 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
         isAuthenticated: false,
         isLoading: false,
         error: null, // Don't show error for initial check
+        weeklyBadgeCount: 0,
       });
     }
   },
@@ -174,9 +197,14 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
       error: null,
     });
 
-    // Process pending referral code if this is a new user
-    // Use setTimeout to avoid blocking the auth flow
+    // Load badge count when session is set
     if (session?.user) {
+      getUserBadgeCount(session.user.id).then((count) => {
+        set({ weeklyBadgeCount: count });
+      });
+
+      // Process pending referral code if this is a new user
+      // Use setTimeout to avoid blocking the auth flow
       setTimeout(async () => {
         try {
           const pendingCode = await getPendingReferralCode();
@@ -310,5 +338,21 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
     const { error } = await supabase.rpc('reset_bankroll', { p_user_id: userId });
 
     return { error };
+  },
+
+  setWeeklyBadgeCount: (count: number) => {
+    set({ weeklyBadgeCount: count });
+  },
+
+  refreshBadgeCount: async () => {
+    const userId = _get().user?.id;
+    if (!userId) return;
+
+    try {
+      const count = await getUserBadgeCount(userId);
+      set({ weeklyBadgeCount: count });
+    } catch (error) {
+      console.error('Error refreshing badge count:', error);
+    }
   },
 }));

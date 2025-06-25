@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { View, TouchableOpacity, StyleSheet, Text, Alert, ActivityIndicator } from 'react-native';
-import { Camera } from 'expo-camera';
+import { CameraView } from 'expo-camera';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useCamera, CapturedMedia } from '@/hooks/useCamera';
 import { CameraControls } from './CameraControls';
@@ -10,26 +10,26 @@ import ViewShot from 'react-native-view-shot';
 import { EmojiEffectsManager } from '../effects/EmojiEffectsManager';
 import { EffectSelector } from '../effects/EffectSelector';
 import { EffectPreviewManager } from '../effects/utils/effectPreview';
-import { useAuth } from '@/hooks/useAuth';
 import { getEffectById } from '../effects/constants/allEffects';
 import { useMediaPermissions } from '@/hooks/useMediaPermissions';
+import { OpacityColors } from '@/theme';
 
-interface CameraViewProps {
+interface CameraScreenProps {
   onCapture: (media: CapturedMedia) => void;
   onClose: () => void;
 }
 
-export function CameraView({ onCapture, onClose }: CameraViewProps) {
+export function CameraScreen({ onCapture, onClose }: CameraScreenProps) {
   const {
     cameraRef,
     facing,
-    flash,
+    enableTorch,
     mode,
     isRecording,
     capturePhoto,
     startRecording,
     stopRecording,
-    toggleFlash,
+    toggleTorch,
     capturedMedia,
     setMode,
     pickFromGallery,
@@ -40,8 +40,6 @@ export function CameraView({ onCapture, onClose }: CameraViewProps) {
   const viewShotRef = useRef<ViewShot>(null);
   const [selectedEffectId, setSelectedEffectId] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
-  const { user } = useAuth();
-  const userBadges = user?.user_metadata?.badges || [];
 
   // Get the selected effect
   const selectedEffect = selectedEffectId ? getEffectById(selectedEffectId) : null;
@@ -126,11 +124,11 @@ export function CameraView({ onCapture, onClose }: CameraViewProps) {
         style={StyleSheet.absoluteFillObject}
         options={{ format: 'jpg', quality: 0.9 }}
       >
-        <Camera
+        <CameraView
           ref={cameraRef}
           style={StyleSheet.absoluteFillObject}
-          type={facing}
-          flashMode={flash}
+          facing={facing}
+          enableTorch={enableTorch}
         />
 
         {/* Effect Overlay */}
@@ -149,13 +147,13 @@ export function CameraView({ onCapture, onClose }: CameraViewProps) {
       {/* Header Controls */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onClose} style={styles.headerButton}>
-          <MaterialIcons name="close" size={28} color="white" />
+          <MaterialIcons name="close" size={28} color={OpacityColors.white.full} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={toggleFlash} style={styles.headerButton}>
+        <TouchableOpacity onPress={toggleTorch} style={styles.headerButton}>
           <MaterialIcons
-            name={flash === 'off' ? 'flash-off' : flash === 'on' ? 'flash-on' : 'flash-auto'}
+            name={enableTorch ? 'flash-on' : 'flash-off'}
             size={28}
-            color="white"
+            color={OpacityColors.white.full}
           />
         </TouchableOpacity>
       </View>
@@ -170,16 +168,12 @@ export function CameraView({ onCapture, onClose }: CameraViewProps) {
       />
 
       {/* Effect Selector */}
-      <EffectSelector
-        onSelectEffect={setSelectedEffectId}
-        currentEffectId={selectedEffectId}
-        userBadges={userBadges}
-      />
+      <EffectSelector onSelectEffect={setSelectedEffectId} currentEffectId={selectedEffectId} />
 
       {/* Capturing Indicator */}
       {isCapturing && (
         <View style={styles.capturingOverlay}>
-          <ActivityIndicator size="large" color="white" />
+          <ActivityIndicator size="large" color={OpacityColors.white.full} />
         </View>
       )}
     </View>
@@ -189,7 +183,7 @@ export function CameraView({ onCapture, onClose }: CameraViewProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'black',
+    backgroundColor: OpacityColors.black,
   },
   header: {
     position: 'absolute',
@@ -205,7 +199,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: OpacityColors.overlay.light,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -214,13 +208,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   permissionButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: OpacityColors.primary.default,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
   },
   permissionButtonText: {
-    color: 'white',
+    color: OpacityColors.white.full,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -233,8 +227,8 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   previewText: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    color: 'white',
+    backgroundColor: OpacityColors.overlay.medium,
+    color: OpacityColors.white.full,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -243,7 +237,7 @@ const styles = StyleSheet.create({
   },
   capturingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: OpacityColors.overlay.lighter,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 30,

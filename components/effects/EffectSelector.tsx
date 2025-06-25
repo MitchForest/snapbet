@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { ScrollView, Pressable } from 'react-native';
+import { ScrollView, Pressable, StyleSheet } from 'react-native';
 import { Stack, Text, View } from '@tamagui/core';
 import * as Haptics from 'expo-haptics';
 import { useEffects } from '@/hooks/useEffects';
@@ -9,7 +9,6 @@ import { Colors } from '@/theme';
 interface EffectSelectorProps {
   onSelectEffect: (effectId: string | null) => void;
   currentEffectId: string | null;
-  userBadges: string[];
   onPreviewLocked?: (effect: EmojiEffect) => void;
 }
 
@@ -23,14 +22,26 @@ const CATEGORIES: { id: EffectCategory | 'all'; label: string; emoji: string }[]
   { id: 'BETTING', label: 'Bets', emoji: '💰' },
 ];
 
+const styles = StyleSheet.create({
+  categoryScroll: {
+    maxHeight: 50,
+  },
+  categoryContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  effectsContent: {
+    padding: 16,
+  },
+});
+
 export function EffectSelector({
   onSelectEffect,
   currentEffectId,
-  userBadges,
   onPreviewLocked,
 }: EffectSelectorProps) {
   const [selectedCategory, setSelectedCategory] = useState<EffectCategory | 'all'>('all');
-  const { getAvailableEffects, isEffectUnlocked } = useEffects(userBadges);
+  const { getAvailableEffects, isEffectUnlocked, weeklyBadgeCount } = useEffects();
 
   const effects = getAvailableEffects(selectedCategory);
 
@@ -64,12 +75,26 @@ export function EffectSelector({
       borderTopLeftRadius="$4"
       borderTopRightRadius="$4"
     >
+      {/* Badge Count Display */}
+      <View
+        paddingHorizontal="$4"
+        paddingVertical="$2"
+        borderBottomWidth={1}
+        borderBottomColor={Colors.border.light}
+      >
+        <Text fontSize="$2" color={Colors.text.secondary}>
+          {weeklyBadgeCount === 0
+            ? 'Unlock effects by earning weekly badges'
+            : `${weeklyBadgeCount} badge${weeklyBadgeCount === 1 ? '' : 's'} earned this week`}
+        </Text>
+      </View>
+
       {/* Category Filter */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={{ maxHeight: 50 }}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}
+        style={styles.categoryScroll}
+        contentContainerStyle={styles.categoryContent}
       >
         <Stack flexDirection="row" gap="$2">
           {CATEGORIES.map((category) => (
@@ -95,7 +120,10 @@ export function EffectSelector({
       </ScrollView>
 
       {/* Effects Grid */}
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.effectsContent}
+      >
         <Stack flexDirection="row" flexWrap="wrap" gap="$2">
           {effects.map((effect) => {
             const isSelected = effect.id === currentEffectId;

@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
-  Switch,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
@@ -19,24 +18,39 @@ import { compressPhoto, validateVideoSize } from '@/services/media/compression';
 import { formatFileSize } from '@/utils/media/helpers';
 import { getEffectById } from '@/components/effects/constants/allEffects';
 import { EmojiEffectsManager } from '@/components/effects/EmojiEffectsManager';
+import { PostType } from '@/types/content';
+import { OverlayContainer } from '@/components/overlays/OverlayContainer';
+import { CaptionInput } from '@/components/creation/CaptionInput';
+import { ShareDestination } from '@/components/creation/ShareDestination';
+import { ExpirationInfo } from '@/components/creation/ExpirationInfo';
 
 export interface ShareOptions {
   shareToFeed: boolean;
   shareToStory: boolean;
   mediaUri: string;
+  caption?: string;
 }
 
 interface MediaPreviewProps {
   media: CapturedMedia;
   onBack: () => void;
   onNext: (options: ShareOptions) => void;
+  postType?: PostType;
+  headerTitle?: string;
 }
 
-export function MediaPreview({ media, onBack, onNext }: MediaPreviewProps) {
+export function MediaPreview({
+  media,
+  onBack,
+  onNext,
+  postType = PostType.CONTENT,
+  headerTitle = 'Create Post',
+}: MediaPreviewProps) {
   const insets = useSafeAreaInsets();
   const [shareToFeed, setShareToFeed] = useState(true);
   const [shareToStory, setShareToStory] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [caption, setCaption] = useState('');
 
   // Get the selected effect if any
   const selectedEffect = useMemo(() => {
@@ -86,6 +100,7 @@ export function MediaPreview({ media, onBack, onNext }: MediaPreviewProps) {
         shareToFeed,
         shareToStory,
         mediaUri: finalUri,
+        caption: caption.trim(),
       });
     } catch (error) {
       console.error('Error processing media:', error);
@@ -108,6 +123,10 @@ export function MediaPreview({ media, onBack, onNext }: MediaPreviewProps) {
           </Text>
         </Pressable>
 
+        <Text color="white" fontSize="$5" fontWeight="600">
+          {headerTitle}
+        </Text>
+
         <Pressable
           onPress={handleNext}
           disabled={isProcessing}
@@ -124,22 +143,24 @@ export function MediaPreview({ media, onBack, onNext }: MediaPreviewProps) {
       </View>
 
       {/* Media Display */}
-      <View flex={1} backgroundColor="black" style={{ position: 'relative' }}>
-        {media.type === 'photo' ? (
-          <Image source={{ uri: media.uri }} style={styles.media} resizeMode="contain" />
-        ) : media.type === 'video' && player ? (
-          <VideoView
-            player={player}
-            style={styles.media}
-            nativeControls={true}
-            contentFit="contain"
-          />
-        ) : null}
+      <View flex={1} backgroundColor="black" position="relative">
+        <OverlayContainer postType={postType}>
+          {media.type === 'photo' ? (
+            <Image source={{ uri: media.uri }} style={styles.media} resizeMode="contain" />
+          ) : media.type === 'video' && player ? (
+            <VideoView
+              player={player}
+              style={styles.media}
+              nativeControls={true}
+              contentFit="contain"
+            />
+          ) : null}
 
-        {/* Effect Overlay */}
-        {selectedEffect && (
-          <EmojiEffectsManager effect={selectedEffect} isActive={true} performanceTier="medium" />
-        )}
+          {/* Effect Overlay */}
+          {selectedEffect && (
+            <EmojiEffectsManager effect={selectedEffect} isActive={true} performanceTier="medium" />
+          )}
+        </OverlayContainer>
       </View>
 
       {/* Bottom Options */}
@@ -154,53 +175,30 @@ export function MediaPreview({ media, onBack, onNext }: MediaPreviewProps) {
             </View>
           )}
 
-          {/* Caption Input - Placeholder for future */}
+          {/* Caption Input */}
           <View style={styles.captionContainer}>
-            <Text color={Colors.text.secondary} fontSize="$3">
-              Add a caption...
-            </Text>
+            <CaptionInput value={caption} onChange={setCaption} maxLength={280} />
           </View>
+
+          {/* Post Type Info for Pick/Outcome */}
+          {postType !== PostType.CONTENT && (
+            <View style={styles.postTypeInfo}>
+              <Text color={Colors.text.secondary} fontSize="$2">
+                This {postType} post will include bet details
+              </Text>
+            </View>
+          )}
 
           {/* Share Options */}
-          <View style={styles.shareSection}>
-            <Text color={Colors.text.primary} fontSize="$4" fontWeight="600" marginBottom="$3">
-              Share To:
-            </Text>
+          <ShareDestination
+            toFeed={shareToFeed}
+            toStory={shareToStory}
+            onFeedChange={setShareToFeed}
+            onStoryChange={setShareToStory}
+          />
 
-            <View style={styles.shareOption}>
-              <View flex={1}>
-                <Text color={Colors.text.primary} fontSize="$3" fontWeight="500">
-                  Feed
-                </Text>
-                <Text color={Colors.text.secondary} fontSize="$2">
-                  Share with your followers
-                </Text>
-              </View>
-              <Switch
-                value={shareToFeed}
-                onValueChange={setShareToFeed}
-                trackColor={{ false: Colors.gray[300], true: Colors.primary }}
-                thumbColor={Colors.white}
-              />
-            </View>
-
-            <View style={styles.shareOption}>
-              <View flex={1}>
-                <Text color={Colors.text.primary} fontSize="$3" fontWeight="500">
-                  Story
-                </Text>
-                <Text color={Colors.text.secondary} fontSize="$2">
-                  Disappears after 24 hours
-                </Text>
-              </View>
-              <Switch
-                value={shareToStory}
-                onValueChange={setShareToStory}
-                trackColor={{ false: Colors.gray[300], true: Colors.primary }}
-                thumbColor={Colors.white}
-              />
-            </View>
-          </View>
+          {/* Expiration Info */}
+          <ExpirationInfo postType={postType} />
         </ScrollView>
       </View>
 
@@ -264,14 +262,9 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border.light,
     marginBottom: 20,
   },
-  shareSection: {
-    marginBottom: 20,
-  },
-  shareOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
+  postTypeInfo: {
+    paddingVertical: 8,
+    marginBottom: 16,
   },
   processingOverlay: {
     ...StyleSheet.absoluteFillObject,

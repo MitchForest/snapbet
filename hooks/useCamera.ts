@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, CameraType, FlashMode } from 'expo-camera';
+import { CameraView } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 
@@ -14,15 +14,15 @@ export interface CapturedMedia {
 
 interface UseCameraReturn {
   // State
-  facing: CameraType;
-  flash: FlashMode;
+  facing: 'front' | 'back';
+  enableTorch: boolean;
   mode: 'photo' | 'video';
   isRecording: boolean;
   capturedMedia: CapturedMedia | null;
 
   // Actions
   toggleFacing: () => void;
-  toggleFlash: () => void;
+  toggleTorch: () => void;
   setMode: (mode: 'photo' | 'video') => void;
   capturePhoto: () => Promise<void>;
   startRecording: () => Promise<void>;
@@ -31,31 +31,26 @@ interface UseCameraReturn {
   setCapturedMedia: (media: CapturedMedia | null) => void;
 
   // Refs
-  cameraRef: React.RefObject<Camera | null>;
+  cameraRef: React.RefObject<CameraView | null>;
 }
 
 export function useCamera(): UseCameraReturn {
-  const [facing, setFacing] = useState<CameraType>(CameraType.back);
-  const [flash, setFlash] = useState<FlashMode>(FlashMode.off);
+  const [facing, setFacing] = useState<'front' | 'back'>('back');
+  const [enableTorch, setEnableTorch] = useState(false);
   const [mode, setMode] = useState<'photo' | 'video'>('photo');
   const [isRecording, setIsRecording] = useState(false);
   const [capturedMedia, setCapturedMedia] = useState<CapturedMedia | null>(null);
 
-  const cameraRef = useRef<Camera | null>(null);
+  const cameraRef = useRef<CameraView | null>(null);
   const recordingTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const toggleFacing = () => {
-    setFacing((current) => (current === CameraType.back ? CameraType.front : CameraType.back));
+    setFacing((current) => (current === 'back' ? 'front' : 'back'));
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  const toggleFlash = () => {
-    setFlash((current) => {
-      const modes: FlashMode[] = [FlashMode.off, FlashMode.on, FlashMode.auto];
-      const currentIndex = modes.indexOf(current);
-      const nextIndex = (currentIndex + 1) % modes.length;
-      return modes[nextIndex];
-    });
+  const toggleTorch = () => {
+    setEnableTorch((current) => !current);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
@@ -154,14 +149,14 @@ export function useCamera(): UseCameraReturn {
   return {
     // State
     facing,
-    flash,
+    enableTorch,
     mode,
     isRecording,
     capturedMedia,
 
     // Actions
     toggleFacing,
-    toggleFlash,
+    toggleTorch,
     setMode,
     capturePhoto,
     startRecording,

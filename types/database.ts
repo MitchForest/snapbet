@@ -63,3 +63,58 @@ export interface Notification {
   created_at: string | null;
   read_at: string | null;
 }
+
+// Comment table type
+export interface Comment {
+  id: string;
+  post_id: string;
+  user_id: string;
+  content: string;
+  created_at: string | null;
+  deleted_at: string | null;
+}
+
+// Reaction type
+export interface Reaction {
+  id: string;
+  post_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string | null;
+}
+
+// Tail/Fade action type
+export interface PostAction {
+  id: string;
+  post_id: string;
+  user_id: string;
+  action: 'tail' | 'fade';
+  created_at: string | null;
+}
+
+// Extended post type with new fields
+export interface PostExtended {
+  // Extends the generated Post type with new fields
+  post_type: 'content' | 'pick' | 'outcome';
+  effect_id: string | null;
+  comment_count: number;
+  settled_bet_id: string | null;
+  tail_count?: number;
+  fade_count?: number;
+  reaction_count?: number;
+}
+
+// Engagement summary type
+export interface EngagementSummary {
+  reactions: Array<{
+    emoji: string;
+    count: number;
+    users?: string[]; // User IDs who reacted
+  }>;
+  totalReactions: number;
+  totalComments: number;
+  totalTails: number;
+  totalFades: number;
+  userReaction?: string;
+  userAction?: 'tail' | 'fade';
+}

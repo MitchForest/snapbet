@@ -1,28 +1,85 @@
 import React from 'react';
-import { View, Text } from '@tamagui/core';
-import { ScrollView } from 'react-native';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
+import { useFeed } from '@/hooks/useFeed';
+import { PostCard } from '@/components/content/PostCard';
+import { PostWithType } from '@/types/content';
 import { StoriesBar } from '@/components/ui/StoriesBar';
+import { Colors } from '@/theme';
 
-const mockStories = [
-  { id: '1', username: 'Mike', hasUnwatched: true, isLive: true },
-  { id: '2', username: 'Sarah', hasUnwatched: true },
-  { id: '3', username: 'Dan', hasUnwatched: false },
-  { id: '4', username: 'Amy', hasUnwatched: true },
-  { id: '5', username: 'Jake', hasUnwatched: false },
-];
+export default function HomeScreen() {
+  const { posts, isLoading, refreshing, refetch } = useFeed();
 
-export default function FeedScreen() {
-  console.log('FeedScreen rendering...');
-  return (
-    <View flex={1} backgroundColor="#FAF9F5">
-      <View flex={1} justifyContent="center" alignItems="center" padding={20}>
-        <Text fontSize={24} color="#1F2937" fontWeight="600">
-          Feed Screen - Demo Mode
-        </Text>
-        <Text fontSize={16} color="#6B7280" marginTop={8}>
-          App is working! Navigation successful.
-        </Text>
+  const renderPost = ({ item }: { item: PostWithType }) => <PostCard post={item} />;
+
+  const renderHeader = () => <StoriesBar />;
+
+  const renderEmpty = () => {
+    if (isLoading) return null;
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>No posts yet</Text>
+        <Text style={styles.emptySubtext}>Follow people to see their posts</Text>
       </View>
+    );
+  };
+
+  const renderFooter = () => {
+    if (!isLoading || posts.length === 0) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color={Colors.primary} />
+      </View>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      <FlatList
+        data={posts}
+        renderItem={renderPost}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={renderEmpty}
+        ListFooterComponent={renderFooter}
+        onRefresh={refetch}
+        refreshing={refreshing}
+        onEndReached={refetch}
+        onEndReachedThreshold={0.5}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={posts.length === 0 ? styles.emptyList : undefined}
+      />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  emptyList: {
+    flexGrow: 1,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+    paddingTop: 100,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.text.primary,
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+  },
+  footerLoader: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+});
