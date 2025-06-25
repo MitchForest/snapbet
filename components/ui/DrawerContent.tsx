@@ -7,6 +7,7 @@ import { Avatar } from '@/components/common/Avatar';
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/services/supabase/client';
 import { useNotifications } from '@/hooks/useNotifications';
+import { followRequestService } from '@/services/social/followRequestService';
 
 interface MenuItemProps {
   icon: string;
@@ -57,6 +58,7 @@ export const DrawerContent: React.FC<DrawerContentComponentProps> = ({ navigatio
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
+  const [followRequestCount, setFollowRequestCount] = useState(0);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -83,15 +85,41 @@ export const DrawerContent: React.FC<DrawerContentComponentProps> = ({ navigatio
             .eq('follower_id', user.id),
         ]);
 
+        // Get follow request count
+        const requestCount = await followRequestService.getRequestCount(user.id);
+
         setUserStats(bankroll);
         setFollowerCount(followers || 0);
         setFollowingCount(following || 0);
+        setFollowRequestCount(requestCount);
       } catch (error) {
         console.error('Error fetching user data:', error);
       }
     };
 
     fetchUserData();
+
+    // Subscribe to follow request changes
+    const subscription = supabase
+      .channel('drawer_follow_requests')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'follow_requests',
+          filter: `requested_id=eq.${user.id}`,
+        },
+        async () => {
+          const count = await followRequestService.getRequestCount(user.id);
+          setFollowRequestCount(count);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [user?.id]);
 
   const handleResetBankroll = () => {
@@ -189,6 +217,15 @@ export const DrawerContent: React.FC<DrawerContentComponentProps> = ({ navigatio
               label={`Followers (${followerCount})`}
               onPress={() => {
                 navigation.navigate('followers');
+                navigation.closeDrawer();
+              }}
+            />
+            <MenuItem
+              icon="📨"
+              label="Follow Requests"
+              badge={followRequestCount}
+              onPress={() => {
+                navigation.navigate('follow-requests');
                 navigation.closeDrawer();
               }}
             />

@@ -1,55 +1,115 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getActiveStories } from '@/services/content/storyService';
+import { StoryWithType } from '@/types/content';
+import { supabase } from '@/services/supabase';
 import { useAuth } from './useAuth';
+import { getFollowingIds } from '@/services/api/followUser';
 
-export interface StoryForUI {
+interface StorySummary {
   id: string;
-  user: {
-    id: string;
-    username: string;
-    avatar_url?: string | null;
-  };
-  created_at: string;
+  username: string;
+  avatar?: string;
   hasUnwatched: boolean;
-  isOwn: boolean;
+  isLive?: boolean;
+  stories: StoryWithType[];
 }
 
 export function useStories() {
   const { user } = useAuth();
-  const [stories, setStories] = useState<StoryForUI[]>([]);
+  const [storySummaries, setStorySummaries] = useState<StorySummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   const fetchStories = useCallback(async () => {
+    if (!user?.id) {
+      setStorySummaries([]);
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const activeStories = await getActiveStories();
+      // Get following IDs
+      const followingIds = await getFollowingIds();
 
-      // Transform stories for UI consumption
-      const transformedStories: StoryForUI[] = activeStories.map((story) => ({
-        id: story.id,
-        user: {
-          id: story.user_id,
-          username: story.user?.username || 'Unknown',
-          avatar_url: story.user?.avatar_url,
-        },
-        created_at: story.created_at || new Date().toISOString(),
-        hasUnwatched: true, // For now, all stories are unwatched (Epic 4 will add view tracking)
-        isOwn: story.user_id === user?.id,
-      }));
+      // Include self
+      const userIds = [...followingIds, user.id];
 
-      // Sort to put user's own story first
-      transformedStories.sort((a, b) => {
-        if (a.isOwn) return -1;
-        if (b.isOwn) return 1;
-        return 0;
+      // Fetch active stories from followed users
+      const { data, error: fetchError } = await supabase
+        .from('stories')
+        .select(
+          `
+          *,
+          user:users!user_id (
+            id,
+            username,
+            avatar_url
+          )
+        `
+        )
+        .in('user_id', userIds)
+        .is('deleted_at', null)
+        .gte('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false });
+
+      if (fetchError) throw fetchError;
+
+      // Group stories by user
+      const storiesByUser = new Map<string, StoryWithType[]>();
+      const userMap = new Map<string, { username: string; avatar_url: string | null }>();
+
+      (data || []).forEach((story) => {
+        const userId = story.user_id;
+        if (!storiesByUser.has(userId)) {
+          storiesByUser.set(userId, []);
+          if (story.user) {
+            userMap.set(userId, {
+              username: story.user.username || 'unknown',
+              avatar_url: story.user.avatar_url,
+            });
+          }
+        }
+        storiesByUser.get(userId)!.push(story as StoryWithType);
       });
 
-      setStories(transformedStories);
+      // Check viewed stories
+      const viewedStoryIds = await getViewedStoryIds(user.id);
+
+      // Create summaries with self first
+      const summaries: StorySummary[] = [];
+
+      // Add self first if has stories
+      if (storiesByUser.has(user.id)) {
+        const userStories = storiesByUser.get(user.id)!;
+        const userData = userMap.get(user.id);
+        summaries.push({
+          id: user.id,
+          username: 'You',
+          avatar: userData?.avatar_url || undefined,
+          hasUnwatched: userStories.some((s) => !viewedStoryIds.has(s.id)),
+          stories: userStories,
+        });
+      }
+
+      // Add other users
+      storiesByUser.forEach((stories, userId) => {
+        if (userId !== user.id) {
+          const userData = userMap.get(userId);
+          summaries.push({
+            id: userId,
+            username: userData?.username || 'unknown',
+            avatar: userData?.avatar_url || undefined,
+            hasUnwatched: stories.some((s) => !viewedStoryIds.has(s.id)),
+            stories,
+          });
+        }
+      });
+
+      setStorySummaries(summaries);
       setError(null);
     } catch (err) {
       console.error('Error fetching stories:', err);
       setError(err as Error);
-      setStories([]);
+      setStorySummaries([]);
     } finally {
       setIsLoading(false);
     }
@@ -60,9 +120,21 @@ export function useStories() {
   }, [fetchStories]);
 
   return {
-    stories,
+    storySummaries,
     isLoading,
     error,
     refetch: fetchStories,
   };
+}
+
+// Helper function to get viewed story IDs
+async function getViewedStoryIds(userId: string): Promise<Set<string>> {
+  try {
+    const { data } = await supabase.from('story_views').select('story_id').eq('viewer_id', userId);
+
+    return new Set((data || []).map((view) => view.story_id));
+  } catch (error) {
+    console.error('Error fetching viewed stories:', error);
+    return new Set();
+  }
 }

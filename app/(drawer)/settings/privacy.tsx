@@ -1,39 +1,86 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text } from '@tamagui/core';
-import { ScrollView, Switch, Alert, StyleSheet } from 'react-native';
+import { ScrollView, Switch, StyleSheet, ActivityIndicator } from 'react-native';
 import { useAuthStore } from '@/stores/authStore';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Colors } from '@/theme';
+import { privacyService } from '@/services/privacy/privacyService';
+import { toastService } from '@/services/toastService';
 
 interface PrivacySettings {
-  public_profile: boolean;
+  is_private: boolean;
   show_bankroll: boolean;
-  show_win_rate: boolean;
+  show_stats: boolean;
   show_picks: boolean;
 }
 
 export default function PrivacySettingsScreen() {
   const user = useAuthStore((state) => state.user);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [settings, setSettings] = useState<PrivacySettings>({
-    public_profile: user?.user_metadata?.privacy_settings?.public_profile ?? true,
-    show_bankroll: user?.user_metadata?.privacy_settings?.show_bankroll ?? true,
-    show_win_rate: user?.user_metadata?.privacy_settings?.show_win_rate ?? true,
-    show_picks: user?.user_metadata?.privacy_settings?.show_picks ?? true,
+    is_private: false,
+    show_bankroll: true,
+    show_stats: true,
+    show_picks: true,
   });
 
+  useEffect(() => {
+    const loadSettings = async () => {
+      if (!user?.id) return;
+
+      try {
+        const privacySettings = await privacyService.getPrivacySettings(user.id);
+        setSettings(privacySettings);
+      } catch (error) {
+        console.error('Error loading privacy settings:', error);
+        toastService.show({
+          message: 'Failed to load privacy settings',
+          type: 'error',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, [user?.id]);
+
   const handleToggle = async (key: keyof PrivacySettings) => {
+    if (!user?.id || isSaving) return;
+
     const newSettings = { ...settings, [key]: !settings[key] };
     setSettings(newSettings);
+    setIsSaving(true);
 
     try {
-      // For now, just save locally - in a real app, this would be saved to the database
-      // TODO: Create a proper API endpoint for updating privacy settings
-      console.log('Privacy settings updated:', newSettings);
+      const result = await privacyService.updatePrivacySettings(user.id, {
+        [key]: newSettings[key],
+      });
+
+      if (!result.success) {
+        // Revert on error
+        setSettings(settings);
+        toastService.show({
+          message: result.error || 'Failed to update privacy settings',
+          type: 'error',
+        });
+      } else {
+        toastService.show({
+          message: 'Privacy settings updated',
+          type: 'success',
+        });
+      }
     } catch {
       // Revert on error
       setSettings(settings);
-      Alert.alert('Error', 'An unexpected error occurred');
+      toastService.show({
+        message: 'An unexpected error occurred',
+        type: 'error',
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -62,9 +109,21 @@ export default function PrivacySettingsScreen() {
         onValueChange={() => handleToggle(settingKey)}
         trackColor={{ false: Colors.border.default, true: Colors.primary }}
         thumbColor={Colors.white}
+        disabled={isSaving}
       />
     </View>
   );
+
+  if (isLoading) {
+    return (
+      <View flex={1} backgroundColor={Colors.background}>
+        <ScreenHeader title="Privacy Settings" />
+        <View flex={1} alignItems="center" justifyContent="center">
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View flex={1} backgroundColor={Colors.background}>
@@ -77,9 +136,9 @@ export default function PrivacySettingsScreen() {
           </Text>
 
           <SettingRow
-            label="Public Profile"
-            description="Allow anyone to view your profile"
-            settingKey="public_profile"
+            label="Private Account"
+            description="Only approved followers can see your content"
+            settingKey="is_private"
           />
 
           <Text fontSize={12} color="$textSecondary" marginTop="$6" marginBottom="$3">
@@ -94,8 +153,8 @@ export default function PrivacySettingsScreen() {
 
           <SettingRow
             label="Show Win Rate"
-            description="Display your win percentage"
-            settingKey="show_win_rate"
+            description="Display your win percentage and record"
+            settingKey="show_stats"
           />
 
           <SettingRow
@@ -103,6 +162,15 @@ export default function PrivacySettingsScreen() {
             description="Allow others to see your past picks"
             settingKey="show_picks"
           />
+
+          {settings.is_private && (
+            <View marginTop="$4" padding="$3" backgroundColor="$surfaceAlt" borderRadius="$2">
+              <Text fontSize={14} color="$textSecondary">
+                <Text fontWeight="600">Note:</Text> Making your account private will not affect
+                existing followers. They will continue to see your content.
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </View>

@@ -1,15 +1,42 @@
-import React from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text } from '@tamagui/core';
-import { FlatList, ActivityIndicator } from 'react-native';
+import { FlatList, ActivityIndicator, TextInput } from 'react-native';
 import { UserListItem } from '@/components/common/UserListItem';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useUserList } from '@/hooks/useUserList';
 import { Colors } from '@/theme';
 
-export default function FollowersScreen() {
-  const { users: followers, loading: isLoading } = useUserList({ type: 'followers' });
+const SEARCH_TRIGGER = 20;
 
-  if (isLoading) {
+export default function FollowersScreen() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+
+  const {
+    filteredUsers: followers,
+    loading: isLoading,
+    mutualFollows,
+    totalCount,
+    refetch,
+  } = useUserList({ type: 'followers', searchQuery: debouncedQuery });
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const handleRemoveFollower = useCallback(() => {
+    // Refetch the list after removing a follower
+    refetch();
+  }, [refetch]);
+
+  const showSearch = totalCount > SEARCH_TRIGGER;
+
+  if (isLoading && !searchQuery) {
     return (
       <View flex={1} backgroundColor={Colors.background}>
         <ScreenHeader title="Followers" />
@@ -24,14 +51,44 @@ export default function FollowersScreen() {
     <View flex={1} backgroundColor={Colors.background}>
       <ScreenHeader title="Followers" />
 
+      {showSearch && (
+        <View paddingHorizontal="$4" paddingVertical="$3" backgroundColor="$surface">
+          <View
+            backgroundColor="$background"
+            borderRadius="$2"
+            paddingHorizontal="$3"
+            paddingVertical="$2"
+          >
+            <TextInput
+              placeholder="Search followers..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              style={{
+                fontSize: 14,
+                color: Colors.text.primary,
+                padding: 0,
+              }}
+              placeholderTextColor={Colors.gray[500]}
+            />
+          </View>
+        </View>
+      )}
+
       <FlatList
         data={followers}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <UserListItem user={item} onPress={() => {}} />}
+        renderItem={({ item }) => (
+          <UserListItem
+            user={item}
+            isMutual={mutualFollows.get(item.id) || false}
+            showRemoveFollower={true}
+            onRemoved={handleRemoveFollower}
+          />
+        )}
         ListEmptyComponent={
           <View flex={1} justifyContent="center" alignItems="center" paddingVertical="$8">
             <Text fontSize={16} color="$textSecondary">
-              No followers yet
+              {searchQuery ? 'No followers found' : 'No followers yet'}
             </Text>
           </View>
         }

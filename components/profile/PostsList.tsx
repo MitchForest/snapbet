@@ -8,16 +8,21 @@ import { Colors } from '@/theme';
 
 interface PostsListProps {
   userId?: string;
+  canView?: boolean;
 }
 
-export const PostsList: React.FC<PostsListProps> = ({ userId }) => {
+export const PostsList: React.FC<PostsListProps> = ({ userId, canView = true }) => {
   const [posts, setPosts] = useState<PostWithType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadPosts();
-  }, [userId]);
+    if (canView) {
+      loadPosts();
+    } else {
+      setLoading(false);
+    }
+  }, [userId, canView]);
 
   const loadPosts = async () => {
     try {
@@ -33,6 +38,16 @@ export const PostsList: React.FC<PostsListProps> = ({ userId }) => {
       setLoading(false);
     }
   };
+
+  if (!canView) {
+    return (
+      <View flex={1} padding="$4" alignItems="center" justifyContent="center" minHeight={200}>
+        <Text fontSize={16} color="$textSecondary" textAlign="center">
+          This account&apos;s posts are private
+        </Text>
+      </View>
+    );
+  }
 
   if (loading) {
     return (

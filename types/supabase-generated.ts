@@ -294,6 +294,48 @@ export type Database = {
           },
         ];
       };
+      follow_requests: {
+        Row: {
+          created_at: string | null;
+          id: string;
+          requested_id: string | null;
+          requester_id: string | null;
+          status: Database['public']['Enums']['follow_request_status'] | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: string;
+          requested_id?: string | null;
+          requester_id?: string | null;
+          status?: Database['public']['Enums']['follow_request_status'] | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: string;
+          requested_id?: string | null;
+          requester_id?: string | null;
+          status?: Database['public']['Enums']['follow_request_status'] | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'follow_requests_requested_id_fkey';
+            columns: ['requested_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'follow_requests_requester_id_fkey';
+            columns: ['requester_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       follows: {
         Row: {
           created_at: string | null;
@@ -896,12 +938,16 @@ export type Database = {
           favorite_team: string | null;
           id: string;
           is_mock: boolean | null;
+          is_private: boolean | null;
           mock_behavior_seed: number | null;
           mock_personality_id: string | null;
           notification_settings: Json | null;
           oauth_id: string;
           oauth_provider: Database['public']['Enums']['oauth_provider'];
           privacy_settings: Json | null;
+          show_bankroll: boolean | null;
+          show_picks: boolean | null;
+          show_stats: boolean | null;
           updated_at: string | null;
           username: string | null;
         };
@@ -915,12 +961,16 @@ export type Database = {
           favorite_team?: string | null;
           id?: string;
           is_mock?: boolean | null;
+          is_private?: boolean | null;
           mock_behavior_seed?: number | null;
           mock_personality_id?: string | null;
           notification_settings?: Json | null;
           oauth_id: string;
           oauth_provider: Database['public']['Enums']['oauth_provider'];
           privacy_settings?: Json | null;
+          show_bankroll?: boolean | null;
+          show_picks?: boolean | null;
+          show_stats?: boolean | null;
           updated_at?: string | null;
           username?: string | null;
         };
@@ -934,12 +984,16 @@ export type Database = {
           favorite_team?: string | null;
           id?: string;
           is_mock?: boolean | null;
+          is_private?: boolean | null;
           mock_behavior_seed?: number | null;
           mock_personality_id?: string | null;
           notification_settings?: Json | null;
           oauth_id?: string;
           oauth_provider?: Database['public']['Enums']['oauth_provider'];
           privacy_settings?: Json | null;
+          show_bankroll?: boolean | null;
+          show_picks?: boolean | null;
+          show_stats?: boolean | null;
           updated_at?: string | null;
           username?: string | null;
         };
@@ -1112,6 +1166,7 @@ export type Database = {
       bet_type: 'spread' | 'total' | 'moneyline';
       chat_role: 'admin' | 'member';
       chat_type: 'dm' | 'group';
+      follow_request_status: 'pending' | 'accepted' | 'rejected' | 'expired';
       game_status: 'scheduled' | 'live' | 'completed' | 'cancelled';
       media_type: 'photo' | 'video';
       oauth_provider: 'google' | 'twitter';
@@ -1232,6 +1287,7 @@ export const Constants = {
       bet_type: ['spread', 'total', 'moneyline'],
       chat_role: ['admin', 'member'],
       chat_type: ['dm', 'group'],
+      follow_request_status: ['pending', 'accepted', 'rejected', 'expired'],
       game_status: ['scheduled', 'live', 'completed', 'cancelled'],
       media_type: ['photo', 'video'],
       oauth_provider: ['google', 'twitter'],

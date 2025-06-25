@@ -1,27 +1,40 @@
 import React from 'react';
 import { View, Text } from '@tamagui/core';
-import { ScrollView, Pressable } from 'react-native';
+import { ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { Avatar } from '@/components/common/Avatar';
+import { useStories } from '@/hooks/useStories';
+import { useRouter } from 'expo-router';
+import { Colors } from '@/theme';
 
-interface Story {
-  id: string;
-  username: string;
-  avatar?: string;
-  hasUnwatched: boolean;
-  isLive?: boolean;
-}
+export const StoriesBar: React.FC = () => {
+  const { storySummaries, isLoading } = useStories();
+  const router = useRouter();
 
-interface StoriesBarProps {
-  stories?: Story[];
-  onStoryPress?: (story: Story) => void;
-  onAddStoryPress?: () => void;
-}
+  const handleAddStoryPress = () => {
+    router.push('/camera');
+  };
 
-export const StoriesBar: React.FC<StoriesBarProps> = ({
-  stories = [],
-  onStoryPress,
-  onAddStoryPress,
-}) => {
+  const handleStoryPress = (userId: string) => {
+    // TODO: Navigate to story viewer in Sprint 04.06
+    console.log('Story pressed:', userId);
+  };
+
+  if (isLoading) {
+    return (
+      <View
+        backgroundColor="$surface"
+        paddingVertical="$3"
+        borderBottomWidth={1}
+        borderBottomColor="$divider"
+        height={110}
+        justifyContent="center"
+        alignItems="center"
+      >
+        <ActivityIndicator size="small" color={Colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <View
       backgroundColor="$surface"
@@ -32,7 +45,7 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View flexDirection="row" paddingHorizontal="$4">
           {/* Your Story */}
-          <Pressable onPress={onAddStoryPress}>
+          <Pressable onPress={handleAddStoryPress}>
             <View alignItems="center" marginRight="$3">
               <View position="relative">
                 <Avatar size={64} />
@@ -61,8 +74,8 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({
           </Pressable>
 
           {/* Other Stories */}
-          {stories.map((story) => (
-            <Pressable key={story.id} onPress={() => onStoryPress?.(story)}>
+          {storySummaries.map((story) => (
+            <Pressable key={story.id} onPress={() => handleStoryPress(story.id)}>
               <View alignItems="center" marginRight="$3">
                 <View
                   padding={story.hasUnwatched ? 2 : 0}
@@ -70,7 +83,11 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({
                   borderWidth={story.hasUnwatched ? 3 : 0}
                   borderColor={story.isLive ? '$error' : '$primary'}
                 >
-                  <Avatar size={64} src={story.avatar} />
+                  <Avatar
+                    size={64}
+                    src={story.avatar}
+                    fallback={story.username[0]?.toUpperCase()}
+                  />
                   {story.isLive && (
                     <View
                       position="absolute"

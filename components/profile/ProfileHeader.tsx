@@ -3,6 +3,8 @@ import { View, Text } from '@tamagui/core';
 import { Pressable } from 'react-native';
 import { Avatar } from '@/components/common/Avatar';
 import { WeeklyBadgeGrid } from '@/components/badges/WeeklyBadgeGrid';
+import { followService } from '@/services/social/followService';
+import { FollowRequestButton } from './FollowRequestButton';
 
 interface ProfileUser {
   id: string;
@@ -21,12 +23,21 @@ interface ProfileStats {
   total_won: number;
 }
 
+interface PrivacySettings {
+  is_private: boolean;
+  show_bankroll: boolean;
+  show_stats: boolean;
+  show_picks: boolean;
+}
+
 interface ProfileHeaderProps {
   user: ProfileUser;
   stats: ProfileStats | null;
   badges: string[];
   isOwnProfile: boolean;
   isFollowing?: boolean;
+  isPrivate?: boolean;
+  privacySettings?: PrivacySettings | null;
   onFollow?: () => void;
   onEditProfile?: () => void;
 }
@@ -36,7 +47,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   stats,
   badges,
   isOwnProfile,
-  isFollowing,
+  isFollowing: _isFollowing,
+  isPrivate = false,
+  privacySettings,
   onFollow,
   onEditProfile,
 }) => {
@@ -50,31 +63,29 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       ? (((stats.total_won - stats.total_wagered) / stats.total_wagered) * 100).toFixed(1)
       : '0.0';
 
-  // Get follower/following counts
+  // Get follower/following counts with real-time updates
   const [followerCount, setFollowerCount] = React.useState(0);
   const [followingCount, setFollowingCount] = React.useState(0);
 
   React.useEffect(() => {
     const fetchCounts = async () => {
-      const { supabase } = await import('@/services/supabase/client');
-
-      const [{ count: followers }, { count: following }] = await Promise.all([
-        supabase
-          .from('follows')
-          .select('*', { count: 'exact', head: true })
-          .eq('following_id', user.id),
-        supabase
-          .from('follows')
-          .select('*', { count: 'exact', head: true })
-          .eq('follower_id', user.id),
-      ]);
-
-      setFollowerCount(followers || 0);
-      setFollowingCount(following || 0);
+      const counts = await followService.getFollowCounts(user.id);
+      setFollowerCount(counts.followers);
+      setFollowingCount(counts.following);
     };
 
     if (user?.id) {
       fetchCounts();
+
+      // Subscribe to real-time count updates
+      const unsubscribe = followService.subscribeToUserFollows(user.id, {
+        onCountChange: (counts) => {
+          setFollowerCount(counts.followers);
+          setFollowingCount(counts.following);
+        },
+      });
+
+      return unsubscribe;
     }
   }, [user?.id]);
 
@@ -90,15 +101,33 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     loadBadges();
   }, [user?.id]);
 
+  // Determine what stats to show based on privacy settings
+  const showBankroll = isOwnProfile || !privacySettings || privacySettings.show_bankroll;
+  const showStats = isOwnProfile || !privacySettings || privacySettings.show_stats;
+
   return (
     <View paddingHorizontal="$4" paddingVertical="$4" backgroundColor="$surface">
       {/* Profile Info Row */}
       <View flexDirection="row" alignItems="center" marginBottom="$3">
         <Avatar size={80} src={user.avatar_url || undefined} />
         <View flex={1} marginLeft="$3">
-          <Text fontSize={24} fontWeight="600" color="$textPrimary">
-            @{user.username}
-          </Text>
+          <View flexDirection="row" alignItems="center" gap="$2">
+            <Text fontSize={24} fontWeight="600" color="$textPrimary">
+              @{user.username}
+            </Text>
+            {isPrivate && (
+              <View
+                backgroundColor="$surfaceAlt"
+                paddingHorizontal="$2"
+                paddingVertical="$0.5"
+                borderRadius="$1"
+              >
+                <Text fontSize={12} color="$textSecondary">
+                  🔒 Private
+                </Text>
+              </View>
+            )}
+          </View>
           {user.display_name && (
             <Text fontSize={16} color="$textSecondary" marginTop="$1">
               {user.display_name}
@@ -114,97 +143,106 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </Text>
       )}
 
-      {/* Weekly Badges */}
-      <View marginBottom="$3">
-        <WeeklyBadgeGrid badges={badges} />
-      </View>
+      {/* Weekly Badges - only show if we have stats access */}
+      {showStats && badges.length > 0 && (
+        <View marginBottom="$3">
+          <WeeklyBadgeGrid badges={badges} />
+        </View>
+      )}
 
-      {/* Stats Row */}
+      {/* Stats Row - only show if we have stats access */}
+      {showStats && stats && (
+        <View flexDirection="row" justifyContent="space-around" marginBottom="$3">
+          <View alignItems="center">
+            <Text fontSize={20} fontWeight="600" color="$textPrimary">
+              {stats.win_count + stats.loss_count}
+            </Text>
+            <Text fontSize={12} color="$textSecondary">
+              Bets
+            </Text>
+          </View>
+          <View alignItems="center">
+            <Text fontSize={20} fontWeight="600" color="$textPrimary">
+              {winRate}%
+            </Text>
+            <Text fontSize={12} color="$textSecondary">
+              Win Rate
+            </Text>
+          </View>
+          {showBankroll && (
+            <>
+              <View alignItems="center">
+                <Text fontSize={20} fontWeight="600" color="$textPrimary">
+                  ${profit}
+                </Text>
+                <Text fontSize={12} color="$textSecondary">
+                  Profit
+                </Text>
+              </View>
+              <View alignItems="center">
+                <Text fontSize={20} fontWeight="600" color="$textPrimary">
+                  {roi}%
+                </Text>
+                <Text fontSize={12} color="$textSecondary">
+                  ROI
+                </Text>
+              </View>
+            </>
+          )}
+        </View>
+      )}
+
+      {/* Follow Stats Row */}
       <View flexDirection="row" justifyContent="space-around" marginBottom="$3">
-        <View alignItems="center">
-          <Text fontSize={20} fontWeight="600" color="$textPrimary">
-            {stats ? `${stats.win_count}-${stats.loss_count}` : '0-0'}
-          </Text>
-          <Text fontSize={12} color="$textSecondary">
-            Record
-          </Text>
-        </View>
-        <View alignItems="center">
-          <Text fontSize={20} fontWeight="600" color="$textPrimary">
-            {winRate}%
-          </Text>
-          <Text fontSize={12} color="$textSecondary">
-            Win Rate
-          </Text>
-        </View>
-        <View alignItems="center">
-          <Text fontSize={20} fontWeight="600" color={profit.startsWith('-') ? '$loss' : '$win'}>
-            ${profit}
-          </Text>
-          <Text fontSize={12} color="$textSecondary">
-            Profit
-          </Text>
-        </View>
-        <View alignItems="center">
-          <Text fontSize={20} fontWeight="600" color={roi.startsWith('-') ? '$loss' : '$win'}>
-            {roi}%
-          </Text>
-          <Text fontSize={12} color="$textSecondary">
-            ROI
-          </Text>
-        </View>
-      </View>
-
-      {/* Following/Followers Row */}
-      <View flexDirection="row" justifyContent="center" gap="$4" marginBottom="$3">
         <Pressable>
-          <Text fontSize={14} color="$textPrimary">
-            <Text fontWeight="600">{followingCount}</Text> Following
-          </Text>
+          <View alignItems="center">
+            <Text fontSize={18} fontWeight="600" color="$textPrimary">
+              {followerCount}
+            </Text>
+            <Text fontSize={12} color="$textSecondary">
+              Followers
+            </Text>
+          </View>
         </Pressable>
         <Pressable>
-          <Text fontSize={14} color="$textPrimary">
-            <Text fontWeight="600">{followerCount}</Text> Followers
-          </Text>
+          <View alignItems="center">
+            <Text fontSize={18} fontWeight="600" color="$textPrimary">
+              {followingCount}
+            </Text>
+            <Text fontSize={12} color="$textSecondary">
+              Following
+            </Text>
+          </View>
         </Pressable>
       </View>
 
-      {/* Action Button */}
-      {isOwnProfile ? (
-        <Pressable onPress={onEditProfile}>
-          <View
-            backgroundColor="$surface"
-            borderWidth={1}
-            borderColor="$divider"
-            borderRadius="$2"
-            paddingVertical="$2"
-            alignItems="center"
+      {/* Action Buttons */}
+      <View flexDirection="row" gap="$2">
+        {isOwnProfile ? (
+          <Pressable
+            onPress={onEditProfile}
+            style={{
+              flex: 1,
+              backgroundColor: '$surfaceAlt',
+              paddingVertical: 8,
+              borderRadius: 8,
+              alignItems: 'center',
+            }}
           >
-            <Text fontSize={16} fontWeight="600" color="$textPrimary">
+            <Text fontSize={14} fontWeight="600" color="$textPrimary">
               Edit Profile
             </Text>
+          </Pressable>
+        ) : (
+          <View flex={1}>
+            <FollowRequestButton
+              targetUserId={user.id}
+              isPrivate={isPrivate}
+              onFollowChange={onFollow}
+            />
           </View>
-        </Pressable>
-      ) : (
-        <Pressable onPress={onFollow}>
-          <View
-            backgroundColor={isFollowing ? '$surface' : '$primary'}
-            borderWidth={isFollowing ? 1 : 0}
-            borderColor="$divider"
-            borderRadius="$2"
-            paddingVertical="$2"
-            alignItems="center"
-          >
-            <Text
-              fontSize={16}
-              fontWeight="600"
-              color={isFollowing ? '$textPrimary' : '$textInverse'}
-            >
-              {isFollowing ? 'Following' : 'Follow'}
-            </Text>
-          </View>
-        </Pressable>
-      )}
+        )}
+      </View>
     </View>
   );
 };

@@ -12,6 +12,25 @@
 **User Story Contribution**: 
 - Enables [specific feature] for Story X: [Story name]
 
+## 🚨 Required Development Practices
+
+### Database Management
+- **Use Supabase MCP** to inspect current database state: `mcp_supabase_get_schemas`, `mcp_supabase_get_tables`, etc.
+- **Keep types synchronized**: Run type generation after ANY schema changes
+- **Migration files required**: Every database change needs a migration file
+- **Test migrations**: Ensure migrations run cleanly on fresh database
+
+### UI/UX Consistency
+- **Use Tamagui components**: `View`, `Text`, `XStack`, `YStack`, `Stack`
+- **Follow UI/UX rules**: See `.pm/process/ui-ux-consistency-rules.md`
+- **Use Colors constant**: Import from `@/theme` - NEVER hardcode colors
+- **Standard spacing**: Use Tamagui's `$1`, `$2`, `$3`, etc. tokens
+
+### Code Quality
+- **Zero tolerance**: No lint errors, no TypeScript errors
+- **Type safety**: No `any` types without explicit justification
+- **Run before handoff**: `bun run lint && bun run typecheck`
+
 ## Sprint Plan
 
 ### Objectives

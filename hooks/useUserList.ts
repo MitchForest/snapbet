@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/services/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
+import { useMutualFollows } from '@/hooks/useMutualFollows';
 
 interface User {
   id: string;
@@ -8,24 +9,49 @@ interface User {
   avatar_url?: string;
   favorite_team?: string;
   display_name?: string;
+  bio?: string;
 }
 
 interface UseUserListOptions {
   type: 'followers' | 'following';
+  searchQuery?: string;
 }
 
 interface UseUserListReturn {
   users: User[];
+  filteredUsers: User[];
   loading: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
+  mutualFollows: Map<string, boolean>;
+  totalCount: number;
 }
 
-export function useUserList({ type }: UseUserListOptions): UseUserListReturn {
+const INITIAL_LOAD = 50;
+
+export function useUserList({ type, searchQuery = '' }: UseUserListOptions): UseUserListReturn {
   const user = useAuthStore((state) => state.user);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
+
+  // Get mutual follow status for all users
+  const userIds = useMemo(() => users.map((u) => u.id), [users]);
+  const { mutualFollows } = useMutualFollows(userIds);
+
+  // Filter users based on search query
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery.trim()) return users;
+
+    const query = searchQuery.toLowerCase();
+    return users.filter((user) => {
+      return (
+        user.username.toLowerCase().includes(query) ||
+        user.display_name?.toLowerCase().includes(query)
+      );
+    });
+  }, [users, searchQuery]);
 
   const fetchUsers = async () => {
     if (!user) {
@@ -37,6 +63,22 @@ export function useUserList({ type }: UseUserListOptions): UseUserListReturn {
     setError(null);
 
     try {
+      // First get total count
+      const countQuery =
+        type === 'followers'
+          ? supabase
+              .from('follows')
+              .select('*', { count: 'exact', head: true })
+              .eq('following_id', user.id)
+          : supabase
+              .from('follows')
+              .select('*', { count: 'exact', head: true })
+              .eq('follower_id', user.id);
+
+      const { count } = await countQuery;
+      setTotalCount(count || 0);
+
+      // Then fetch users with limit
       let query;
 
       if (type === 'followers') {
@@ -49,11 +91,14 @@ export function useUserList({ type }: UseUserListOptions): UseUserListReturn {
               username,
               avatar_url,
               favorite_team,
-              display_name
+              display_name,
+              bio
             )
           `
           )
-          .eq('following_id', user.id);
+          .eq('following_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(INITIAL_LOAD);
       } else {
         query = supabase
           .from('follows')
@@ -64,11 +109,14 @@ export function useUserList({ type }: UseUserListOptions): UseUserListReturn {
               username,
               avatar_url,
               favorite_team,
-              display_name
+              display_name,
+              bio
             )
           `
           )
-          .eq('follower_id', user.id);
+          .eq('follower_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(INITIAL_LOAD);
       }
 
       const { data, error: fetchError } = await query;
@@ -104,8 +152,11 @@ export function useUserList({ type }: UseUserListOptions): UseUserListReturn {
 
   return {
     users,
+    filteredUsers,
     loading,
     error,
     refetch: fetchUsers,
+    mutualFollows,
+    totalCount,
   };
 }

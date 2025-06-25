@@ -118,3 +118,43 @@ export interface EngagementSummary {
   userReaction?: string;
   userAction?: 'tail' | 'fade';
 }
+
+// Privacy Settings type (matches database structure)
+export interface PrivacySettings {
+  is_private: boolean;
+  show_bankroll: boolean;
+  show_stats: boolean;
+  show_picks: boolean;
+}
+
+// Follow Request types
+export type FollowRequestStatus = 'pending' | 'accepted' | 'rejected' | 'expired';
+
+export interface FollowRequest {
+  id: string;
+  requester_id: string;
+  requested_id: string;
+  status: FollowRequestStatus;
+  created_at: string;
+  updated_at: string;
+  requester?: {
+    id: string;
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
+}
+
+// Extended User type with privacy fields
+export interface UserWithPrivacy {
+  id: string;
+  username: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  favorite_team: string | null;
+  is_private?: boolean;
+  show_bankroll?: boolean;
+  show_stats?: boolean;
+  show_picks?: boolean;
+}

@@ -14,6 +14,7 @@ export interface Notification {
     | 'fade_won'
     | 'fade_lost'
     | 'follow'
+    | 'follow_request'
     | 'message'
     | 'mention'
     | 'milestone'
@@ -28,6 +29,10 @@ export interface Notification {
     gameInfo?: Record<string, unknown>;
     followerId?: string;
     followerUsername?: string;
+    requesterId?: string;
+    requesterUsername?: string;
+    requestId?: string;
+    accepted?: boolean;
     chatId?: string;
     senderId?: string;
     senderUsername?: string;
@@ -189,8 +194,15 @@ class NotificationService {
         };
       case 'follow':
         return {
-          title: 'New Follower',
-          body: `${data.followerUsername} started following you`,
+          title: data.accepted ? 'Follow Request Accepted' : 'New Follower',
+          body: data.accepted
+            ? `${data.followerUsername} accepted your follow request`
+            : `${data.followerUsername} started following you`,
+        };
+      case 'follow_request':
+        return {
+          title: 'New Follow Request',
+          body: `${data.requesterUsername} requested to follow you`,
         };
       case 'message':
         return {

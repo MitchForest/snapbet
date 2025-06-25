@@ -1,95 +1,199 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { PostWithType } from '@/types/content';
 import { supabase } from '@/services/supabase';
 import { useAuth } from './useAuth';
+import { feedService, FeedCursor } from '@/services/feed/feedService';
+import { useFeedPagination } from './useFeedPagination';
+import { getFollowingIds } from '@/services/api/followUser';
+import * as Haptics from 'expo-haptics';
 
 export function useFeed() {
   const { user } = useAuth();
-  const [posts, setPosts] = useState<PostWithType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  const fetchPosts = useCallback(async () => {
-    if (!user?.id) {
-      setPosts([]);
-      setIsLoading(false);
-      return;
-    }
+  // Fetch function for pagination hook
+  const fetchPosts = useCallback(
+    async (cursor?: FeedCursor) => {
+      if (!user?.id) {
+        return { posts: [], nextCursor: null, hasMore: false };
+      }
+      return feedService.getFeedPosts(user.id, cursor);
+    },
+    [user?.id]
+  );
 
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('posts')
-        .select(
-          `
-          *,
-          user:users!user_id (
-            id,
-            username,
-            avatar_url
-          )
-        `
-        )
-        .eq('user_id', user.id)
-        .is('deleted_at', null)
-        .gte('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: false })
-        .limit(20);
+  // Get cached posts for instant display
+  const cachedPosts = user?.id ? feedService.getCachedFeed() : null;
 
-      if (fetchError) throw fetchError;
+  // Use pagination hook
+  const {
+    posts,
+    isLoadingMore,
+    hasMore,
+    loadMore,
+    refresh: refreshPosts,
+    setPosts,
+  } = useFeedPagination({
+    fetchFunction: fetchPosts,
+    initialPosts: cachedPosts || [],
+  });
 
-      setPosts((data as PostWithType[]) || []);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching posts:', err);
-      setError(err as Error);
-      setPosts([]);
-    } finally {
-      setIsLoading(false);
-      setRefreshing(false);
-    }
-  }, [user?.id]);
+  // Initial load
+  useEffect(() => {
+    const loadInitialPosts = async () => {
+      if (!user?.id) {
+        setIsLoading(false);
+        return;
+      }
 
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // If we don't have cached posts, fetch fresh
+        if (!cachedPosts || cachedPosts.length === 0) {
+          await refreshPosts();
+        }
+      } catch (err) {
+        console.error('Error loading initial posts:', err);
+        setError(err as Error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadInitialPosts();
+  }, [user?.id]); // Don't include refreshPosts to avoid loops
+
+  // Refresh with haptic feedback
   const refetch = useCallback(async () => {
     setRefreshing(true);
-    await fetchPosts();
-  }, [fetchPosts]);
 
-  useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
+    // Haptic feedback for pull-to-refresh
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-  // Set up real-time subscription for new posts
+    try {
+      await refreshPosts();
+      setError(null);
+    } catch (err) {
+      console.error('Error refreshing feed:', err);
+      setError(err as Error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshPosts]);
+
+  // Set up real-time subscription
   useEffect(() => {
     if (!user?.id) return;
 
-    const subscription = supabase
-      .channel('user-posts')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'posts',
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          // Refetch posts when changes occur
-          fetchPosts();
+    const setupRealtimeSubscription = async () => {
+      try {
+        // Get following IDs for subscription
+        const followingIds = await getFollowingIds();
+
+        // Include self
+        const allUserIds = [...followingIds, user.id];
+
+        // Get real-time config
+        const realtimeConfig = feedService.getRealtimeConfig(allUserIds);
+
+        if (!realtimeConfig) {
+          console.log('Too many follows for real-time updates');
+          return;
         }
-      )
-      .subscribe();
+
+        // Clean up existing subscription
+        if (subscriptionRef.current) {
+          supabase.removeChannel(subscriptionRef.current);
+        }
+
+        // Create new subscription
+        const subscription = supabase
+          .channel(realtimeConfig.channel)
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'posts',
+              filter: realtimeConfig.filter,
+            },
+            async (payload) => {
+              // Fetch the complete post with user data
+              const { data: newPost } = await supabase
+                .from('posts')
+                .select(
+                  `
+                  *,
+                  user:users!user_id (
+                    id,
+                    username,
+                    avatar_url,
+                    display_name
+                  )
+                `
+                )
+                .eq('id', payload.new.id)
+                .single();
+
+              if (newPost && feedService.shouldShowPost(newPost as PostWithType)) {
+                // Prepend new post to feed
+                setPosts((currentPosts: PostWithType[]) => [
+                  newPost as PostWithType,
+                  ...currentPosts,
+                ]);
+
+                // Light haptic for new post
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
+            }
+          )
+          .subscribe();
+
+        subscriptionRef.current = subscription;
+      } catch (error) {
+        console.error('Error setting up real-time subscription:', error);
+      }
+    };
+
+    setupRealtimeSubscription();
+
+    // Cleanup
+    return () => {
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
+    };
+  }, [user?.id, setPosts]);
+
+  // Handle follow/unfollow to invalidate cache
+  useEffect(() => {
+    const handleFollowChange = () => {
+      feedService.clearCache();
+      refetch();
+    };
+
+    // Listen for custom follow change events
+    window.addEventListener('follow-change', handleFollowChange);
 
     return () => {
-      subscription.unsubscribe();
+      window.removeEventListener('follow-change', handleFollowChange);
     };
-  }, [user?.id, fetchPosts]);
+  }, [refetch]);
 
   return {
     posts,
-    isLoading,
+    isLoading: isLoading && posts.length === 0, // Only show loading if no cached posts
+    isLoadingMore,
     error,
     refreshing,
     refetch,
+    loadMore,
+    hasMore,
   };
 }
