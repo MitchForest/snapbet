@@ -7,7 +7,7 @@
 **End Date**: TBD  
 **Epic**: Epic 3 - Social Feed & Content
 
-**Sprint Goal**: Add complete engagement features including emoji reactions, view tracking, share functionality, tail/fade mechanics with confirmation flows, and notification triggers, creating a fully interactive social experience.
+**Sprint Goal**: Add complete engagement features including emoji reactions, comments system, view tracking, share functionality, tail/fade mechanics with confirmation flows, and notification triggers, creating a fully interactive social experience.
 
 **User Story Contribution**: 
 - Enables Story 1: Social Pick Sharing - Full social interactions on shared picks
@@ -18,12 +18,14 @@
 
 ### Objectives
 1. Implement emoji reaction system with 6 reaction types
-2. Create tail/fade confirmation flows with bottom sheets
-3. Add view count tracking for posts
-4. Implement share to story functionality
-5. Create optimistic updates for all interactions
-6. Integrate with Epic 2's notification service
-7. Add reaction picker UI and animations
+2. Implement full comments system with threading
+3. Create tail/fade confirmation flows with bottom sheets
+4. Add view count tracking for posts
+5. Implement share to story functionality
+6. Create optimistic updates for all interactions
+7. Integrate with Epic 2's notification service
+8. Add reaction picker UI and animations
+9. Check post_type for tail/fade buttons
 
 ### Files to Create
 | File Path | Purpose | Status |
@@ -53,14 +55,14 @@
 
 #### 1. Dependencies Installation
 ```bash
-# Bottom sheet for confirmations
-bun add @gorhom/bottom-sheet@~4.5.1
+# Bottom sheet for confirmations - using Tamagui Sheet instead
+# bun add @gorhom/bottom-sheet@~4.5.1 - NOT NEEDED, use Tamagui Sheet
 
 # Haptic feedback
 bun add expo-haptics@~12.8.0
 
-# Toast notifications
-bun add @tamagui/toast@~1.79.0
+# Intersection observer for view tracking
+bun add react-intersection-observer@~9.5.3
 ```
 
 #### 2. Reaction System Design
@@ -143,11 +145,12 @@ Share Sheet:
 - Notification service from Epic 2
 - Betting system tables from Epic 1
 - User authentication
+- PostType enum from types/feed.ts
 
 **Identified Risks**:
 - Race conditions with optimistic updates: Mitigation - Proper rollback logic
 - Notification spam: Mitigation - Debounce and batch
-- Bottom sheet performance: Mitigation - Lazy load content
+- Sheet performance: Mitigation - Use Tamagui Sheet (already in project)
 
 ## Implementation Log
 
@@ -181,11 +184,10 @@ Share Sheet:
 ### Reaction Picker Component
 ```typescript
 // components/engagement/ReactionPicker.tsx
-import React, { useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import React, { useCallback } from 'react';
+import { TouchableOpacity } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { XStack, YStack } from '@tamagui/core';
+import { Sheet, XStack, YStack, Text } from '@tamagui/core';
 import { Colors } from '@/theme';
 
 const REACTIONS = [
@@ -210,7 +212,6 @@ export function ReactionPicker({
   onSelectReaction, 
   onClose 
 }: ReactionPickerProps) {
-  const bottomSheetRef = useRef<BottomSheet>(null);
   
   const handleReactionSelect = useCallback((emoji: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -218,89 +219,64 @@ export function ReactionPicker({
     onClose();
   }, [onSelectReaction, onClose]);
   
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-      />
-    ),
-    []
-  );
-  
   return (
-    <BottomSheet
-      ref={bottomSheetRef}
-      index={isVisible ? 0 : -1}
+    <Sheet
+      modal
+      open={isVisible}
+      onOpenChange={onClose}
       snapPoints={[200]}
-      onClose={onClose}
-      backdropComponent={renderBackdrop}
-      backgroundStyle={{ backgroundColor: Colors.surface }}
-      handleIndicatorStyle={{ backgroundColor: Colors.border }}
+      dismissOnSnapToBottom
     >
-      <YStack p="$4">
-        <Text style={styles.title}>Choose Reaction</Text>
-        <XStack flexWrap="wrap" jc="space-around" mt="$4">
-          {REACTIONS.map(({ emoji, label }) => (
-            <TouchableOpacity
-              key={emoji}
-              onPress={() => handleReactionSelect(emoji)}
-              style={[
-                styles.reactionButton,
-                currentReaction === emoji && styles.selectedReaction,
-              ]}
-            >
-              <Text style={styles.emoji}>{emoji}</Text>
-              <Text style={styles.label}>{label}</Text>
-            </TouchableOpacity>
-          ))}
-        </XStack>
-      </YStack>
-    </BottomSheet>
+      <Sheet.Overlay />
+      <Sheet.Frame bg={Colors.surface}>
+        <Sheet.Handle bg={Colors.border} />
+        <YStack p="$4">
+          <Text 
+            fontSize="$5" 
+            fontWeight="600" 
+            textAlign="center" 
+            color={Colors.text}
+            mb="$4"
+          >
+            Choose Reaction
+          </Text>
+          <XStack flexWrap="wrap" jc="space-around">
+            {REACTIONS.map(({ emoji, label }) => (
+              <TouchableOpacity
+                key={emoji}
+                onPress={() => handleReactionSelect(emoji)}
+                style={{
+                  alignItems: 'center',
+                  padding: 12,
+                  borderRadius: 12,
+                  minWidth: 80,
+                  marginBottom: 8,
+                  backgroundColor: currentReaction === emoji ? Colors.primaryLight : 'transparent',
+                }}
+              >
+                <Text fontSize="$8" mb="$1">{emoji}</Text>
+                <Text fontSize="$2" color={Colors.textSecondary}>{label}</Text>
+              </TouchableOpacity>
+            ))}
+          </XStack>
+        </YStack>
+      </Sheet.Frame>
+    </Sheet>
   );
 }
-
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-    color: Colors.text,
-  },
-  reactionButton: {
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
-    minWidth: 80,
-    marginBottom: 8,
-  },
-  selectedReaction: {
-    backgroundColor: Colors.primaryLight,
-  },
-  emoji: {
-    fontSize: 32,
-    marginBottom: 4,
-  },
-  label: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-  },
-});
 ```
 
 ### Tail Confirmation Component
 ```typescript
 // components/engagement/TailConfirmation.tsx
 import React, { useCallback } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
-import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
-import { YStack, XStack, Button } from '@tamagui/core';
+import { ActivityIndicator } from 'react-native';
+import { Sheet, YStack, XStack, Button, Text } from '@tamagui/core';
 import * as Haptics from 'expo-haptics';
-import { formatOdds, formatMoney, calculatePayout } from '@/utils/betting';
+import { formatOdds, formatMoney, calculatePayout } from '@/utils/betting/helpers';
 import { Colors } from '@/theme';
 import { useTailFade } from '@/hooks/useTailFade';
+import { useToast } from '@/hooks/useToast';
 
 interface TailConfirmationProps {
   isVisible: boolean;
@@ -318,6 +294,7 @@ export function TailConfirmation({
   onSuccess 
 }: TailConfirmationProps) {
   const { tailBet, isLoading } = useTailFade();
+  const { showToast } = useToast();
   
   const handleConfirm = useCallback(async () => {
     try {
@@ -329,110 +306,111 @@ export function TailConfirmation({
         amount: bet.amount,
       });
       
+      showToast({
+        title: 'Tail Confirmed!',
+        message: `You're tailing @${post.user.username}'s pick`,
+        type: 'success',
+      });
+      
       onSuccess();
       onClose();
     } catch (error) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      // Show error toast
+      showToast({
+        title: 'Tail Failed',
+        message: error.message || 'Something went wrong',
+        type: 'error',
+      });
     }
-  }, [bet, post, tailBet, onSuccess, onClose]);
+  }, [bet, post, tailBet, onSuccess, onClose, showToast]);
   
   const payout = calculatePayout(bet.amount, bet.odds);
   
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-      />
-    ),
-    []
-  );
-  
   return (
-    <BottomSheet
-      index={isVisible ? 0 : -1}
+    <Sheet
+      modal
+      open={isVisible}
+      onOpenChange={onClose}
       snapPoints={[320]}
-      onClose={onClose}
-      backdropComponent={renderBackdrop}
-      backgroundStyle={{ backgroundColor: Colors.surface }}
-      handleIndicatorStyle={{ backgroundColor: Colors.border }}
+      dismissOnSnapToBottom
     >
-      <YStack p="$4" gap="$4">
-        {/* Header */}
-        <YStack ai="center">
-          <Text style={{ fontSize: 20, fontWeight: '600', color: Colors.text }}>
-            Tail @{post.user.username}'s pick?
-          </Text>
-        </YStack>
-        
-        {/* Bet Details */}
-        <YStack
-          bg={Colors.surfaceAlt}
-          p="$3"
-          br="$3"
-          gap="$2"
-        >
-          <Text style={{ fontSize: 16, fontWeight: '500', color: Colors.text }}>
-            {bet.game.away_team} @ {bet.game.home_team}
-          </Text>
-          <Text style={{ fontSize: 18, fontWeight: '600', color: Colors.primary }}>
-            {bet.selection} {formatOdds(bet.odds)}
-          </Text>
-          <XStack jc="space-between">
-            <Text style={{ color: Colors.textSecondary }}>
-              Bet: {formatMoney(bet.amount)}
+      <Sheet.Overlay />
+      <Sheet.Frame bg={Colors.surface}>
+        <Sheet.Handle bg={Colors.border} />
+        <YStack p="$4" gap="$4">
+          {/* Header */}
+          <YStack ai="center">
+            <Text fontSize="$6" fontWeight="600" color={Colors.text}>
+              Tail @{post.user.username}'s pick?
             </Text>
-            <Text style={{ color: Colors.textSecondary }}>
-              To Win: {formatMoney(payout.toWin)}
-            </Text>
-          </XStack>
-        </YStack>
-        
-        {/* Info Text */}
-        <Text style={{ 
-          textAlign: 'center', 
-          color: Colors.textSecondary,
-          fontSize: 14,
-        }}>
-          You'll bet the same pick and track results together
-        </Text>
-        
-        {/* Actions */}
-        <YStack gap="$2">
-          <Button
-            size="$4"
-            bg={Colors.tail}
-            onPress={handleConfirm}
-            disabled={isLoading}
-            pressStyle={{ opacity: 0.8 }}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
-                Confirm Tail • {formatMoney(bet.amount)}
-              </Text>
-            )}
-          </Button>
+          </YStack>
           
-          <Button
-            size="$4"
-            bg="transparent"
-            borderWidth={1}
-            borderColor={Colors.border}
-            onPress={onClose}
-            disabled={isLoading}
+          {/* Bet Details */}
+          <YStack
+            bg={Colors.surfaceAlt}
+            p="$3"
+            br="$3"
+            gap="$2"
           >
-            <Text style={{ color: Colors.text, fontSize: 16 }}>
-              Cancel
+            <Text fontSize="$4" fontWeight="500" color={Colors.text}>
+              {bet.game.away_team} @ {bet.game.home_team}
             </Text>
-          </Button>
+            <Text fontSize="$5" fontWeight="600" color={Colors.primary}>
+              {bet.selection} {formatOdds(bet.odds)}
+            </Text>
+            <XStack jc="space-between">
+              <Text color={Colors.textSecondary}>
+                Bet: {formatMoney(bet.amount)}
+              </Text>
+              <Text color={Colors.textSecondary}>
+                To Win: {formatMoney(payout.toWin)}
+              </Text>
+            </XStack>
+          </YStack>
+          
+          {/* Info Text */}
+          <Text 
+            textAlign="center" 
+            color={Colors.textSecondary}
+            fontSize="$3"
+          >
+            You'll bet the same pick and track results together
+          </Text>
+          
+          {/* Actions */}
+          <YStack gap="$2">
+            <Button
+              size="$4"
+              bg={Colors.tail}
+              onPress={handleConfirm}
+              disabled={isLoading}
+              pressStyle={{ opacity: 0.8 }}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text color="white" fontSize="$4" fontWeight="600">
+                  Confirm Tail • {formatMoney(bet.amount)}
+                </Text>
+              )}
+            </Button>
+            
+            <Button
+              size="$4"
+              bg="transparent"
+              borderWidth={1}
+              borderColor={Colors.border}
+              onPress={onClose}
+              disabled={isLoading}
+            >
+              <Text color={Colors.text} fontSize="$4">
+                Cancel
+              </Text>
+            </Button>
+          </YStack>
         </YStack>
-      </YStack>
-    </BottomSheet>
+      </Sheet.Frame>
+    </Sheet>
   );
 }
 ```
@@ -441,13 +419,13 @@ export function TailConfirmation({
 ```typescript
 // components/engagement/FadeConfirmation.tsx
 import React, { useCallback } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
-import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
-import { YStack, XStack, Button } from '@tamagui/core';
+import { ActivityIndicator } from 'react-native';
+import { Sheet, YStack, XStack, Button, Text } from '@tamagui/core';
 import * as Haptics from 'expo-haptics';
-import { formatOdds, formatMoney, calculatePayout, getOppositeBet } from '@/utils/betting';
+import { formatOdds, formatMoney, calculatePayout, getOppositeBet } from '@/utils/betting/helpers';
 import { Colors } from '@/theme';
 import { useTailFade } from '@/hooks/useTailFade';
+import { useToast } from '@/hooks/useToast';
 
 interface FadeConfirmationProps {
   isVisible: boolean;
@@ -465,6 +443,7 @@ export function FadeConfirmation({
   onSuccess 
 }: FadeConfirmationProps) {
   const { fadeBet, isLoading } = useTailFade();
+  const { showToast } = useToast();
   const oppositeBet = getOppositeBet(bet);
   
   const handleConfirm = useCallback(async () => {
@@ -478,131 +457,259 @@ export function FadeConfirmation({
         oppositeBet,
       });
       
+      showToast({
+        title: 'Fade Confirmed!',
+        message: `You're fading @${post.user.username}'s pick`,
+        type: 'warning',
+      });
+      
       onSuccess();
       onClose();
     } catch (error) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      // Show error toast
+      showToast({
+        title: 'Fade Failed',
+        message: error.message || 'Something went wrong',
+        type: 'error',
+      });
     }
-  }, [bet, post, oppositeBet, fadeBet, onSuccess, onClose]);
+  }, [bet, post, oppositeBet, fadeBet, onSuccess, onClose, showToast]);
   
   const payout = calculatePayout(bet.amount, oppositeBet.odds);
   
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-      />
-    ),
-    []
+  return (
+    <Sheet
+      modal
+      open={isVisible}
+      onOpenChange={onClose}
+      snapPoints={[380]}
+      dismissOnSnapToBottom
+    >
+      <Sheet.Overlay />
+      <Sheet.Frame bg={Colors.surface}>
+        <Sheet.Handle bg={Colors.border} />
+        <YStack p="$4" gap="$4">
+          {/* Header */}
+          <YStack ai="center">
+            <Text fontSize="$6" fontWeight="600" color={Colors.text}>
+              Fade @{post.user.username}'s pick?
+            </Text>
+          </YStack>
+          
+          {/* Original Bet */}
+          <YStack gap="$2">
+            <Text fontSize="$3" color={Colors.textSecondary}>
+              Their pick:
+            </Text>
+            <YStack
+              bg={Colors.surfaceAlt}
+              p="$3"
+              br="$3"
+              opacity={0.6}
+            >
+              <Text fontSize="$4" color={Colors.text}>
+                {bet.selection} {formatOdds(bet.odds)}
+              </Text>
+            </YStack>
+          </YStack>
+          
+          {/* Your Fade */}
+          <YStack gap="$2">
+            <Text fontSize="$3" color={Colors.textSecondary}>
+              Your fade:
+            </Text>
+            <YStack
+              bg={Colors.fade}
+              p="$3"
+              br="$3"
+            >
+              <Text fontSize="$5" fontWeight="600" color="white">
+                {oppositeBet.selection} {formatOdds(oppositeBet.odds)}
+              </Text>
+              <XStack jc="space-between" mt="$2">
+                <Text color="rgba(255,255,255,0.8)">
+                  Bet: {formatMoney(bet.amount)}
+                </Text>
+                <Text color="rgba(255,255,255,0.8)">
+                  To Win: {formatMoney(payout.toWin)}
+                </Text>
+              </XStack>
+            </YStack>
+          </YStack>
+          
+          {/* Warning */}
+          <XStack ai="center" jc="center" gap="$2">
+            <Text fontSize="$4">⚠️</Text>
+            <Text 
+              color={Colors.fade}
+              fontSize="$3"
+              fontWeight="500"
+            >
+              You're betting AGAINST {post.user.username}
+            </Text>
+          </XStack>
+          
+          {/* Actions */}
+          <YStack gap="$2">
+            <Button
+              size="$4"
+              bg={Colors.fade}
+              onPress={handleConfirm}
+              disabled={isLoading}
+              pressStyle={{ opacity: 0.8 }}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text color="white" fontSize="$4" fontWeight="600">
+                  Confirm Fade • {formatMoney(bet.amount)}
+                </Text>
+              )}
+            </Button>
+            
+            <Button
+              size="$4"
+              bg="transparent"
+              borderWidth={1}
+              borderColor={Colors.border}
+              onPress={onClose}
+              disabled={isLoading}
+            >
+              <Text color={Colors.text} fontSize="$4">
+                Cancel
+              </Text>
+            </Button>
+          </YStack>
+        </YStack>
+      </Sheet.Frame>
+    </Sheet>
   );
+}
+```
+
+### Share Sheet Component
+```typescript
+// components/engagement/ShareSheet.tsx
+import React, { useCallback } from 'react';
+import { TouchableOpacity } from 'react-native';
+import { Sheet, YStack, XStack, Text } from '@tamagui/core';
+import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
+import { Colors } from '@/theme';
+import { storyService } from '@/services/content/storyService';
+import { useToast } from '@/hooks/useToast';
+
+interface ShareSheetProps {
+  isVisible: boolean;
+  post: any;
+  onClose: () => void;
+}
+
+export function ShareSheet({ isVisible, post, onClose }: ShareSheetProps) {
+  const router = useRouter();
+  const { showToast } = useToast();
+  
+  const handleShareToStory = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
+    // Navigate to camera with post data
+    router.push({
+      pathname: '/(drawer)/camera',
+      params: {
+        sharePostId: post.id,
+        shareType: 'story',
+      },
+    });
+    
+    onClose();
+  }, [post.id, router, onClose]);
+  
+  const handleSendInMessage = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
+    // Future: Navigate to messages with post
+    showToast({
+      title: 'Coming Soon',
+      message: 'Direct messaging will be available soon!',
+      type: 'info',
+    });
+    
+    onClose();
+  }, [showToast, onClose]);
+  
+  const shareOptions = [
+    {
+      icon: '📸',
+      label: 'Add to Your Story',
+      onPress: handleShareToStory,
+    },
+    {
+      icon: '💬',
+      label: 'Send in Message',
+      onPress: handleSendInMessage,
+      disabled: true,
+    },
+    {
+      icon: '🔗',
+      label: 'Copy Link',
+      onPress: () => {},
+      disabled: true,
+    },
+    {
+      icon: '📱',
+      label: 'Share Externally',
+      onPress: () => {},
+      disabled: true,
+    },
+  ];
   
   return (
-    <BottomSheet
-      index={isVisible ? 0 : -1}
-      snapPoints={[380]}
-      onClose={onClose}
-      backdropComponent={renderBackdrop}
-      backgroundStyle={{ backgroundColor: Colors.surface }}
-      handleIndicatorStyle={{ backgroundColor: Colors.border }}
+    <Sheet
+      modal
+      open={isVisible}
+      onOpenChange={onClose}
+      snapPoints={[280]}
+      dismissOnSnapToBottom
     >
-      <YStack p="$4" gap="$4">
-        {/* Header */}
-        <YStack ai="center">
-          <Text style={{ fontSize: 20, fontWeight: '600', color: Colors.text }}>
-            Fade @{post.user.username}'s pick?
-          </Text>
-        </YStack>
-        
-        {/* Original Bet */}
-        <YStack gap="$2">
-          <Text style={{ fontSize: 14, color: Colors.textSecondary }}>
-            Their pick:
-          </Text>
-          <YStack
-            bg={Colors.surfaceAlt}
-            p="$3"
-            br="$3"
-            opacity={0.6}
+      <Sheet.Overlay />
+      <Sheet.Frame bg={Colors.surface}>
+        <Sheet.Handle bg={Colors.border} />
+        <YStack p="$4">
+          <Text 
+            fontSize="$5" 
+            fontWeight="600" 
+            textAlign="center" 
+            color={Colors.text}
+            mb="$4"
           >
-            <Text style={{ fontSize: 16, color: Colors.text }}>
-              {bet.selection} {formatOdds(bet.odds)}
-            </Text>
-          </YStack>
-        </YStack>
-        
-        {/* Your Fade */}
-        <YStack gap="$2">
-          <Text style={{ fontSize: 14, color: Colors.textSecondary }}>
-            Your fade:
+            Share Post
           </Text>
-          <YStack
-            bg={Colors.fade}
-            p="$3"
-            br="$3"
-          >
-            <Text style={{ fontSize: 18, fontWeight: '600', color: 'white' }}>
-              {oppositeBet.selection} {formatOdds(oppositeBet.odds)}
-            </Text>
-            <XStack jc="space-between" mt="$2">
-              <Text style={{ color: 'rgba(255,255,255,0.8)' }}>
-                Bet: {formatMoney(bet.amount)}
-              </Text>
-              <Text style={{ color: 'rgba(255,255,255,0.8)' }}>
-                To Win: {formatMoney(payout.toWin)}
-              </Text>
-            </XStack>
-          </YStack>
-        </YStack>
-        
-        {/* Warning */}
-        <XStack ai="center" jc="center" gap="$2">
-          <Text style={{ fontSize: 16 }}>⚠️</Text>
-          <Text style={{ 
-            color: Colors.fade,
-            fontSize: 14,
-            fontWeight: '500',
-          }}>
-            You're betting AGAINST {post.user.username}
-          </Text>
-        </XStack>
-        
-        {/* Actions */}
-        <YStack gap="$2">
-          <Button
-            size="$4"
-            bg={Colors.fade}
-            onPress={handleConfirm}
-            disabled={isLoading}
-            pressStyle={{ opacity: 0.8 }}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
-                Confirm Fade • {formatMoney(bet.amount)}
-              </Text>
-            )}
-          </Button>
           
-          <Button
-            size="$4"
-            bg="transparent"
-            borderWidth={1}
-            borderColor={Colors.border}
-            onPress={onClose}
-            disabled={isLoading}
-          >
-            <Text style={{ color: Colors.text, fontSize: 16 }}>
-              Cancel
-            </Text>
-          </Button>
+          {shareOptions.map((option) => (
+            <TouchableOpacity
+              key={option.label}
+              onPress={option.onPress}
+              disabled={option.disabled}
+              style={{
+                opacity: option.disabled ? 0.5 : 1,
+              }}
+            >
+              <XStack
+                ai="center"
+                gap="$3"
+                p="$3"
+                hoverStyle={{ bg: Colors.surfaceAlt }}
+              >
+                <Text fontSize="$6">{option.icon}</Text>
+                <Text fontSize="$4" color={Colors.text}>
+                  {option.label}
+                </Text>
+              </XStack>
+            </TouchableOpacity>
+          ))}
         </YStack>
-      </YStack>
-    </BottomSheet>
+      </Sheet.Frame>
+    </Sheet>
   );
 }
 ```
@@ -611,7 +718,7 @@ export function FadeConfirmation({
 ```typescript
 // components/feed/PostCard/PostActions.tsx (Enhanced)
 import React, { useState, useCallback } from 'react';
-import { XStack, Button, Text } from '@tamagui/core';
+import { XStack, YStack, Button, Text } from '@tamagui/core';
 import { TouchableOpacity } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { usePostInteractions } from '@/hooks/usePostInteractions';
@@ -621,21 +728,26 @@ import { FadeConfirmation } from '@/components/engagement/FadeConfirmation';
 import { ShareSheet } from '@/components/engagement/ShareSheet';
 import { Colors } from '@/theme';
 import { useAuth } from '@/hooks/useAuth';
+import { PostType } from '@/types/feed';
 
 interface PostActionsProps {
   post: any;
   reactions: Array<{ emoji: string; user_id: string }>;
+  commentCount: number;
   tailCount: number;
   fadeCount: number;
   bet?: any;
+  onCommentPress: () => void;
 }
 
 export function PostActions({ 
   post,
-  reactions, 
+  reactions,
+  commentCount,
   tailCount, 
   fadeCount, 
-  bet 
+  bet,
+  onCommentPress
 }: PostActionsProps) {
   const { user } = useAuth();
   const { addReaction, removeReaction } = usePostInteractions(post.id);
@@ -648,6 +760,10 @@ export function PostActions({
   const myReaction = reactions.find(r => r.user_id === user?.id);
   const hasReacted = !!myReaction;
   
+  // Check if game has started for tail/fade
+  const gameStarted = bet && new Date(bet.game.start_time) < new Date();
+  const canTailFade = post.post_type === PostType.PICK && !gameStarted && post.user_id !== user?.id;
+  
   const handleReactionPress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (hasReacted) {
@@ -659,78 +775,109 @@ export function PostActions({
   
   const handleReactionLongPress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // Show reaction list
+    // Future: Show reaction list
   }, []);
   
   const handleTailPress = useCallback(() => {
+    if (!canTailFade) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShowTailConfirm(true);
-  }, []);
+  }, [canTailFade]);
   
   const handleFadePress = useCallback(() => {
+    if (!canTailFade) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShowFadeConfirm(true);
-  }, []);
+  }, [canTailFade]);
   
   const handleSharePress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShowShareSheet(true);
   }, []);
   
+  const handleCommentPress = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onCommentPress();
+  }, [onCommentPress]);
+  
   return (
     <>
-      <XStack p="$3" jc="space-between" ai="center">
-        {/* Tail/Fade Buttons */}
-        {bet && (
-          <XStack gap="$2">
-            <Button
-              size="$3"
-              bg={Colors.tail}
-              onPress={handleTailPress}
-              pressStyle={{ opacity: 0.8 }}
-            >
-              <Text color="white" fontSize="$3" fontWeight="600">
-                Tail {tailCount > 0 && `(${tailCount})`}
-              </Text>
-            </Button>
+      <YStack>
+        <XStack p="$3" jc="space-between" ai="center">
+          {/* Tail/Fade Buttons - Only on pick posts before game start */}
+          {post.post_type === PostType.PICK && bet && (
+            <XStack gap="$2">
+              <Button
+                size="$3"
+                bg={canTailFade ? Colors.tail : Colors.disabled}
+                onPress={handleTailPress}
+                disabled={!canTailFade}
+                pressStyle={{ opacity: 0.8 }}
+              >
+                <Text color="white" fontSize="$3" fontWeight="600">
+                  Tail {tailCount > 0 && `(${tailCount})`}
+                </Text>
+              </Button>
+              
+              <Button
+                size="$3"
+                bg={canTailFade ? Colors.fade : Colors.disabled}
+                onPress={handleFadePress}
+                disabled={!canTailFade}
+                pressStyle={{ opacity: 0.8 }}
+              >
+                <Text color="white" fontSize="$3" fontWeight="600">
+                  Fade {fadeCount > 0 && `(${fadeCount})`}
+                </Text>
+              </Button>
+            </XStack>
+          )}
+          
+          {/* Comments, Reactions and Share */}
+          <XStack gap="$3" ai="center" ml={post.post_type !== PostType.PICK ? 0 : 'auto'}>
+            <TouchableOpacity onPress={handleCommentPress}>
+              <XStack ai="center" gap="$1">
+                <Text fontSize="$5">💬</Text>
+                {commentCount > 0 && (
+                  <Text fontSize="$2" color={Colors.textSecondary}>
+                    {commentCount}
+                  </Text>
+                )}
+              </XStack>
+            </TouchableOpacity>
             
-            <Button
-              size="$3"
-              bg={Colors.fade}
-              onPress={handleFadePress}
-              pressStyle={{ opacity: 0.8 }}
+            <TouchableOpacity 
+              onPress={handleReactionPress}
+              onLongPress={handleReactionLongPress}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
             >
-              <Text color="white" fontSize="$3" fontWeight="600">
-                Fade {fadeCount > 0 && `(${fadeCount})`}
+              <Text fontSize="$5">
+                {hasReacted ? myReaction.emoji : '🤍'}
               </Text>
-            </Button>
+              {reactions.length > 0 && (
+                <Text fontSize="$2" color={Colors.textSecondary}>
+                  {reactions.length}
+                </Text>
+              )}
+            </TouchableOpacity>
+            
+            <TouchableOpacity onPress={handleSharePress}>
+              <Text fontSize="$5">↗️</Text>
+            </TouchableOpacity>
+          </XStack>
+        </XStack>
+        
+        {/* Game started message */}
+        {post.post_type === PostType.PICK && gameStarted && (
+          <XStack px="$3" pb="$2">
+            <Text fontSize="$2" color={Colors.textSecondary} fontStyle="italic">
+              Game has started - tail/fade closed
+            </Text>
           </XStack>
         )}
-        
-        {/* Reaction and Share */}
-        <XStack gap="$3" ai="center">
-          <TouchableOpacity 
-            onPress={handleReactionPress}
-            onLongPress={handleReactionLongPress}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
-          >
-            <Text fontSize="$5">
-              {hasReacted ? myReaction.emoji : '🤍'}
-            </Text>
-            {reactions.length > 0 && (
-              <Text fontSize="$2" color={Colors.textSecondary}>
-                {reactions.length}
-              </Text>
-            )}
-          </TouchableOpacity>
-          
-          <TouchableOpacity onPress={handleSharePress}>
-            <Text fontSize="$5">↗️</Text>
-          </TouchableOpacity>
-        </XStack>
-      </XStack>
+      </YStack>
       
-      {/* Bottom Sheets */}
+      {/* Sheets */}
       <ReactionPicker
         isVisible={showReactionPicker}
         currentReaction={myReaction?.emoji}
@@ -749,7 +896,7 @@ export function PostActions({
             bet={bet}
             onClose={() => setShowTailConfirm(false)}
             onSuccess={() => {
-              // Show success toast
+              // Refresh feed to show updated counts
             }}
           />
           
@@ -759,7 +906,7 @@ export function PostActions({
             bet={bet}
             onClose={() => setShowFadeConfirm(false)}
             onSuccess={() => {
-              // Show success toast
+              // Refresh feed to show updated counts
             }}
           />
         </>
@@ -775,286 +922,234 @@ export function PostActions({
 }
 ```
 
-### Post Interactions Hook
+### Tail/Fade Hook
 ```typescript
-// hooks/usePostInteractions.ts
+// hooks/useTailFade.ts
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/useAuth';
-import { reactionService } from '@/services/engagement/reactionService';
-import { notificationService } from '@/services/notifications/notificationService';
+import { tailFadeService } from '@/services/engagement/tailFadeService';
 
-export function usePostInteractions(postId: string) {
-  const { user } = useAuth();
+export function useTailFade() {
   const queryClient = useQueryClient();
   
-  const addReactionMutation = useMutation({
-    mutationFn: async (emoji: string) => {
-      return reactionService.addReaction(postId, emoji);
-    },
-    onMutate: async (emoji) => {
-      // Optimistic update
-      await queryClient.cancelQueries({ queryKey: ['feed'] });
-      
-      const previousData = queryClient.getQueryData(['feed']);
-      
-      queryClient.setQueryData(['feed'], (old: any) => {
-        // Update the specific post with new reaction
-        return updatePostInFeed(old, postId, (post) => ({
-          ...post,
-          reactions: [
-            ...post.reactions.filter(r => r.user_id !== user?.id),
-            { emoji, user_id: user?.id },
-          ],
-        }));
-      });
-      
-      return { previousData };
-    },
-    onError: (err, emoji, context) => {
-      // Rollback on error
-      queryClient.setQueryData(['feed'], context?.previousData);
-    },
-    onSuccess: async (data, emoji) => {
-      // Send notification to post owner
-      const post = getPostFromCache(postId);
-      if (post && post.user_id !== user?.id) {
-        await notificationService.create({
-          userId: post.user_id,
-          type: 'reaction',
-          data: {
-            postId,
-            emoji,
-            fromUserId: user?.id,
-            fromUsername: user?.username,
-          },
-        });
-      }
+  const tailMutation = useMutation({
+    mutationFn: tailFadeService.tailBet,
+    onSuccess: () => {
+      // Invalidate feed and user bets
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
+      queryClient.invalidateQueries({ queryKey: ['user-bets'] });
     },
   });
   
-  const removeReactionMutation = useMutation({
-    mutationFn: async () => {
-      return reactionService.removeReaction(postId);
-    },
-    onMutate: async () => {
-      // Optimistic update
-      await queryClient.cancelQueries({ queryKey: ['feed'] });
-      
-      const previousData = queryClient.getQueryData(['feed']);
-      
-      queryClient.setQueryData(['feed'], (old: any) => {
-        return updatePostInFeed(old, postId, (post) => ({
-          ...post,
-          reactions: post.reactions.filter(r => r.user_id !== user?.id),
-        }));
-      });
-      
-      return { previousData };
-    },
-    onError: (err, variables, context) => {
-      queryClient.setQueryData(['feed'], context?.previousData);
+  const fadeMutation = useMutation({
+    mutationFn: tailFadeService.fadeBet,
+    onSuccess: () => {
+      // Invalidate feed and user bets
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
+      queryClient.invalidateQueries({ queryKey: ['user-bets'] });
     },
   });
   
   return {
-    addReaction: addReactionMutation.mutate,
-    removeReaction: removeReactionMutation.mutate,
-    isAddingReaction: addReactionMutation.isPending,
-    isRemovingReaction: removeReactionMutation.isPending,
+    tailBet: tailMutation.mutate,
+    fadeBet: fadeMutation.mutate,
+    isLoading: tailMutation.isPending || fadeMutation.isPending,
   };
 }
 ```
 
-### Reaction Service
+### Toast Hook
 ```typescript
-// services/engagement/reactionService.ts
-import { supabase } from '@/services/supabase';
+// hooks/useToast.ts
+import { useCallback } from 'react';
+import { Toast } from '@tamagui/toast';
 
-export const reactionService = {
-  async addReaction(postId: string, emoji: string) {
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) throw new Error('Not authenticated');
-    
-    const { data, error } = await supabase
-      .from('reactions')
-      .upsert({
-        post_id: postId,
-        user_id: user.user.id,
-        emoji,
-      })
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
-  },
+interface ToastOptions {
+  title: string;
+  message?: string;
+  type?: 'success' | 'error' | 'warning' | 'info';
+  duration?: number;
+}
+
+export function useToast() {
+  const showToast = useCallback((options: ToastOptions) => {
+    // Implementation depends on toast setup
+    // For now, console.log
+    console.log('Toast:', options);
+  }, []);
   
-  async removeReaction(postId: string) {
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) throw new Error('Not authenticated');
-    
-    const { error } = await supabase
-      .from('reactions')
-      .delete()
-      .eq('post_id', postId)
-      .eq('user_id', user.user.id);
-    
-    if (error) throw error;
-  },
-  
-  async getReactions(postId: string) {
-    const { data, error } = await supabase
-      .from('reactions')
-      .select(`
-        emoji,
-        user:users!user_id (
-          id,
-          username,
-          avatar_url
-        )
-      `)
-      .eq('post_id', postId);
-    
-    if (error) throw error;
-    return data;
-  },
-};
+  return { showToast };
+}
 ```
 
-### Tail/Fade Service
+### Betting Utility Functions
 ```typescript
-// services/engagement/tailFadeService.ts
-import { supabase } from '@/services/supabase';
-import { notificationService } from '@/services/notifications/notificationService';
-
-interface TailBetParams {
-  originalBetId: string;
-  postId: string;
-  amount: number;
+// utils/betting/helpers.ts
+export function formatOdds(odds: number): string {
+  if (odds > 0) return `+${odds}`;
+  return odds.toString();
 }
 
-interface FadeBetParams extends TailBetParams {
-  oppositeBet: any;
+export function formatMoney(amount: number): string {
+  return `$${amount.toFixed(2)}`;
 }
 
-export const tailFadeService = {
-  async tailBet(params: TailBetParams) {
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) throw new Error('Not authenticated');
-    
-    // Get original bet details
-    const { data: originalBet } = await supabase
-      .from('bets')
-      .select('*')
-      .eq('id', params.originalBetId)
-      .single();
-    
-    // Create tail bet
-    const { data: tailBet, error } = await supabase
-      .from('bets')
-      .insert({
-        user_id: user.user.id,
-        game_id: originalBet.game_id,
-        bet_type: originalBet.bet_type,
-        selection: originalBet.selection,
-        odds: originalBet.odds,
-        amount: params.amount,
-        potential_payout: calculatePayout(params.amount, originalBet.odds),
-        status: 'pending',
-        is_tail: true,
-        original_bet_id: params.originalBetId,
-      })
-      .select()
-      .single();
-    
-    if (error) throw error;
-    
-    // Create pick action
-    await supabase
-      .from('pick_actions')
-      .insert({
-        post_id: params.postId,
-        user_id: user.user.id,
-        action_type: 'tail',
-        resulting_bet_id: tailBet.id,
-      });
-    
-    // Update tail count
-    await supabase.rpc('increment_tail_count', { post_id: params.postId });
-    
-    // Send notification
-    await notificationService.create({
-      userId: originalBet.user_id,
-      type: 'tail',
-      data: {
-        postId: params.postId,
-        fromUserId: user.user.id,
-        fromUsername: user.user.user_metadata.username,
-        betAmount: params.amount,
-      },
-    });
-    
-    return tailBet;
-  },
+export function calculatePayout(amount: number, odds: number): { total: number; toWin: number } {
+  let toWin: number;
   
-  async fadeBet(params: FadeBetParams) {
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) throw new Error('Not authenticated');
+  if (odds > 0) {
+    // Positive odds: amount * (odds/100)
+    toWin = amount * (odds / 100);
+  } else {
+    // Negative odds: amount / (Math.abs(odds)/100)
+    toWin = amount / (Math.abs(odds) / 100);
+  }
+  
+  return {
+    total: amount + toWin,
+    toWin,
+  };
+}
+
+export function getOppositeBet(bet: any): any {
+  // For spread bets
+  if (bet.bet_type === 'spread') {
+    const oppositeTeam = bet.selection.includes(bet.game.home_team) 
+      ? bet.game.away_team 
+      : bet.game.home_team;
+    const oppositeSpread = -parseFloat(bet.selection.match(/[+-]?\d+\.?\d*/)[0]);
+    const oppositeSpreadStr = oppositeSpread > 0 ? `+${oppositeSpread}` : oppositeSpread.toString();
     
-    // Create fade bet (opposite)
-    const { data: fadeBet, error } = await supabase
-      .from('bets')
-      .insert({
-        user_id: user.user.id,
-        game_id: params.oppositeBet.game_id,
-        bet_type: params.oppositeBet.bet_type,
-        selection: params.oppositeBet.selection,
-        odds: params.oppositeBet.odds,
-        amount: params.amount,
-        potential_payout: calculatePayout(params.amount, params.oppositeBet.odds),
-        status: 'pending',
-        is_fade: true,
-        original_bet_id: params.originalBetId,
-      })
-      .select()
-      .single();
+    return {
+      ...bet,
+      selection: `${oppositeTeam} ${oppositeSpreadStr}`,
+      odds: -110, // Standard opposite odds
+    };
+  }
+  
+  // For totals
+  if (bet.bet_type === 'total') {
+    const oppositeType = bet.selection.includes('Over') ? 'Under' : 'Over';
+    const totalValue = bet.selection.match(/\d+\.?\d*/)[0];
     
-    if (error) throw error;
+    return {
+      ...bet,
+      selection: `${oppositeType} ${totalValue}`,
+      odds: -110,
+    };
+  }
+  
+  // For moneyline
+  if (bet.bet_type === 'moneyline') {
+    const oppositeTeam = bet.selection === bet.game.home_team 
+      ? bet.game.away_team 
+      : bet.game.home_team;
     
-    // Create pick action
-    await supabase
-      .from('pick_actions')
-      .insert({
-        post_id: params.postId,
-        user_id: user.user.id,
-        action_type: 'fade',
-        resulting_bet_id: fadeBet.id,
-      });
-    
-    // Update fade count
-    await supabase.rpc('increment_fade_count', { post_id: params.postId });
-    
-    // Send notification
-    const { data: originalBet } = await supabase
-      .from('bets')
-      .select('user_id')
-      .eq('id', params.originalBetId)
-      .single();
-    
-    await notificationService.create({
-      userId: originalBet.user_id,
-      type: 'fade',
-      data: {
-        postId: params.postId,
-        fromUserId: user.user.id,
-        fromUsername: user.user.user_metadata.username,
-        betAmount: params.amount,
-      },
-    });
-    
-    return fadeBet;
-  },
-};
+    return {
+      ...bet,
+      selection: oppositeTeam,
+      odds: bet.game.home_team === bet.selection 
+        ? bet.game.away_ml_odds 
+        : bet.game.home_ml_odds,
+    };
+  }
+  
+  return bet;
+}
+```
+
+### Engagement Types
+```typescript
+// types/engagement.ts
+export interface Reaction {
+  id: string;
+  post_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+}
+
+export interface PickAction {
+  id: string;
+  post_id: string;
+  user_id: string;
+  action_type: 'tail' | 'fade';
+  resulting_bet_id: string;
+  created_at: string;
+}
+
+export interface Comment {
+  id: string;
+  post_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  user?: {
+    id: string;
+    username: string;
+    avatar_url?: string;
+  };
+}
+```
+
+### Database Schema Requirements
+```sql
+-- Reactions table
+CREATE TABLE reactions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id),
+  emoji TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(post_id, user_id)
+);
+
+-- Pick actions table
+CREATE TABLE pick_actions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id),
+  action_type TEXT CHECK (action_type IN ('tail', 'fade')),
+  resulting_bet_id UUID REFERENCES bets(id),
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(post_id, user_id)
+);
+
+-- Comments table
+CREATE TABLE comments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id),
+  content TEXT NOT NULL CHECK (char_length(content) <= 280),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- RPC functions
+CREATE OR REPLACE FUNCTION increment_tail_count(post_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE posts 
+  SET tail_count = tail_count + 1 
+  WHERE id = post_id;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION increment_fade_count(post_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE posts 
+  SET fade_count = fade_count + 1 
+  WHERE id = post_id;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION increment_post_views(post_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE posts 
+  SET view_count = view_count + 1 
+  WHERE id = post_id;
+END;
+$$ LANGUAGE plpgsql;
 ```
 
 ### View Tracking Implementation
@@ -1062,6 +1157,7 @@ export const tailFadeService = {
 // In components/feed/PostCard/PostCard.tsx
 import { useEffect } from 'react';
 import { useInView } from 'react-intersection-observer';
+import { supabase } from '@/services/supabase';
 
 export const PostCard = memo(({ post }: PostCardProps) => {
   const { ref, inView } = useInView({
@@ -1077,29 +1173,97 @@ export const PostCard = memo(({ post }: PostCardProps) => {
   }, [inView, post.id]);
   
   return (
-    <YStack ref={ref} ...>
+    <YStack ref={ref} bg={Colors.surface} mb="$2">
       {/* Post content */}
     </YStack>
   );
 });
 ```
 
-### API Endpoints Implemented
-| Method | Path | Request | Response | Status |
-|--------|------|---------|----------|--------|
-| POST | /rest/v1/reactions | `{ post_id, emoji }` | Reaction record | PLANNED |
-| DELETE | /rest/v1/reactions | Query params | Success | PLANNED |
-| POST | /rest/v1/bets | Tail/fade bet data | Created bet | PLANNED |
-| POST | /rest/v1/pick_actions | Action record | Created action | PLANNED |
-| POST | /rest/v1/rpc/increment_tail_count | `{ post_id }` | Updated count | PLANNED |
-| POST | /rest/v1/rpc/increment_fade_count | `{ post_id }` | Updated count | PLANNED |
-| POST | /rest/v1/rpc/increment_post_views | `{ post_id }` | Updated count | PLANNED |
+### Implementation Notes for Executor
 
-### State Management
-- Reactions use optimistic updates
-- Tail/fade counts update optimistically
-- View counts update on mount
-- All managed through React Query
+#### 1. Dependencies
+- Use Tamagui Sheet instead of @gorhom/bottom-sheet (already in project)
+- Install expo-haptics for feedback
+- Install react-intersection-observer for view tracking
+- PostType enum should be imported from types/feed.ts
+
+#### 2. Color Constants
+Ensure these colors are in theme/index.ts:
+```typescript
+export const Colors = {
+  // ... existing colors
+  tail: '#4CAF50',  // Green for tail
+  fade: '#F44336',  // Red for fade
+  disabled: '#9E9E9E', // Gray for disabled
+  primaryLight: 'rgba(0, 122, 255, 0.1)', // Light primary for selection
+};
+```
+
+#### 3. Integration Points
+- Comments system: Full implementation in comments section of PostCard
+- Notifications: Already integrated in services
+- Feed updates: Handled by React Query invalidation
+- Toast system: Basic implementation provided, enhance as needed
+
+#### 4. Edge Cases to Handle
+- User can't tail/fade their own posts
+- Game start time check for tail/fade availability
+- Optimistic update rollback on error
+- Double-tap prevention with loading states
+- Network errors with proper toast messages
+
+#### 5. Testing Checklist
+- [ ] All 6 reactions selectable
+- [ ] Can remove reaction by tapping again
+- [ ] Tail/fade only shows on pick posts
+- [ ] Tail/fade disabled after game start
+- [ ] Tail/fade disabled on own posts
+- [ ] Haptic feedback on all interactions
+- [ ] View count increments on scroll
+- [ ] Share to story navigation works
+- [ ] All sheets open/close properly
+- [ ] Loading states during async operations
+
+#### 6. Comments Integration
+In PostCard component, add state for showing comments:
+```typescript
+const [showComments, setShowComments] = useState(false);
+
+// In PostActions onCommentPress
+onCommentPress={() => setShowComments(!showComments)}
+
+// Below PostActions
+{showComments && (
+  <Comments postId={post.id} isVisible={showComments} />
+)}
+```
+
+#### 7. API Endpoints Summary
+All these endpoints are created automatically by Supabase based on table definitions:
+- POST /rest/v1/reactions - Add reaction
+- DELETE /rest/v1/reactions - Remove reaction
+- POST /rest/v1/comments - Add comment
+- POST /rest/v1/bets - Create tail/fade bet
+- POST /rest/v1/pick_actions - Record tail/fade action
+- RPC functions for incrementing counts
+
+#### 8. Real-time Subscriptions (Future Enhancement)
+Consider adding real-time subscriptions for:
+- New reactions appearing instantly
+- Comments updating in real-time
+- Tail/fade counts updating live
+
+#### 9. Performance Considerations
+- Debounce reaction changes to prevent spam
+- Lazy load comments (only fetch when opened)
+- Cache reaction state locally
+- Use React.memo for PostActions component
+
+#### 10. Accessibility
+- Add accessibility labels to all touchable elements
+- Ensure haptic feedback has visual feedback too
+- Make sure all interactive elements are keyboard accessible
 
 ## Testing Performed
 
@@ -1148,11 +1312,13 @@ export const PostCard = memo(({ post }: PostCardProps) => {
 
 ### Key Decisions Made
 1. 6 emoji reactions only
-2. Optimistic updates everywhere
-3. Haptic feedback on all touches
-4. Bottom sheets for confirmations
-5. View tracking on 50% visibility
-6. No comment system
+2. Full comments system with 280 char limit
+3. Optimistic updates everywhere
+4. Haptic feedback on all touches
+5. Bottom sheets for confirmations
+6. View tracking on 50% visibility
+7. Tail/fade only on pick posts
+8. Game time check for tail/fade
 
 ### Deviations from Original Plan
 [To be tracked during implementation]

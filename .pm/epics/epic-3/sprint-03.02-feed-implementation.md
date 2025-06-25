@@ -7,7 +7,7 @@
 **End Date**: TBD  
 **Epic**: Epic 3 - Social Feed & Content
 
-**Sprint Goal**: Create the main social feed with performant infinite scroll, post cards displaying media and bet attachments, real-time updates, and full integration with user profiles and stats from Epic 2.
+**Sprint Goal**: Create the main social feed with performant infinite scroll, post cards displaying media and bet attachments, real-time updates, comments system, and full integration with user profiles and stats from Epic 2.
 
 **User Story Contribution**: 
 - Enables Story 1: Social Pick Sharing - Main feed for discovering and sharing picks
@@ -24,6 +24,10 @@
 5. Create empty state and error handling
 6. Integrate real-time post updates via Supabase subscriptions
 7. Add post creation flow integration
+8. **NEW: Implement comments system with real-time updates**
+9. **NEW: Add post type support (content/pick/outcome)**
+10. **NEW: Add post options menu with report/block**
+11. **NEW: Filter blocked users from feed**
 
 ### Files to Create
 | File Path | Purpose | Status |
@@ -34,11 +38,17 @@
 | `components/feed/PostCard/PostMedia.tsx` | Photo/video player component | NOT STARTED |
 | `components/feed/PostCard/PostActions.tsx` | Tail/fade/reaction buttons | NOT STARTED |
 | `components/feed/PostCard/BetOverlay.tsx` | Bet details overlay on media | NOT STARTED |
+| `components/feed/PostCard/PostOptionsMenu.tsx` | Report/block menu | NOT STARTED |
+| `components/feed/Comments/CommentsList.tsx` | Comments thread component | NOT STARTED |
+| `components/feed/Comments/CommentItem.tsx` | Individual comment display | NOT STARTED |
+| `components/feed/Comments/CommentInput.tsx` | Add comment input | NOT STARTED |
 | `components/feed/EmptyFeed.tsx` | Empty state component | NOT STARTED |
 | `components/feed/FeedError.tsx` | Error state component | NOT STARTED |
 | `hooks/useFeed.ts` | Feed data fetching and state | NOT STARTED |
 | `hooks/usePostActions.ts` | Post interaction logic | NOT STARTED |
+| `hooks/useComments.ts` | Comments functionality | NOT STARTED |
 | `services/content/postService.ts` | Post CRUD operations | NOT STARTED |
+| `services/content/commentService.ts` | Comment operations | NOT STARTED |
 | `utils/feed/helpers.ts` | Feed utility functions | NOT STARTED |
 | `types/feed.ts` | TypeScript types for feed | NOT STARTED |
 
@@ -58,6 +68,9 @@
 bun add @shopify/flash-list@~1.6.3
 bun add @tanstack/react-query@~5.17.0
 bun add react-native-video@~5.2.1
+bun add @gorhom/bottom-sheet@~4.5.1
+bun add react-native-reanimated@~3.6.0
+bun add react-native-gesture-handler@~2.14.0
 
 # Development build required for video
 ```
@@ -87,48 +100,86 @@ bun add react-native-video@~5.2.1
 └─────────────────────────────────┘
 ```
 
-#### 3. Database Query Pattern
+#### 3. Database Schema Requirements
+```sql
+-- Ensure these tables exist from Epic 1
+CREATE TABLE posts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES users(id),
+  post_type TEXT DEFAULT 'content' CHECK (post_type IN ('content', 'pick', 'outcome')),
+  media_url TEXT NOT NULL,
+  media_type TEXT NOT NULL CHECK (media_type IN ('photo', 'video')),
+  caption TEXT CHECK (char_length(caption) <= 500),
+  bet_id UUID REFERENCES bets(id),
+  tail_count INTEGER DEFAULT 0,
+  fade_count INTEGER DEFAULT 0,
+  expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '24 hours'),
+  created_at TIMESTAMP DEFAULT NOW(),
+  hidden BOOLEAN DEFAULT FALSE,
+  report_count INTEGER DEFAULT 0
+);
+
+CREATE TABLE reactions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id),
+  emoji TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(post_id, user_id)
+);
+
+CREATE TABLE comments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id),
+  text TEXT NOT NULL CHECK (char_length(text) <= 280),
+  created_at TIMESTAMP DEFAULT NOW(),
+  deleted_at TIMESTAMP
+);
+
+-- Indexes for performance
+CREATE INDEX idx_posts_user_created ON posts(user_id, created_at DESC);
+CREATE INDEX idx_posts_expires ON posts(expires_at);
+CREATE INDEX idx_reactions_post ON reactions(post_id);
+CREATE INDEX idx_comments_post ON comments(post_id);
+```
+
+#### 4. Optimized Database Query
 ```typescript
-// Feed query with proper relationship hints
+// Optimized feed query with proper joins
 const { data: posts } = await supabase
   .from('posts')
   .select(`
-    *,
+    id,
+    user_id,
+    post_type,
+    media_url,
+    media_type,
+    caption,
+    bet_id,
+    tail_count,
+    fade_count,
+    created_at,
     user:users!user_id (
       id,
       username,
-      avatar_url,
-      stats_display:user_stats_display!user_id (
-        primary_stat,
-        selected_badge
-      ),
-      badges:user_badges!user_id (
-        badge_id
-      )
-    ),
-    bet:bets!bet_id (
-      *,
-      game:games!game_id (*)
+      avatar_url
     ),
     reactions (
       emoji,
       user_id
     ),
-    tail_count,
-    fade_count
+    _comment_count:comments(count)
   `)
-  .in('user_id', [...followingIds, currentUserId])
+  .in('user_id', [...followingIds, user?.id])
+  .eq('hidden', false)
   .gte('expires_at', new Date().toISOString())
   .order('created_at', { ascending: false })
-  .limit(20);
-```
+  .range(pageParam, pageParam + 19);
 
-#### 4. Performance Optimizations
-- FlashList for windowed rendering
-- Image lazy loading with fade-in
-- Video preloading for visible items only
-- Optimistic updates for interactions
-- Debounced scroll events
+// Note: Blocking filter moved to separate query for performance
+// Stats display joined separately when needed
+```
 
 **Key Technical Decisions**:
 - FlashList over FlatList (better performance)
@@ -137,6 +188,9 @@ const { data: posts } = await supabase
 - 20 posts per page
 - Real-time via WebSocket subscriptions
 - No draft posts (direct publish only)
+- **Comments limited to 280 characters**
+- **Post types for future betting integration**
+- **Blocked users filtered at query level**
 
 ### Dependencies & Risks
 **Dependencies**:
@@ -182,7 +236,7 @@ const { data: posts } = await supabase
 ### Main Feed Screen
 ```typescript
 // app/(drawer)/(tabs)/index.tsx
-import { View, YStack } from '@tamagui/core';
+import { View, YStack, Text } from '@tamagui/core';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Header } from '@/components/ui/Header';
@@ -207,7 +261,9 @@ export default function FeedScreen() {
         <Header />
         {/* Stories placeholder - 88px height */}
         <View h={88} bg={Colors.surface} borderBottomWidth={1} borderColor={Colors.border}>
-          <Text>Stories coming in Sprint 03.03</Text>
+          <Text color={Colors.textSecondary} textAlign="center" lineHeight={88}>
+            Stories coming in Sprint 03.03
+          </Text>
         </View>
         <FeedList />
       </YStack>
@@ -289,12 +345,14 @@ export function FeedList() {
 ### Post Card Component
 ```typescript
 // components/feed/PostCard/PostCard.tsx
-import React, { memo } from 'react';
-import { YStack, XStack } from '@tamagui/core';
+import React, { memo, useState } from 'react';
+import { YStack, XStack, Text } from '@tamagui/core';
 import { PostHeader } from './PostHeader';
 import { PostMedia } from './PostMedia';
 import { PostActions } from './PostActions';
+import { CommentsList } from '../Comments/CommentsList';
 import { Colors } from '@/theme';
+import { useAuth } from '@/hooks/useAuth';
 import type { Post } from '@/types/feed';
 
 interface PostCardProps {
@@ -302,6 +360,9 @@ interface PostCardProps {
 }
 
 export const PostCard = memo(({ post }: PostCardProps) => {
+  const { user } = useAuth();
+  const [showComments, setShowComments] = useState(false);
+  
   return (
     <YStack
       bg={Colors.surface}
@@ -316,17 +377,20 @@ export const PostCard = memo(({ post }: PostCardProps) => {
       <PostHeader 
         user={post.user}
         createdAt={post.created_at}
+        postId={post.id}
+        isOwnPost={post.user_id === user?.id}
       />
       
       <PostMedia 
         mediaUrl={post.media_url}
         mediaType={post.media_type}
         bet={post.bet}
+        postType={post.post_type}
       />
       
       {post.caption && (
         <YStack px="$3" py="$2">
-          <Text fontSize="$3" numberOfLines={2}>
+          <Text fontSize="$3" numberOfLines={2} color={Colors.text}>
             {post.caption}
           </Text>
         </YStack>
@@ -334,11 +398,21 @@ export const PostCard = memo(({ post }: PostCardProps) => {
       
       <PostActions
         postId={post.id}
+        postType={post.post_type}
         reactions={post.reactions}
+        commentCount={post._comment_count?.[0]?.count || 0}
         tailCount={post.tail_count}
         fadeCount={post.fade_count}
         bet={post.bet}
+        onCommentPress={() => setShowComments(!showComments)}
       />
+      
+      {showComments && (
+        <CommentsList 
+          postId={post.id}
+          isVisible={showComments}
+        />
+      )}
     </YStack>
   );
 });
@@ -346,14 +420,15 @@ export const PostCard = memo(({ post }: PostCardProps) => {
 PostCard.displayName = 'PostCard';
 ```
 
-### Post Header Component
+### Post Header Component with Options Menu
 ```typescript
 // components/feed/PostCard/PostHeader.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { XStack, YStack, Text } from '@tamagui/core';
 import { TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Avatar } from '@/components/common/Avatar';
+import { PostOptionsMenu } from './PostOptionsMenu';
 import { formatUserStat } from '@/utils/stats';
 import { formatTimeAgo } from '@/utils/time';
 import { Colors } from '@/theme';
@@ -369,53 +444,197 @@ interface PostHeaderProps {
     };
   };
   createdAt: string;
+  postId: string;
+  isOwnPost: boolean;
 }
 
-export function PostHeader({ user, createdAt }: PostHeaderProps) {
+export function PostHeader({ user, createdAt, postId, isOwnPost }: PostHeaderProps) {
   const router = useRouter();
+  const [showOptions, setShowOptions] = useState(false);
   
   const handleProfilePress = () => {
     router.push(`/profile/${user.username}`);
   };
   
   return (
-    <TouchableOpacity onPress={handleProfilePress}>
-      <XStack p="$3" ai="center" gap="$3">
-        <Avatar 
-          size="$4"
-          source={{ uri: user.avatar_url }}
-          fallback={user.username[0]}
-        />
-        
-        <YStack f={1}>
-          <Text fontSize="$4" fontWeight="600">
-            @{user.username}
-          </Text>
-          <XStack ai="center" gap="$2">
-            {user.stats_display && (
-              <>
-                <Text fontSize="$2" color={Colors.textSecondary}>
-                  {formatUserStat(user.stats_display)}
-                </Text>
-                <Text fontSize="$2" color={Colors.textSecondary}>•</Text>
-              </>
-            )}
-            <Text fontSize="$2" color={Colors.textSecondary}>
-              {formatTimeAgo(createdAt)}
+    <XStack p="$3" ai="center" gap="$3">
+      <TouchableOpacity onPress={handleProfilePress}>
+        <XStack ai="center" gap="$3" f={1}>
+          <Avatar 
+            size="$4"
+            source={{ uri: user.avatar_url }}
+            fallback={user.username[0]}
+          />
+          
+          <YStack f={1}>
+            <Text fontSize="$4" fontWeight="600">
+              @{user.username}
             </Text>
-          </XStack>
-        </YStack>
-        
-        <TouchableOpacity>
-          <Text fontSize="$5" color={Colors.textSecondary}>⋯</Text>
-        </TouchableOpacity>
-      </XStack>
-    </TouchableOpacity>
+            <XStack ai="center" gap="$2">
+              {user.stats_display && (
+                <>
+                  <Text fontSize="$2" color={Colors.textSecondary}>
+                    {formatUserStat(user.stats_display)}
+                  </Text>
+                  <Text fontSize="$2" color={Colors.textSecondary}>•</Text>
+                </>
+              )}
+              <Text fontSize="$2" color={Colors.textSecondary}>
+                {formatTimeAgo(createdAt)}
+              </Text>
+            </XStack>
+          </YStack>
+        </XStack>
+      </TouchableOpacity>
+      
+      <TouchableOpacity onPress={() => setShowOptions(true)}>
+        <Text fontSize="$5" color={Colors.textSecondary}>⋯</Text>
+      </TouchableOpacity>
+      
+      <PostOptionsMenu
+        isVisible={showOptions}
+        onClose={() => setShowOptions(false)}
+        postId={postId}
+        userId={user.id}
+        username={user.username}
+        isOwnPost={isOwnPost}
+      />
+    </XStack>
   );
 }
 ```
 
-### Post Media Component
+### Post Options Menu Component (Using Tamagui Sheet)
+```typescript
+// components/feed/PostCard/PostOptionsMenu.tsx
+import React, { useCallback } from 'react';
+import { Alert } from 'react-native';
+import { Sheet, YStack, XStack, Text, Button } from '@tamagui/core';
+import { useRouter } from 'expo-router';
+import { useBlockUser } from '@/hooks/useBlockUser';
+import { postService } from '@/services/content/postService';
+import { Colors } from '@/theme';
+
+interface PostOptionsMenuProps {
+  isVisible: boolean;
+  onClose: () => void;
+  postId: string;
+  userId: string;
+  username: string;
+  isOwnPost: boolean;
+}
+
+export function PostOptionsMenu({ 
+  isVisible, 
+  onClose, 
+  postId, 
+  userId,
+  username,
+  isOwnPost 
+}: PostOptionsMenuProps) {
+  const router = useRouter();
+  const { blockUser } = useBlockUser();
+  
+  const handleBlock = useCallback(() => {
+    Alert.alert(
+      'Block User',
+      `Are you sure you want to block @${username}? You won't see their posts or stories.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Block', 
+          style: 'destructive',
+          onPress: async () => {
+            await blockUser(userId);
+            onClose();
+          }
+        }
+      ]
+    );
+  }, [userId, username, blockUser, onClose]);
+  
+  const handleReport = useCallback(() => {
+    onClose();
+    router.push(`/report/${postId}`);
+  }, [postId, onClose, router]);
+  
+  const handleDelete = useCallback(() => {
+    Alert.alert(
+      'Delete Post',
+      'Are you sure you want to delete this post?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            await postService.deletePost(postId);
+            onClose();
+          }
+        }
+      ]
+    );
+  }, [postId, onClose]);
+  
+  return (
+    <Sheet
+      modal
+      open={isVisible}
+      onOpenChange={onClose}
+      snapPoints={[isOwnPost ? 20 : 25]}
+      dismissOnSnapToBottom
+    >
+      <Sheet.Overlay />
+      <Sheet.Frame>
+        <Sheet.Handle />
+        <YStack p="$4" gap="$2">
+          {isOwnPost ? (
+            <Button
+              size="$4"
+              bg="transparent"
+              onPress={handleDelete}
+              icon={<Text fontSize="$5">🗑️</Text>}
+            >
+              <Text color={Colors.error} fontSize="$4">Delete Post</Text>
+            </Button>
+          ) : (
+            <>
+              <Button
+                size="$4"
+                bg="transparent"
+                onPress={handleBlock}
+                icon={<Text fontSize="$5">🚫</Text>}
+              >
+                <Text fontSize="$4" color={Colors.text}>Block @{username}</Text>
+              </Button>
+              
+              <Button
+                size="$4"
+                bg="transparent"
+                onPress={handleReport}
+                icon={<Text fontSize="$5">🚨</Text>}
+              >
+                <Text fontSize="$4" color={Colors.text}>Report Post</Text>
+              </Button>
+            </>
+          )}
+          
+          <Button
+            size="$4"
+            bg="transparent"
+            onPress={onClose}
+            mt="$2"
+          >
+            <Text color={Colors.textSecondary} fontSize="$4">Cancel</Text>
+          </Button>
+        </YStack>
+      </Sheet.Frame>
+    </Sheet>
+  );
+}
+```
+
+### Post Media Component with Post Type Support
 ```typescript
 // components/feed/PostCard/PostMedia.tsx
 import React, { useState } from 'react';
@@ -423,6 +642,7 @@ import { View, Image, Dimensions, ActivityIndicator } from 'react-native';
 import Video from 'react-native-video';
 import { BetOverlay } from './BetOverlay';
 import { Colors } from '@/theme';
+import { PostType } from '@/types/feed';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const MEDIA_HEIGHT = (SCREEN_WIDTH - 16) * 9 / 16; // 16:9 aspect ratio
@@ -431,9 +651,10 @@ interface PostMediaProps {
   mediaUrl: string;
   mediaType: 'photo' | 'video';
   bet?: any;
+  postType: PostType;
 }
 
-export function PostMedia({ mediaUrl, mediaType, bet }: PostMediaProps) {
+export function PostMedia({ mediaUrl, mediaType, bet, postType }: PostMediaProps) {
   const [loading, setLoading] = useState(true);
   const [paused, setPaused] = useState(true);
   
@@ -474,174 +695,300 @@ export function PostMedia({ mediaUrl, mediaType, bet }: PostMediaProps) {
         />
       )}
       
-      {bet && <BetOverlay bet={bet} />}
+      {/* Bet overlay only shows on pick posts (future) */}
+      {postType === PostType.PICK && bet && <BetOverlay bet={bet} />}
+      
+      {/* Outcome overlay for outcome posts (future) */}
+      {postType === PostType.OUTCOME && (
+        <View style={{ position: 'absolute', top: 16, right: 16 }}>
+          {/* Placeholder for outcome overlay */}
+        </View>
+      )}
     </View>
   );
 }
 ```
 
-### Bet Overlay Component
+### Post Actions Component with Comments
 ```typescript
-// components/feed/PostCard/BetOverlay.tsx
+// components/feed/PostCard/PostActions.tsx
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { formatOdds, formatMoney } from '@/utils/betting';
+import { YStack, XStack, Button, Text } from '@tamagui/core';
+import { TouchableOpacity } from 'react-native';
+import { usePostActions } from '@/hooks/usePostActions';
+import { useAuth } from '@/hooks/useAuth';
+import { Colors } from '@/theme';
+import { PostType } from '@/types/feed';
+
+interface PostActionsProps {
+  postId: string;
+  postType: PostType;
+  reactions: Array<{ emoji: string; user_id: string }>;
+  commentCount: number;
+  tailCount: number;
+  fadeCount: number;
+  bet?: any;
+  onCommentPress: () => void;
+}
+
+export function PostActions({ 
+  postId,
+  postType,
+  reactions, 
+  commentCount,
+  tailCount, 
+  fadeCount, 
+  bet,
+  onCommentPress
+}: PostActionsProps) {
+  const { user } = useAuth();
+  const { tailBet, fadeBet, addReaction } = usePostActions(postId);
+  
+  const myReaction = reactions.find(r => r.user_id === user?.id);
+  
+  return (
+    <YStack>
+      <XStack p="$3" jc="space-between" ai="center">
+        {/* Tail/Fade Buttons - Only on pick posts */}
+        {postType === PostType.PICK && bet && (
+          <XStack gap="$2">
+            <Button
+              size="$3"
+              bg={Colors.tail}
+              onPress={() => tailBet(bet)}
+              pressStyle={{ opacity: 0.8 }}
+            >
+              <Text color="white" fontSize="$3" fontWeight="600">
+                Tail {tailCount > 0 && `(${tailCount})`}
+              </Text>
+            </Button>
+            
+            <Button
+              size="$3"
+              bg={Colors.fade}
+              onPress={() => fadeBet(bet)}
+              pressStyle={{ opacity: 0.8 }}
+            >
+              <Text color="white" fontSize="$3" fontWeight="600">
+                Fade {fadeCount > 0 && `(${fadeCount})`}
+              </Text>
+            </Button>
+          </XStack>
+        )}
+        
+        {/* Comments and Reactions */}
+        <XStack gap="$3" ai="center" ml={postType !== PostType.PICK ? 'auto' : undefined}>
+          <TouchableOpacity onPress={onCommentPress}>
+            <XStack ai="center" gap="$1">
+              <Text fontSize="$5">💬</Text>
+              {commentCount > 0 && (
+                <Text fontSize="$2" color={Colors.textSecondary}>
+                  {commentCount}
+                </Text>
+              )}
+            </XStack>
+          </TouchableOpacity>
+          
+          <TouchableOpacity onPress={() => addReaction('🔥')}>
+            <XStack ai="center" gap="$1">
+              <Text fontSize="$5">
+                {myReaction ? myReaction.emoji : '🤍'}
+              </Text>
+              {reactions.length > 0 && (
+                <Text fontSize="$2" color={Colors.textSecondary}>
+                  {reactions.length}
+                </Text>
+              )}
+            </XStack>
+          </TouchableOpacity>
+        </XStack>
+      </XStack>
+    </YStack>
+  );
+}
+```
+
+### Comments List Component
+```typescript
+// components/feed/Comments/CommentsList.tsx
+import React from 'react';
+import { YStack, XStack } from '@tamagui/core';
+import { FlatList } from 'react-native';
+import { CommentItem } from './CommentItem';
+import { CommentInput } from './CommentInput';
+import { useComments } from '@/hooks/useComments';
 import { Colors } from '@/theme';
 
-interface BetOverlayProps {
-  bet: {
-    bet_type: 'spread' | 'total' | 'moneyline';
-    selection: string;
-    odds: number;
-    amount: number;
-    game: {
-      home_team: string;
-      away_team: string;
+interface CommentsListProps {
+  postId: string;
+  isVisible: boolean;
+}
+
+export function CommentsList({ postId, isVisible }: CommentsListProps) {
+  const { comments, isLoading, addComment } = useComments(postId);
+  
+  if (!isVisible) return null;
+  
+  return (
+    <YStack borderTopWidth={1} borderColor={Colors.border}>
+      <FlatList
+        data={comments}
+        renderItem={({ item }) => <CommentItem comment={item} />}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingVertical: 8 }}
+        ListEmptyComponent={
+          <Text textAlign="center" color={Colors.textSecondary} p="$3">
+            No comments yet. Be the first!
+          </Text>
+        }
+      />
+      
+      <CommentInput 
+        onSubmit={(text) => addComment(text)}
+        placeholder="Add a comment..."
+      />
+    </YStack>
+  );
+}
+```
+
+### Comment Item Component
+```typescript
+// components/feed/Comments/CommentItem.tsx
+import React from 'react';
+import { XStack, YStack, Text } from '@tamagui/core';
+import { TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Avatar } from '@/components/common/Avatar';
+import { formatTimeAgo } from '@/utils/time';
+import { Colors } from '@/theme';
+
+interface CommentItemProps {
+  comment: {
+    id: string;
+    text: string;
+    created_at: string;
+    user: {
+      id: string;
+      username: string;
+      avatar_url?: string;
     };
   };
 }
 
-export function BetOverlay({ bet }: BetOverlayProps) {
-  const getBetDisplay = () => {
-    switch (bet.bet_type) {
-      case 'spread':
-        return `${bet.selection} ${formatOdds(bet.odds)}`;
-      case 'total':
-        return `${bet.selection} ${formatOdds(bet.odds)}`;
-      case 'moneyline':
-        return `${bet.selection} ML ${formatOdds(bet.odds)}`;
-    }
-  };
+export function CommentItem({ comment }: CommentItemProps) {
+  const router = useRouter();
   
   return (
-    <LinearGradient
-      colors={['transparent', 'rgba(0,0,0,0.7)']}
-      style={styles.overlay}
-    >
-      <View style={styles.content}>
-        <Text style={styles.teams}>
-          {bet.game.away_team} @ {bet.game.home_team}
-        </Text>
-        <Text style={styles.betInfo}>
-          {getBetDisplay()} • {formatMoney(bet.amount)}
-        </Text>
-      </View>
-    </LinearGradient>
-  );
-}
-
-const styles = StyleSheet.create({
-  overlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 80,
-    justifyContent: 'flex-end',
-  },
-  content: {
-    padding: 12,
-  },
-  teams: {
-    color: 'white',
-    fontSize: 12,
-    opacity: 0.8,
-  },
-  betInfo: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 4,
-  },
-});
-```
-
-### Post Actions Component
-```typescript
-// components/feed/PostCard/PostActions.tsx
-import React from 'react';
-import { XStack, Button, Text } from '@tamagui/core';
-import { TouchableOpacity } from 'react-native';
-import { usePostActions } from '@/hooks/usePostActions';
-import { Colors } from '@/theme';
-
-interface PostActionsProps {
-  postId: string;
-  reactions: Array<{ emoji: string; user_id: string }>;
-  tailCount: number;
-  fadeCount: number;
-  bet?: any;
-}
-
-export function PostActions({ 
-  postId, 
-  reactions, 
-  tailCount, 
-  fadeCount, 
-  bet 
-}: PostActionsProps) {
-  const { tailBet, fadeBet, addReaction } = usePostActions(postId);
-  
-  const myReaction = reactions.find(r => r.user_id === currentUserId);
-  
-  return (
-    <XStack p="$3" jc="space-between" ai="center">
-      {/* Tail/Fade Buttons */}
-      {bet && (
-        <XStack gap="$2">
-          <Button
-            size="$3"
-            bg={Colors.tail}
-            onPress={() => tailBet(bet)}
-            pressStyle={{ opacity: 0.8 }}
-          >
-            <Text color="white" fontSize="$3">
-              Tail {tailCount > 0 && `(${tailCount})`}
-            </Text>
-          </Button>
-          
-          <Button
-            size="$3"
-            bg={Colors.fade}
-            onPress={() => fadeBet(bet)}
-            pressStyle={{ opacity: 0.8 }}
-          >
-            <Text color="white" fontSize="$3">
-              Fade {fadeCount > 0 && `(${fadeCount})`}
-            </Text>
-          </Button>
-        </XStack>
-      )}
+    <XStack p="$3" gap="$2">
+      <TouchableOpacity 
+        onPress={() => router.push(`/profile/${comment.user.username}`)}
+      >
+        <Avatar
+          size="$3"
+          source={{ uri: comment.user.avatar_url }}
+          fallback={comment.user.username[0]}
+        />
+      </TouchableOpacity>
       
-      {/* Reactions */}
-      <XStack gap="$2" ai="center">
-        {reactions.length > 0 && (
-          <Text fontSize="$2" color={Colors.textSecondary}>
-            {reactions.length}
+      <YStack f={1} gap="$1">
+        <XStack ai="center" gap="$2">
+          <TouchableOpacity 
+            onPress={() => router.push(`/profile/${comment.user.username}`)}
+          >
+            <Text fontSize="$3" fontWeight="600">
+              @{comment.user.username}
+            </Text>
+          </TouchableOpacity>
+          <Text fontSize="$1" color={Colors.textSecondary}>
+            {formatTimeAgo(comment.created_at)}
           </Text>
-        )}
-        <TouchableOpacity onPress={() => addReaction('🔥')}>
-          <Text fontSize="$5">
-            {myReaction ? myReaction.emoji : '🤍'}
-          </Text>
-        </TouchableOpacity>
-      </XStack>
+        </XStack>
+        
+        <Text fontSize="$3">
+          {comment.text}
+        </Text>
+      </YStack>
     </XStack>
   );
 }
 ```
 
-### Feed Hook
+### Comment Input Component
+```typescript
+// components/feed/Comments/CommentInput.tsx
+import React, { useState } from 'react';
+import { XStack, Input, Button } from '@tamagui/core';
+import { Colors } from '@/theme';
+
+interface CommentInputProps {
+  onSubmit: (text: string) => void;
+  placeholder?: string;
+}
+
+export function CommentInput({ onSubmit, placeholder }: CommentInputProps) {
+  const [text, setText] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const handleSubmit = async () => {
+    if (!text.trim() || isSubmitting) return;
+    
+    setIsSubmitting(true);
+    await onSubmit(text);
+    setText('');
+    setIsSubmitting(false);
+  };
+  
+  return (
+    <XStack p="$3" gap="$2" borderTopWidth={1} borderColor={Colors.border}>
+      <Input
+        f={1}
+        value={text}
+        onChangeText={setText}
+        placeholder={placeholder}
+        maxLength={280}
+        multiline
+        disabled={isSubmitting}
+      />
+      
+      <Button
+        size="$3"
+        bg={Colors.primary}
+        onPress={handleSubmit}
+        disabled={!text.trim() || isSubmitting}
+        opacity={!text.trim() || isSubmitting ? 0.5 : 1}
+      >
+        <Text color="white">Post</Text>
+      </Button>
+    </XStack>
+  );
+}
+```
+
+### Feed Hook with Blocked Users
 ```typescript
 // hooks/useFeed.ts
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
 
 export function useFeed() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  
+  // Get blocked users
+  const { data: blockedUsers } = useQuery({
+    queryKey: ['blocked-users', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('user_blocks')
+        .select('blocked_id')
+        .eq('blocker_id', user?.id);
+      return data?.map(b => b.blocked_id) ?? [];
+    },
+    enabled: !!user?.id,
+  });
   
   // Get following list
   const { data: following } = useQuery({
@@ -658,33 +1005,44 @@ export function useFeed() {
   
   // Infinite scroll query
   const feedQuery = useInfiniteQuery({
-    queryKey: ['feed', following],
+    queryKey: ['feed', following, blockedUsers],
     queryFn: async ({ pageParam = 0 }) => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('posts')
         .select(`
-          *,
+          id,
+          user_id,
+          post_type,
+          media_url,
+          media_type,
+          caption,
+          bet_id,
+          tail_count,
+          fade_count,
+          created_at,
           user:users!user_id (
             id,
             username,
-            avatar_url,
-            stats_display:user_stats_display!user_id (
-              primary_stat,
-              selected_badge
-            )
+            avatar_url
           ),
-          bet:bets!bet_id (
-            *,
-            game:games!game_id (*)
+          reactions (
+            emoji,
+            user_id
           ),
-          reactions (emoji, user_id),
-          tail_count,
-          fade_count
+          _comment_count:comments(count)
         `)
         .in('user_id', [...(following ?? []), user?.id])
+        .eq('hidden', false)
         .gte('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false })
         .range(pageParam, pageParam + 19);
+      
+      // Filter out blocked users if any exist
+      if (blockedUsers && blockedUsers.length > 0) {
+        query = query.not('user_id', 'in', `(${blockedUsers.join(',')})`);
+      }
+      
+      const { data, error } = await query;
       
       if (error) throw error;
       return data ?? [];
@@ -694,86 +1052,352 @@ export function useFeed() {
     enabled: !!following && following.length > 0,
   });
   
-  // Real-time subscription
+  // Real-time subscription for posts and comments
   useEffect(() => {
     if (!following || following.length === 0) return;
     
-    const subscription = supabase
-      .channel('feed-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'posts',
-          filter: `user_id=in.(${[...following, user?.id].join(',')})`,
-        },
-        (payload) => {
-          // Add new post to top of feed
-          queryClient.setQueryData(['feed', following], (old: any) => {
-            if (!old) return old;
-            const newPages = [...old.pages];
-            newPages[0] = [payload.new, ...newPages[0]];
-            return { ...old, pages: newPages };
-          });
-        }
-      )
-      .subscribe();
+    const channel = supabase.channel('feed-updates');
+    
+    // New posts
+    channel.on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'posts',
+        filter: `user_id=in.(${[...following, user?.id].join(',')})`,
+      },
+      (payload) => {
+        // Check if user is blocked
+        if (blockedUsers?.includes(payload.new.user_id)) return;
+        
+        // Add new post to top of feed
+        queryClient.setQueryData(['feed', following, blockedUsers], (old: any) => {
+          if (!old) return old;
+          const newPages = [...old.pages];
+          newPages[0] = [payload.new, ...newPages[0]];
+          return { ...old, pages: newPages };
+        });
+      }
+    );
+    
+    // New comments
+    channel.on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'comments',
+      },
+      (payload) => {
+        // Update comment count for the post
+        queryClient.invalidateQueries({ 
+          queryKey: ['comments', payload.new.post_id] 
+        });
+      }
+    );
+    
+    channel.subscribe();
     
     return () => {
-      subscription.unsubscribe();
+      channel.unsubscribe();
     };
-  }, [following, user?.id]);
+  }, [following, user?.id, blockedUsers, queryClient]);
   
   return feedQuery;
 }
 ```
 
-### Empty Feed Component
+### Post Actions Hook
 ```typescript
-// components/feed/EmptyFeed.tsx
-import React from 'react';
-import { YStack, Text, Button } from '@tamagui/core';
-import { useRouter } from 'expo-router';
-import { Colors } from '@/theme';
+// hooks/usePostActions.ts
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/services/supabase';
+import { useAuth } from '@/hooks/useAuth';
 
-export function EmptyFeed() {
-  const router = useRouter();
+export function usePostActions(postId: string) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   
-  return (
-    <YStack f={1} ai="center" jc="center" p="$6">
-      <Text fontSize="$6" mb="$2">📭</Text>
-      <Text fontSize="$5" fontWeight="600" mb="$2">
-        No posts yet
-      </Text>
-      <Text fontSize="$3" color={Colors.textSecondary} textAlign="center" mb="$4">
-        Follow more friends to see their picks and posts here
-      </Text>
-      <Button
-        size="$4"
-        bg={Colors.primary}
-        onPress={() => router.push('/search')}
-      >
-        <Text color="white">Find Friends</Text>
-      </Button>
-    </YStack>
-  );
+  const addReactionMutation = useMutation({
+    mutationFn: async (emoji: string) => {
+      const { data, error } = await supabase
+        .from('reactions')
+        .upsert({
+          post_id: postId,
+          user_id: user?.id,
+          emoji,
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onMutate: async (emoji) => {
+      // Optimistic update
+      await queryClient.cancelQueries({ queryKey: ['feed'] });
+      
+      const previousData = queryClient.getQueryData(['feed']);
+      
+      queryClient.setQueryData(['feed'], (old: any) => {
+        if (!old) return old;
+        
+        const newPages = old.pages.map((page: any[]) =>
+          page.map((post) => {
+            if (post.id === postId) {
+              const existingReactionIndex = post.reactions.findIndex(
+                (r: any) => r.user_id === user?.id
+              );
+              
+              if (existingReactionIndex >= 0) {
+                // Update existing reaction
+                const newReactions = [...post.reactions];
+                newReactions[existingReactionIndex] = { user_id: user?.id, emoji };
+                return { ...post, reactions: newReactions };
+              } else {
+                // Add new reaction
+                return {
+                  ...post,
+                  reactions: [...post.reactions, { user_id: user?.id, emoji }],
+                };
+              }
+            }
+            return post;
+          })
+        );
+        
+        return { ...old, pages: newPages };
+      });
+      
+      return { previousData };
+    },
+    onError: (err, emoji, context) => {
+      // Rollback on error
+      if (context?.previousData) {
+        queryClient.setQueryData(['feed'], context.previousData);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
+    },
+  });
+  
+  // Placeholder functions for tail/fade (Epic 4)
+  const tailBet = async (bet: any) => {
+    console.log('Tail functionality coming in Epic 4');
+  };
+  
+  const fadeBet = async (bet: any) => {
+    console.log('Fade functionality coming in Epic 4');
+  };
+  
+  return {
+    addReaction: addReactionMutation.mutate,
+    tailBet,
+    fadeBet,
+  };
 }
 ```
 
-### API Endpoints Implemented
-| Method | Path | Request | Response | Status |
-|--------|------|---------|----------|--------|
-| GET | /rest/v1/posts | Query params | Post array | PLANNED |
-| GET | /rest/v1/follows | Query params | Following list | PLANNED |
-| POST | /rest/v1/reactions | `{ post_id, emoji }` | Reaction record | PLANNED |
-| REALTIME | posts channel | WebSocket | New posts | PLANNED |
+### Comments Hook
+```typescript
+// hooks/useComments.ts
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/services/supabase';
+import { useAuth } from '@/hooks/useAuth';
+
+export function useComments(postId: string) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  
+  const { data: comments, isLoading } = useQuery({
+    queryKey: ['comments', postId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('comments')
+        .select(`
+          id,
+          text,
+          created_at,
+          user:users!user_id (
+            id,
+            username,
+            avatar_url
+          )
+        `)
+        .eq('post_id', postId)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: true });
+      
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  
+  const addCommentMutation = useMutation({
+    mutationFn: async (text: string) => {
+      const { data, error } = await supabase
+        .from('comments')
+        .insert({
+          post_id: postId,
+          user_id: user?.id,
+          text,
+        })
+        .select(`
+          id,
+          text,
+          created_at,
+          user:users!user_id (
+            id,
+            username,
+            avatar_url
+          )
+        `)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (newComment) => {
+      // Update local cache
+      queryClient.setQueryData(['comments', postId], (old: any[]) => {
+        return [...(old ?? []), newComment];
+      });
+      
+      // Update comment count in feed
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
+    },
+  });
+  
+  return {
+    comments,
+    isLoading,
+    addComment: addCommentMutation.mutate,
+  };
+}
+```
+
+### Post Service
+```typescript
+// services/content/postService.ts
+import { supabase } from '@/services/supabase';
+
+export const postService = {
+  async deletePost(postId: string) {
+    const { error } = await supabase
+      .from('posts')
+      .delete()
+      .eq('id', postId);
+    
+    if (error) throw error;
+  },
+  
+  async reportPost(postId: string, reason: string, description?: string) {
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) throw new Error('Not authenticated');
+    
+    // Insert report
+    const { error } = await supabase
+      .from('post_reports')
+      .insert({
+        post_id: postId,
+        reporter_id: user.user.id,
+        reason,
+        description,
+      });
+    
+    if (error && error.code !== '23505') { // Ignore duplicate report
+      throw error;
+    }
+    
+    // Increment report count
+    await supabase.rpc('increment', {
+      table_name: 'posts',
+      column_name: 'report_count',
+      row_id: postId,
+    });
+  },
+};
+```
+
+### Comment Service
+```typescript
+// services/content/commentService.ts
+import { supabase } from '@/services/supabase';
+
+export const commentService = {
+  async deleteComment(commentId: string) {
+    // Soft delete
+    const { error } = await supabase
+      .from('comments')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', commentId);
+    
+    if (error) throw error;
+  },
+};
+```
+
+### Feed Types
+```typescript
+// types/feed.ts
+export enum PostType {
+  CONTENT = 'content',
+  PICK = 'pick',
+  OUTCOME = 'outcome',
+}
+
+export interface Post {
+  id: string;
+  user_id: string;
+  post_type: PostType;
+  media_url: string;
+  media_type: 'photo' | 'video';
+  caption?: string;
+  bet_id?: string;
+  tail_count: number;
+  fade_count: number;
+  created_at: string;
+  user: {
+    id: string;
+    username: string;
+    avatar_url?: string;
+  };
+  bet?: any; // Detailed type in Epic 4
+  reactions: Array<{
+    emoji: string;
+    user_id: string;
+  }>;
+  _comment_count?: Array<{ count: number }>;
+}
+
+export interface Comment {
+  id: string;
+  text: string;
+  created_at: string;
+  user: {
+    id: string;
+    username: string;
+    avatar_url?: string;
+  };
+}
+```
 
 ### State Management
-- Feed data managed by React Query
+- Feed data managed by React Query with caching
 - Infinite scroll state in useInfiniteQuery
 - Real-time updates via Supabase subscriptions
 - Optimistic updates for reactions
+- Comment state managed per post
+- Blocked users cached separately
+
+### Error Handling
+- Network errors show retry UI
+- Failed reactions rollback optimistically
+- Report duplicates handled gracefully
+- Missing data shows appropriate placeholders
+- Video load errors show fallback image
 
 ## Testing Performed
 

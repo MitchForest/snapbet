@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
-import { ALL_EFFECTS, getEffectById } from '@/components/effects/EffectLibrary';
-import { Effect, EffectCategory, EffectWithUnlockStatus } from '@/types/effects';
+import { ALL_EFFECTS, getEffectById } from '@/components/effects/constants/allEffects';
+import { EmojiEffect, EffectCategory, EffectWithUnlockStatus } from '@/types/effects';
 import { hasRequiredBadge } from '@/utils/effects/badgeRequirements';
 
 export function useEffects(userBadges: string[]) {
@@ -8,7 +8,7 @@ export function useEffects(userBadges: string[]) {
 
   // Check if a specific effect is unlocked
   const isEffectUnlocked = useCallback(
-    (effect: Effect): boolean => {
+    (effect: EmojiEffect): boolean => {
       return hasRequiredBadge(effect, userBadges);
     },
     [userBadges]

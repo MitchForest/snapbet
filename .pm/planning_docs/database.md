@@ -282,24 +282,37 @@ CREATE TABLE posts (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   bet_id UUID REFERENCES bets(id) ON DELETE SET NULL,
   
+  -- Post Type
+  post_type TEXT NOT NULL CHECK (post_type IN ('content', 'pick', 'outcome')),
+  
   -- Content
   media_url TEXT NOT NULL,
   media_type TEXT NOT NULL CHECK (media_type IN ('photo', 'video')),
   thumbnail_url TEXT, -- For videos
   caption TEXT CHECK (char_length(caption) <= 280),
+  effect_id TEXT, -- Emoji effect used
   
   -- Engagement Metrics
   tail_count INTEGER DEFAULT 0 CHECK (tail_count >= 0),
   fade_count INTEGER DEFAULT 0 CHECK (fade_count >= 0),
   reaction_count INTEGER DEFAULT 0 CHECK (reaction_count >= 0),
+  comment_count INTEGER DEFAULT 0 CHECK (comment_count >= 0),
   
   -- Timestamps
   created_at TIMESTAMPTZ DEFAULT NOW(),
   expires_at TIMESTAMPTZ NOT NULL,
   deleted_at TIMESTAMPTZ,
   
+  -- Outcome Post Specific
+  settled_bet_id UUID REFERENCES bets(id), -- For outcome posts
+  
   -- Constraints
-  CONSTRAINT posts_expiration_check CHECK (expires_at > created_at)
+  CONSTRAINT posts_expiration_check CHECK (expires_at > created_at),
+  CONSTRAINT posts_bet_requirement CHECK (
+    (post_type = 'pick' AND bet_id IS NOT NULL) OR
+    (post_type = 'outcome' AND settled_bet_id IS NOT NULL) OR
+    (post_type = 'content' AND bet_id IS NULL AND settled_bet_id IS NULL)
+  )
 );
 
 -- Indexes
@@ -307,6 +320,8 @@ CREATE INDEX idx_posts_user_created ON posts(user_id, created_at DESC) WHERE del
 CREATE INDEX idx_posts_expires ON posts(expires_at) WHERE deleted_at IS NULL;
 CREATE INDEX idx_posts_bet ON posts(bet_id) WHERE bet_id IS NOT NULL;
 CREATE INDEX idx_posts_feed ON posts(created_at DESC) WHERE deleted_at IS NULL AND expires_at > NOW();
+CREATE INDEX idx_posts_type ON posts(post_type);
+CREATE INDEX idx_posts_pick ON posts(post_type, created_at DESC) WHERE post_type = 'pick' AND deleted_at IS NULL;
 ```
 
 ### stories
@@ -425,6 +440,54 @@ CREATE TABLE reactions (
 -- Indexes
 CREATE INDEX idx_reactions_post ON reactions(post_id);
 CREATE INDEX idx_reactions_user ON reactions(user_id);
+```
+
+### comments
+Text comments on posts (feed posts only).
+
+```sql
+CREATE TABLE comments (
+  -- Primary Key
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  
+  -- Relations
+  post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  
+  -- Content
+  content TEXT NOT NULL CHECK (char_length(content) <= 280),
+  
+  -- Timestamps
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  edited_at TIMESTAMPTZ,
+  deleted_at TIMESTAMPTZ
+);
+
+-- Indexes
+CREATE INDEX idx_comments_post ON comments(post_id, created_at);
+CREATE INDEX idx_comments_user ON comments(user_id);
+CREATE INDEX idx_comments_created ON comments(created_at DESC);
+
+-- Trigger to update comment count
+CREATE OR REPLACE FUNCTION update_comment_count()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE posts
+    SET comment_count = comment_count + 1
+    WHERE id = NEW.post_id;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE posts
+    SET comment_count = GREATEST(comment_count - 1, 0)
+    WHERE id = OLD.post_id;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_comment_count_trigger
+AFTER INSERT OR DELETE ON comments
+FOR EACH ROW EXECUTE FUNCTION update_comment_count();
 ```
 
 ### story_views
@@ -1378,16 +1441,20 @@ CREATE OR REPLACE FUNCTION get_feed(
   p_offset INTEGER DEFAULT 0
 ) RETURNS TABLE (
   post_id UUID,
+  post_type TEXT,
   user_id UUID,
   username TEXT,
   avatar_url TEXT,
   media_url TEXT,
   media_type TEXT,
   caption TEXT,
+  effect_id TEXT,
   bet_id UUID,
   bet_details JSONB,
   tail_count INTEGER,
   fade_count INTEGER,
+  reaction_count INTEGER,
+  comment_count INTEGER,
   user_action TEXT,
   created_at TIMESTAMPTZ,
   expires_at TIMESTAMPTZ
@@ -1396,12 +1463,14 @@ BEGIN
   RETURN QUERY
   SELECT 
     p.id as post_id,
+    p.post_type,
     p.user_id,
     u.username,
     u.avatar_url,
     p.media_url,
     p.media_type,
     p.caption,
+    p.effect_id,
     p.bet_id,
     CASE 
       WHEN b.id IS NOT NULL THEN
@@ -1409,18 +1478,32 @@ BEGIN
           'bet_type', b.bet_type,
           'bet_details', b.bet_details,
           'stake', b.stake,
-          'odds', b.odds
+          'odds', b.odds,
+          'game_id', b.game_id
+        )
+      WHEN sb.id IS NOT NULL THEN
+        jsonb_build_object(
+          'bet_type', sb.bet_type,
+          'bet_details', sb.bet_details,
+          'stake', sb.stake,
+          'odds', sb.odds,
+          'actual_win', sb.actual_win,
+          'status', sb.status,
+          'game_id', sb.game_id
         )
       ELSE NULL
     END as bet_details,
     p.tail_count,
     p.fade_count,
+    p.reaction_count,
+    p.comment_count,
     pa.action_type as user_action,
     p.created_at,
     p.expires_at
   FROM posts p
   JOIN users u ON p.user_id = u.id
   LEFT JOIN bets b ON p.bet_id = b.id
+  LEFT JOIN bets sb ON p.settled_bet_id = sb.id
   LEFT JOIN pick_actions pa ON p.id = pa.post_id AND pa.user_id = p_user_id
   WHERE p.deleted_at IS NULL
     AND p.expires_at > NOW()
@@ -1437,6 +1520,93 @@ BEGIN
   OFFSET p_offset;
 END;
 $$ LANGUAGE plpgsql STABLE;
+```
+
+### create_post
+Creates a post with appropriate expiration based on type.
+
+```sql
+CREATE OR REPLACE FUNCTION create_post(
+  p_user_id UUID,
+  p_post_type TEXT,
+  p_media_url TEXT,
+  p_media_type TEXT,
+  p_caption TEXT DEFAULT NULL,
+  p_effect_id TEXT DEFAULT NULL,
+  p_bet_id UUID DEFAULT NULL,
+  p_settled_bet_id UUID DEFAULT NULL
+) RETURNS JSONB AS $$
+DECLARE
+  v_post RECORD;
+  v_expires_at TIMESTAMPTZ;
+  v_game_time TIMESTAMPTZ;
+BEGIN
+  -- Validate post type requirements
+  IF p_post_type = 'pick' AND p_bet_id IS NULL THEN
+    RAISE EXCEPTION 'Pick posts require a bet_id';
+  END IF;
+  
+  IF p_post_type = 'outcome' AND p_settled_bet_id IS NULL THEN
+    RAISE EXCEPTION 'Outcome posts require a settled_bet_id';
+  END IF;
+  
+  IF p_post_type = 'content' AND (p_bet_id IS NOT NULL OR p_settled_bet_id IS NOT NULL) THEN
+    RAISE EXCEPTION 'Content posts cannot have bet attachments';
+  END IF;
+  
+  -- Calculate expiration based on post type
+  CASE p_post_type
+    WHEN 'pick' THEN
+      -- Get game time from the bet
+      SELECT g.commence_time INTO v_game_time
+      FROM bets b
+      JOIN games g ON b.game_id = g.id
+      WHERE b.id = p_bet_id;
+      
+      -- Expire at game end (assume 3 hours after start)
+      v_expires_at := v_game_time + INTERVAL '3 hours';
+      
+    WHEN 'outcome' THEN
+      -- Expire 24 hours after creation
+      v_expires_at := NOW() + INTERVAL '24 hours';
+      
+    WHEN 'content' THEN
+      -- Expire 24 hours after creation
+      v_expires_at := NOW() + INTERVAL '24 hours';
+  END CASE;
+  
+  -- Create the post
+  INSERT INTO posts (
+    user_id,
+    post_type,
+    media_url,
+    media_type,
+    caption,
+    effect_id,
+    bet_id,
+    settled_bet_id,
+    expires_at
+  ) VALUES (
+    p_user_id,
+    p_post_type,
+    p_media_url,
+    p_media_type,
+    p_caption,
+    p_effect_id,
+    p_bet_id,
+    p_settled_bet_id,
+    v_expires_at
+  )
+  RETURNING * INTO v_post;
+  
+  -- Return the created post
+  RETURN jsonb_build_object(
+    'post', row_to_json(v_post),
+    'expires_at', v_expires_at,
+    'expires_in_hours', EXTRACT(EPOCH FROM (v_expires_at - NOW())) / 3600
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
 
 ## Triggers

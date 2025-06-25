@@ -21,10 +21,12 @@
 | Sprint # | Sprint Name | Status | Start Date | End Date | Key Deliverable |
 |----------|-------------|--------|------------|----------|-----------------|
 | 03.00 | Camera & Media Infrastructure | APPROVED | Jan 2025 | Jan 2025 | Camera capture, media compression, storage |
-| 03.01 | Effects & Filters System | NOT STARTED | - | - | Overlay effects, filters, achievement unlocks |
-| 03.02 | Feed Implementation | NOT STARTED | - | - | Home feed with posts, infinite scroll |
-| 03.03 | Stories System | NOT STARTED | - | - | Stories bar, viewer, auto-expiration |
-| 03.04 | Engagement Features | NOT STARTED | - | - | Reactions, view tracking, share functionality |
+| 03.01 | Emoji Effects System | IN PROGRESS | Jan 2025 | - | Emoji-based effects, particle animations, badge unlocks |
+| 03.0X | Process Emoji Effects (Special) | HANDOFF | Jan 2025 | Jan 2025 | Extract 71 effects from MD files into config files |
+| 03.02 | Feed Implementation | NOT STARTED | - | - | Home feed with posts, comments, infinite scroll |
+| 03.03 | Stories System | NOT STARTED | - | - | Stories bar, viewer, auto-expiration, tail/fade |
+| 03.04 | Engagement Features | NOT STARTED | - | - | Reactions, tail/fade, shares, view tracking |
+| 03.05 | Safety & Privacy | NOT STARTED | - | - | Blocking, reporting, privacy settings, moderation |
 
 **Statuses**: NOT STARTED | IN PROGRESS | IN REVIEW | APPROVED | BLOCKED
 
@@ -63,6 +65,9 @@ Content Pipeline:
    - Alternatives considered: Lottie animations, Canvas API overlays, server-side processing
    - Rationale: Zero dependencies, better performance, perfect for viral Gen Z content
    - Trade-offs: Limited to emoji combinations, but more creative and performant than Lottie
+   - **Key Decision**: Pivoted from Lottie to emoji-based system after discovering placeholder URLs
+   - **Architecture**: 73 effect configs + 6 particle components implementing 48 physics types
+   - **Processing Sprint**: Created Sprint 03.0X to extract effects from documentation
 
 3. **Feed Architecture**: FlashList with React Query infinite scroll
    - Alternatives considered: FlatList, ScrollView with pagination
@@ -678,25 +683,37 @@ CREATE INDEX idx_stories_active ON stories(user_id, created_at DESC)
 - Added proper navigation from tab bar
 
 ### Sprint 03.01: Effects & Filters System
-**Status**: NOT STARTED
-**Goal**: Build emoji-based effects system with 48+ base effects, badge-based unlocks
+**Status**: IN PROGRESS (was NEEDS_REVISION)
+**Goal**: Build emoji-based effects system with 73 effects, badge-based unlocks
 
-**Planned Implementation**:
-- Emoji effects library with 48+ base effects across 17 categories
-- 6 UI categories for user experience (WINS, LOSSES, VIBES, HYPE, WILD CARDS, LIMITED)
-- Real-time effect preview using React Native Reanimated 2
-- Achievement-based unlock system (reuse Epic 2 badges)
-- Performance-adaptive particle limits based on device
-- Haptic feedback integration
-- Effect preview mode (5 seconds for locked effects)
-- Integration with Epic 2's badge system for unlocks
+**Key Decisions Made**:
+- ✅ Pivoted from Lottie to emoji-based effects (zero dependencies)
+- ✅ Created comprehensive emoji_effects.md with 73 effects across 3 tiers
+- ✅ Designed 6 UI categories: WINS, LOSSES, VIBES, HYPE, WILDCARDS, BETTING
+- ✅ Split implementation: configs in 73 files, physics in 6 particle components
+- ✅ Created processing sprint (03.0X) to extract effects from MD files
 
-**Technical Approach**:
-- Emoji-based animations (no external dependencies)
-- React Native Reanimated 2 for UI thread performance
+**Architecture Decisions**:
+- Effect configs contain only data and physics type references (strings)
+- Physics implementations centralized in 6 particle components
+- Each particle component handles specific physics types (48 total)
+- Preview system: 5-second previews for locked effects, once per day
+- Performance adaptive: particle counts adjust based on device tier
+
+**Technical Implementation**:
+- React Native Reanimated 2 for UI thread animations
 - ViewShot for capturing effects with media
-- Particle pooling for memory efficiency
-- Effects burn into media (not separate layer)
+- Haptic feedback patterns for enhanced experience
+- Badge integration for tier 1 & 2 unlocks
+
+**Sprint 03.0X: Process Emoji Effects (Special)**
+**Status**: IN PROGRESS
+**Goal**: Extract emoji effect data from batch MD files into individual configuration files
+
+**Deliverables**:
+- 73 effect configuration files (42 tier 0, 17 tier 1, 12 tier 2)
+- 1 types.ts file with all TypeScript interfaces and 48 physics types
+- Clear file structure: components/effects/constants/effectConfigs/tier[0-2]/
 
 ### Sprint 03.02: Feed Implementation
 **Status**: NOT STARTED
@@ -759,6 +776,22 @@ CREATE INDEX idx_stories_active ON stories(user_id, created_at DESC)
 - No detailed analytics
 - Share just adds to your story
 - No external sharing in MVP
+
+### Sprint 03.05: Safety & Privacy
+**Goal**: User safety features including blocking, reporting, and privacy controls
+
+**Key Deliverables**:
+- User blocking system with immediate effect
+- Post reporting with auto-hide at 3 reports
+- Privacy settings (public/private profiles)
+- Follow request system for private profiles
+- Blocked users management
+- Content moderation foundation
+
+**Notes**:
+- Added to ensure platform safety
+- Required for app store compliance
+- Integrates with all feed/story queries
 
 ## Testing & Quality
 

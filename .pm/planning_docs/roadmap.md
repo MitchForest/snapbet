@@ -35,10 +35,10 @@
 **Goal**: Complete OAuth flow, user profiles, badges, notifications, and referral system
 
 ### Epic 3: Social Feed & Content (Day 2)
-**Goal**: Photo/video sharing with expiration and stories
+**Goal**: Photo/video sharing with emoji effects, feed, and stories
 
-### Epic 4: Betting System (Day 2)
-**Goal**: Complete mock betting with tail/fade mechanics
+### Epic 4: Betting System & Pick Sharing (Day 2-3)
+**Goal**: Complete betting functionality with three post types, overlays, and social mechanics
 
 ### Epic 5: Messaging & Real-time (Day 3)
 **Goal**: DMs, group chats, and real-time updates
@@ -174,19 +174,19 @@
 - Add photo/video capture
 - Build media preview screen
 - Add caption input
-- Implement filters/overlays
+- Implement emoji effects selector (73 effects)
 - Create upload pipeline
 
 **Deliverables**:
 - [ ] Working camera interface
 - [ ] Photo and video capture
-- [ ] Team logo overlays
+- [ ] Emoji effects carousel
 - [ ] Media upload to storage
 
 **Acceptance Criteria**:
 - Can capture photos
 - Can record 10-second videos
-- Overlays render correctly
+- Effects render correctly
 - Media uploads successfully
 
 ---
@@ -197,22 +197,28 @@
 **Goals**:
 - Build feed screen with FlashList
 - Create post card component
-- Implement post creation flow
-- Add bet attachment option
-- Set up expiration timers
+- Implement content post creation flow
+- Add emoji reactions
+- Add text comments (feed posts only)
+- Set up expiration timers for all post types
 - Add pull-to-refresh
 
 **Deliverables**:
 - [ ] Scrollable feed of posts
-- [ ] Post creation working
-- [ ] Posts expire correctly
+- [ ] Content post creation working
+- [ ] Comments and reactions functional
+- [ ] Posts expire correctly (24h for content/outcome, game end for picks)
 - [ ] Shows following only
+- [ ] Visual expiration indicators
 
 **Acceptance Criteria**:
 - Feed loads <1 second
-- Can create post with media
-- Can attach bet to post
-- Posts disappear at game time
+- Can create content post with media
+- Can comment on posts (text only)
+- Can react with emojis
+- Content posts disappear after 24 hours
+- Pick posts show countdown to game
+- Expired posts removed from feed
 
 ---
 
@@ -242,108 +248,158 @@
 ---
 
 ### Sprint 2.4: Betting System Core (2 hours)
-**Epic**: Betting System
+**Epic**: Betting System & Pick Sharing
 
 **Goals**:
-- Build games screen
-- Create bet placement flow
+- Build games screen with mock data
+- Create bet placement bottom sheet
 - Implement bankroll deduction
 - Add bet types (spread/total/ML)
 - Create active bets tracking
 - Mock odds data structure
+- Add "Share Pick" button to confirmation
 
 **Deliverables**:
 - [ ] Games list with odds
 - [ ] Bet placement bottom sheet
 - [ ] Bankroll updates correctly
 - [ ] Bet history tracked
+- [ ] Share pick entry point
 
 **Acceptance Criteria**:
 - Can browse today's games
 - Can place all bet types
 - Bankroll deducts on bet
 - Shows potential payout
+- Share button appears after bet
 
 ---
 
-## Day 3: Social & Polish
+## Day 3: Betting System & Social
 
-### Sprint 3.1: Tail/Fade Mechanics (3 hours)
-**Epic**: Betting System
+### Sprint 3.1: Pick & Outcome Posts (3 hours)
+**Epic**: Betting System & Pick Sharing
 
 **Goals**:
-- Add tail/fade buttons to picks
+- Implement pick post creation flow
+- Build bet overlay component
+- Create outcome post flow
+- Build outcome overlay component
+- Integrate with camera system
+- Add to profile Bets/Picks tab
+- Enable sharing from settled bets
+
+**Implementation Requirements**:
+- Read and implement `.pm/execution_docs/overlays.md` for complete overlay system specification
+- Overlays must integrate with existing camera and effects system from Epic 3
+
+**Deliverables**:
+- [ ] Pick posts with bet overlays
+- [ ] Outcome posts with result overlays
+- [ ] Camera integration for both types
+- [ ] Profile tab shows all picks
+- [ ] Share buttons on settled bets
+
+**Acceptance Criteria**:
+- Can share pick after placing bet
+- Overlay shows teams/odds/selection
+- Can combine with emoji effects
+- Can share outcome from profile
+- Shows W/L and profit/loss
+
+---
+
+### Sprint 3.2: Tail/Fade Mechanics (2 hours)
+**Epic**: Betting System & Pick Sharing
+
+**Goals**:
+- Add tail/fade buttons to pick posts
 - Implement tail logic (copy bet)
 - Implement fade logic (opposite bet)
 - Update counts in real-time
 - Link bets in database
 - Add notifications
+- Disable after game start
 
 **Deliverables**:
-- [ ] Tail/fade UI on posts
+- [ ] Tail/fade UI on pick posts
 - [ ] One-tap tail working
 - [ ] Fade creates opposite bet
 - [ ] Counts update live
+- [ ] Cannot tail/fade after game start
 
 **Acceptance Criteria**:
 - Can tail from feed
 - Can fade from feed
 - Shows who tailed/faded
 - Notifies pick owner
+- Respects game start time
 
 ---
 
-### Sprint 3.2: Messaging System (3 hours)
+### Sprint 3.3: Messaging System (3 hours)
 **Epic**: Messaging & Real-time
 
 **Goals**:
 - Build chat list screen
 - Create DM conversation UI
 - Implement group chat creation
-- Add message sending
+- Add message sending with expiration options
 - Share picks in chat
 - Set up real-time sync
+- Implement blocked user filtering
 
 **Deliverables**:
 - [ ] Chat list screen
-- [ ] DM conversations working
-- [ ] Group chat creation
+- [ ] DM conversations with expiration selector
+- [ ] Group chat creation with admin-set expiration
 - [ ] Real-time message updates
+- [ ] Message expiration options (1hr, 24hr, 1 week)
+- [ ] Server-side expiration job
+- [ ] Blocked users cannot message
 
 **Acceptance Criteria**:
 - Can send text messages
+- Can set expiration per conversation
 - Can share picks in chat
 - Messages appear instantly
 - Shows read receipts
+- Messages expire correctly
+- Blocked users filtered from messaging
 
 ---
 
-### Sprint 3.3: Profile & Social Features (2 hours)
+### Sprint 3.4: Profile & Discovery (2 hours)
 **Epic**: Discovery & Polish
 
 **Goals**:
 - Build user profile screen
+- Add Bets/Picks tab with filters
 - Add follow/unfollow functionality
-- Create performance stats tab
+- Create performance stats display
 - Implement profile navigation
 - Add bankroll reset option
 - Build settings screen
 
 **Deliverables**:
 - [ ] Clickable usernames
-- [ ] Profile with two tabs
+- [ ] Profile with Posts/Bets tabs
+- [ ] Bets tab shows all picks
 - [ ] Follow/unfollow working
 - [ ] Stats display correctly
+- [ ] Can filter bets by status
 
 **Acceptance Criteria**:
 - Can view any profile
 - Can follow/unfollow
-- Shows correct stats
+- Shows all user's picks
+- Can filter active/settled
+- Shows win/loss record
 - Can reset bankroll
 
 ---
 
-### Sprint 3.4: Discovery & Notifications (2 hours)
+### Sprint 3.5: Discovery & Notifications (2 hours)
 **Epic**: Discovery & Polish
 
 **Goals**:
@@ -670,3 +726,89 @@
 ---
 
 This roadmap provides clear daily goals with specific sprints, allowing for focused development while maintaining flexibility for the realities of software development.
+
+## Implementation Notes
+
+### Three Post Types Architecture
+```typescript
+// Post type enum
+enum PostType {
+  CONTENT = 'content',    // General social posts
+  PICK = 'pick',         // Bet sharing posts
+  OUTCOME = 'outcome'    // Result sharing posts
+}
+
+// Entry points
+// 1. Content: Camera tab → No bet context
+// 2. Pick: Bet confirmation → "Share Pick"
+// 3. Outcome: Profile → Settled bet → "Share Result"
+```
+
+### Overlay System Design
+```typescript
+// Bet overlay for pick posts
+interface BetOverlay {
+  teams: { home: string; away: string };
+  betType: 'spread' | 'total' | 'moneyline';
+  line: string;
+  odds: string;
+  selection: string;
+  tailedFrom?: string;  // If tailing
+  fadedFrom?: string;   // If fading
+}
+
+// Outcome overlay for result posts
+interface OutcomeOverlay {
+  result: 'WIN' | 'LOSS' | 'PUSH';
+  profitLoss: number;
+  finalScore: { home: number; away: number };
+  originalBet: BetOverlay;
+  tailFadeCount: { tails: number; fades: number };
+}
+```
+
+### Engagement Features
+```typescript
+// Comments (text-only, feed posts only)
+interface Comment {
+  id: string;
+  postId: string;
+  userId: string;
+  text: string;  // Max 280 chars
+  createdAt: Date;
+}
+
+// Reactions (all post types)
+interface Reaction {
+  postId: string;
+  userId: string;
+  emoji: '🔥' | '💯' | '😬' | '💰' | '🎯' | '🤝';
+}
+
+// Tail/Fade (pick posts only)
+interface TailFade {
+  pickPostId: string;
+  userId: string;
+  action: 'tail' | 'fade';
+  resultingBetId: string;
+}
+```
+
+### Profile Bets/Picks Tab
+```
+Filters:
+- All Bets
+- Active Only
+- Settled Only
+- By Sport (NFL/NBA)
+- By Type (Spread/Total/ML)
+- Wins Only
+- Losses Only
+
+Each bet shows:
+- Teams & bet details
+- Status (active/settled)
+- Result (if settled)
+- Tail/fade counts
+- "Share Pick" or "Share Result" button
+```

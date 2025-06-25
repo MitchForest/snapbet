@@ -27,8 +27,16 @@
 
 ### Story 3: Ephemeral Content
 **As a** semi-casual sports bettor  
-**I want** my content to disappear after games or 24 hours  
+**I want** all my content to be ephemeral with appropriate expiration times  
 **So that** my feed stays fresh and my bad picks don't haunt me forever
+
+**Acceptance Criteria**:
+- Pick posts expire at game end (~3 hours after start)
+- Outcome posts expire 24 hours after creation
+- Content posts expire 24 hours after creation
+- Stories always expire after 24 hours
+- Clear visual indicators of expiration time
+- Cannot interact with expired content
 
 ### Story 4: Group Betting Coordination
 **As a** semi-casual sports bettor  
@@ -49,12 +57,151 @@
 
 | User Story | Required Features | Epic |
 |------------|------------------|------|
-| Story 1: Social Pick Sharing | - Camera with overlays<br>- Pick post creation<br>- Feed display<br>- Media storage<br>- Bet attachment to photos | Epic 1, 2 |
-| Story 2: Tail/Fade Decisions | - Tail/fade buttons<br>- Bet mirroring logic<br>- Opposite bet logic for fades<br>- Action tracking<br>- Real-time counts | Epic 2, 3 |
+| Story 1: Social Pick Sharing | - Camera with overlays<br>- Pick post creation<br>- Feed display<br>- Media storage<br>- Bet attachment to photos<br>- Three post types system | Epic 3, 4 |
+| Story 2: Tail/Fade Decisions | - Tail/fade buttons<br>- Bet mirroring logic<br>- Opposite bet logic for fades<br>- Action tracking<br>- Real-time counts | Epic 4 |
 | Story 3: Ephemeral Content | - Auto-expiration system<br>- Stories feature<br>- Countdown displays<br>- Cleanup jobs<br>- Game-time expiration | Epic 1, 4 |
-| Story 4: Group Coordination | - DM system<br>- Group chat creation<br>- Pick sharing in chat<br>- Message reactions<br>- Disappearing messages | Epic 4 |
-| Story 5: Performance Tracking | - Stats calculation<br>- Profile displays<br>- Bankroll tracking<br>- Performance tabs<br>- Gamification badges | Epic 3, 5 |
-| Story 6: AI Insights | - Pattern analysis<br>- Caption generation<br>- Smart notifications<br>- Friend recommendations<br>- Weekly recaps | Epic 6 |
+| Story 4: Group Coordination | - DM system<br>- Group chat creation<br>- Pick sharing in chat<br>- Message reactions<br>- Disappearing messages | Epic 5 |
+| Story 5: Performance Tracking | - Stats calculation<br>- Profile displays<br>- Bankroll tracking<br>- Performance tabs<br>- Gamification badges<br>- Bets/Picks profile tab | Epic 2, 4 |
+| Story 6: AI Insights | - Pattern analysis<br>- Caption generation<br>- Smart notifications<br>- Friend recommendations<br>- Weekly recaps | Epic 7, 8, 9 |
+
+## Content & Posting System
+
+### Three Types of Posts/Stories
+
+#### 1. Content Posts/Stories
+**Purpose**: General social content, reactions, commentary  
+**Features**:
+- Photo/video with emoji effects only
+- No bet attachments
+- Text comments and emoji reactions
+- 24-hour expiration
+- Created from camera tab
+
+#### 2. Pick Posts/Stories  
+**Purpose**: Share betting picks with tail/fade functionality  
+**Features**:
+- Photo/video with bet overlay showing:
+  - Teams involved
+  - Bet type (spread/total/moneyline)
+  - Odds
+  - Side selected
+  - "Tailing @username" or "Fading @username" badge if applicable
+- Combined with emoji effects for personality
+- Tail/fade buttons enabled
+- Expires at game start time
+- Created from bet confirmation screen
+- Shows in profile Bets/Picks tab
+
+#### 3. Outcome Posts/Stories
+**Purpose**: Share results and build reputation  
+**Features**:
+- Photo/video with outcome overlay showing:
+  - Win/Loss badge
+  - Profit/loss amount
+  - Final score
+  - Original bet details
+  - Number of people who tailed/faded
+- Automatic emoji effects based on outcome
+- Comments enabled for reactions
+- 24-hour expiration
+- Created from settled bets in profile
+- Updates user's visible stats
+
+### Entry Points & User Flow
+
+#### Pick Post Creation Flow
+1. User places bet through Games tab
+2. Bet confirmation shows "Share Pick" button
+3. Camera opens with bet overlay pre-loaded
+4. User can add selfie/video reaction
+5. Select emoji effect for confidence/style
+6. Post to feed and/or story
+7. Pick appears with tail/fade buttons
+
+#### Outcome Post Creation Flow
+1. Bet settles (win/loss determined)
+2. User receives notification
+3. Navigate to Profile → Bets/Picks tab
+4. Tap settled bet
+5. "Share Result" button appears
+6. Camera opens with outcome overlay pre-loaded
+7. Capture reaction with auto-suggested effects
+8. Post to feed and/or story
+
+#### Content Post Creation Flow
+1. Tap camera tab (raised button)
+2. No bet context loaded
+3. Full emoji effects library available
+4. Capture photo/video
+5. Add caption
+6. Post to feed and/or story
+
+### Overlay System
+
+#### Bet Overlays (Pick Posts)
+**Visual Design**: Semi-transparent card overlay
+**Information Displayed**:
+- Team logos or abbreviated names
+- Bet type indicator
+- Line/odds in large text
+- Potential payout (optional - privacy setting)
+- Tail/fade origin if applicable
+
+**Positioning**: Bottom third or top banner based on content
+
+#### Outcome Overlays (Result Posts)
+**Visual Design**: Bold result indicator with details
+**Information Displayed**:
+- Large WIN/LOSS indicator
+- Profit/loss amount (e.g., "+$150" or "-$100")
+- Final score
+- Original bet line for context
+- Tail/fade summary (e.g., "12 people tailed this")
+
+**Positioning**: Centered or bottom third
+
+### Engagement Features
+
+#### Comments (Feed Posts Only)
+- Text-only comments to maintain focus
+- Character limit: 280
+- Common comment types:
+  - Analysis: "Love this over, refs calling everything"
+  - Questions: "Why fade the home team?"
+  - Support: "Tailing! Let's ride"
+  - Results: "We cashed! 💰"
+
+#### Reactions (All Posts)
+- Quick emoji reactions: 🔥💯😬💰🎯🤝
+- Tap to react, tap again to remove
+- Show reaction count and top 3 emojis
+- See who reacted with each emoji
+
+#### Tail/Fade (Pick Posts Only)
+- One-tap action buttons
+- Cannot tail/fade after game starts
+- Cannot tail/fade own picks
+- Updates counts in real-time
+- Creates linked bet in system
+- Notifies original poster
+
+### Profile Integration
+
+#### Bets/Picks Tab
+**Displays**:
+- All user's picks (active and settled)
+- Win/loss record
+- Profit/loss tracking
+- Sport-specific performance
+- Tail/fade counts per pick
+- Quick "Share Result" for settled bets
+
+**Filters**:
+- Active bets
+- Settled bets
+- By sport
+- By bet type
+- Wins only / Losses only
 
 ## Technical Architecture
 
@@ -84,6 +231,7 @@ The system follows a client-server architecture with real-time capabilities:
 - **Media Handling**: 
   - Expo Camera for capture
   - Expo Image for optimized display
+  - React Native ViewShot for overlay composition
 - **Lists**: FlashList for high-performance scrolling
 - **Bottom Sheets**: @gorhom/bottom-sheet for native feel
 - **Haptics**: react-native-haptic-feedback
@@ -103,6 +251,9 @@ snapbet/
 │   └── mobile/                    # React Native/Expo app
 │       ├── app/                   # Expo Router screens
 │       ├── components/            # UI components
+│       │   ├── overlays/          # Bet and outcome overlays
+│       │   ├── effects/           # Emoji effects system
+│       │   └── feed/              # Post cards, comments
 │       ├── hooks/                 # Custom hooks
 │       ├── services/              # API services
 │       ├── stores/                # Zustand stores
@@ -127,7 +278,7 @@ snapbet/
 Core API endpoints include:
 - Authentication (OAuth flow - Google/Twitter only)
 - User management (profiles, follows, stats)
-- Feed operations (posts, stories, reactions) 
+- Feed operations (posts, stories, reactions, comments) 
 - Betting operations (place, tail, fade, settle)
 - Messaging (DMs, group chats, reactions)
 - Games/Odds (mock data following The Odds API spec)
@@ -142,18 +293,23 @@ Primary entities:
 - Users (profiles, OAuth data, preferences)
 - Bankrolls (mock money tracking, resets)
 - Bets (picks, outcomes, settlements, tail/fade links)
-- Posts (media required, captions, expiration, pick details)
+- Posts (media required, captions, expiration, pick details, post type)
 - Stories (24-hour media content)
+- Comments (text-only, on feed posts)
+- Reactions (emoji reactions on all content)
 - Pick Actions (tails, fades, resulting bets)
 - Chats & Messages (DMs, groups, disappearing)
 - Games & Odds (cached from mock API)
 - Notifications (betting events, social events)
 
 Key relationships:
-- Posts can have attached bets
+- Posts can have attached bets (pick posts)
+- Posts have specific types: content, pick, outcome
 - Tails create linked bets with same parameters
 - Fades create opposite bets
 - All content has expiration times
+- Comments belong to posts
+- Reactions belong to posts/stories
 
 *See: [Database Design Document](./docs/database-design.md) for complete schema*
 
@@ -168,6 +324,7 @@ Key relationships:
 - Bottom sheets for contextual actions
 - Emerald primary color for CTAs
 - Card-based layout with subtle shadows
+- Clear visual hierarchy for overlays
 
 ### Navigation Structure
 - **Header**: Profile drawer (left), Logo (center), Notifications (right)
@@ -180,6 +337,9 @@ Key relationships:
 - FlashList for high-performance feed scrolling
 - Gesture-based story viewer
 - Haptic feedback on tails/fades
+- Overlay templates for bet information
+- Comment threads with proper nesting
+- Reaction picker with animation
 
 ### Visual Identity
 - **Primary**: Emerald (#059669)
@@ -227,25 +387,44 @@ Key relationships:
   - User settings and preferences
 
 ### Epic 3: Social Feed & Camera
-- **Goal**: Content creation and consumption
-- **User Stories Addressed**: Story 1, 2, 3
+- **Goal**: Content creation and consumption with emoji effects
+- **User Stories Addressed**: Story 1, 3
 - **Features**:
-  - Camera with team overlays & effects
+  - Camera with emoji effects system (73 effects)
   - Required photo/video for all posts
-  - Feed with tail/fade buttons
+  - Three types of posts/stories (content, pick, outcome)
+  - Feed with engagement features
   - Instagram-style stories bar
   - Post expiration (24h or game time)
+  - Text comments on feed posts
+  - Emoji reactions on all content
   - Username displays with profit/streak badges
-  - Reactions and engagement
 
-### Epic 4: Betting System
-- **Goal**: Mock betting functionality
-- **User Stories Addressed**: Story 2, 5
+### Epic 4: Betting System & Pick Sharing
+- **Goal**: Complete betting functionality with social mechanics
+- **User Stories Addressed**: Story 1, 2, 5
 - **Features**:
   - Mock games following The Odds API format
   - Bottom sheet bet placement
-  - Tail copies exact bet
-  - Fade creates opposite bet
+  - **Pick Post Creation**:
+    - "Share Pick" from bet confirmation
+    - Bet overlay system showing teams/odds/selection
+    - Combine with emoji effects
+    - Enable tail/fade buttons
+  - **Tail/Fade Mechanics**:
+    - One-tap from pick posts
+    - Tail copies exact bet
+    - Fade creates opposite bet
+    - Real-time count updates
+    - Notifications to poster
+  - **Outcome Post Creation**:
+    - "Share Result" from settled bets
+    - Outcome overlay showing W/L and profit/loss
+    - Auto-suggested celebration/commiseration effects
+  - **Profile Integration**:
+    - Bets/Picks tab showing all picks
+    - Quick share buttons for settled bets
+    - Performance tracking by sport/type
   - Bet settlement engine
   - Unlimited bankroll resets
   - Manual settlement via scripts
@@ -289,6 +468,8 @@ Key relationships:
 - Web version
 - Apple Watch app
 - Public/verified accounts
+- Live score integration
+- Automatic outcome post generation
 
 ### Explicitly Out of Scope
 - Real money transactions
@@ -303,10 +484,11 @@ Key relationships:
 
 ### Sprint Plan
 - **Sprint 1 (Day 1)**: Foundation - Auth, Navigation, Database, Tamagui Setup
-- **Sprint 2 (Day 2)**: Core Features - Camera, Feed, Mock Betting, Stories
-- **Sprint 3 (Day 3)**: Social Layer - Messaging, Profiles, Tail/Fade, Polish
-- **Sprint 4 (Days 4-5)**: RAG Integration - AI Features, Embeddings
-- **Sprint 5 (Days 6-7)**: Enhancement, Testing & Launch Prep
+- **Sprint 2 (Day 2)**: Core Features - Camera, Feed, Stories, Effects
+- **Sprint 3 (Day 2-3)**: Betting System - Games, Bets, Pick/Outcome Posts, Tail/Fade
+- **Sprint 4 (Day 3)**: Social Layer - Messaging, Profiles, Comments, Polish
+- **Sprint 5 (Days 4-5)**: RAG Integration - AI Features, Embeddings
+- **Sprint 6 (Days 6-7)**: Enhancement, Testing & Launch Prep
 
 *See: [Development Roadmap Document](./docs/development-roadmap.md) for detailed sprint plans*
 
@@ -345,6 +527,7 @@ Key relationships:
 | Complex tail/fade edge cases | Medium | Clear rules, thorough documentation |
 | User adoption | Medium | Launch to r/sportsbook, referral incentives |
 | App store approval | Low | Clear "entertainment only" disclaimers |
+| Overlay readability | Medium | High contrast design, user testing |
 
 ## Open Questions
 
@@ -375,6 +558,8 @@ Key relationships:
 - Direct message received
 - Mentioned in group chat
 - Milestone achieved (streak, profit)
+- Comment on your post
+- Reaction to your content
 
 ## User Acquisition Plan
 

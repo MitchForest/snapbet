@@ -435,7 +435,7 @@ config/environment.ts  # Environment switcher
   - Tab bar integration complete
   - Migrated from deprecated expo-av to expo-video
 
-**Next Sprint**: 03.01 - Effects & Filters System
+**Next Sprint**: 03.01 - Emoji Effects System + 03.0X - Process Effects
 - Implement emoji-based effects system
 - 48+ base effects across 17 categories
 - Badge-based unlocks from Epic 2
@@ -450,6 +450,37 @@ config/environment.ts  # Environment switcher
 4. Maintain zero lint/TypeScript errors
 5. **expo-av is DEPRECATED** - always use expo-video for video playback
 6. Emoji effects approach chosen over Lottie - zero dependencies, better performance
+
+## Key Technical Decisions Log
+
+### January 2025
+
+**Emoji Effects System Architecture**
+- **Decision**: Pivot from Lottie to emoji-based effects
+- **Date**: January 2025
+- **Context**: Discovered Lottie URLs were placeholders, needed alternative
+- **Choice**: Emoji particles with React Native Reanimated 2
+- **Rationale**: 
+  - Zero dependencies (no Lottie package needed)
+  - Better performance (UI thread animations)
+  - Perfect for Gen Z viral content
+  - More creative freedom with particle physics
+- **Trade-offs**: Limited to emoji combinations but more performant
+- **Impact**: Created 73 unique effects with 48 physics implementations
+
+**Effects Processing Architecture**
+- **Decision**: Separate effect configs from physics implementations
+- **Date**: January 2025
+- **Context**: Need to process 73 effects from documentation
+- **Choice**: 
+  - Effect configs: 73 individual files with data only
+  - Physics: 6 particle components with implementations
+  - Processing sprint: Extract data once, never touch again
+- **Rationale**: 
+  - Maintainable: Physics in 6 files vs 73
+  - Reusable: Multiple effects share physics
+  - Efficient: One-time processing of documentation
+- **Impact**: Clean architecture that scales well
 
 ---
 

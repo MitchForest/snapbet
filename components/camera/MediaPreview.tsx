@@ -17,8 +17,8 @@ import { Colors } from '@/theme';
 import { CapturedMedia } from '@/hooks/useCamera';
 import { compressPhoto, validateVideoSize } from '@/services/media/compression';
 import { formatFileSize } from '@/utils/media/helpers';
-import { getEffectById } from '@/components/effects/EffectLibrary';
-import { EffectPreview } from '@/components/effects/EffectPreview';
+import { getEffectById } from '@/components/effects/constants/allEffects';
+import { EmojiEffectsManager } from '@/components/effects/EmojiEffectsManager';
 
 export interface ShareOptions {
   shareToFeed: boolean;
@@ -137,7 +137,9 @@ export function MediaPreview({ media, onBack, onNext }: MediaPreviewProps) {
         ) : null}
 
         {/* Effect Overlay */}
-        {selectedEffect && <EffectPreview effect={selectedEffect} isActive={true} />}
+        {selectedEffect && (
+          <EmojiEffectsManager effect={selectedEffect} isActive={true} performanceTier="medium" />
+        )}
       </View>
 
       {/* Bottom Options */}

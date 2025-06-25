@@ -2,108 +2,96 @@
 
 A social betting app that combines the ephemeral content style of Snapchat with sports betting picks sharing.
 
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
-* Node.js 18+
-* Bun package manager
-* iOS Simulator (for iOS development)
-* Android Studio (for Android development)
+- Node.js 18+
+- Bun package manager
+- Xcode (for iOS) or Android Studio (for Android)
 
-### Installation
+### Setup & Run
 
-1. Clone the repository
-2. Install dependencies:  
 ```bash
+# 1. Clone the repository
+git clone https://github.com/yourusername/snapbet.git
+cd snapbet
+
+# 2. Install Bun (if not already installed)
+curl -fsSL https://bun.sh/install | bash
+
+# 3. Install dependencies
 bun install
+
+# 4. Set up environment variables
+echo "EXPO_PUBLIC_SUPABASE_URL=https://dummy.supabase.co" > .env
+echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=dummy_key" >> .env
+
+# 5. Run in simulator
+bun run ios    # For iOS Simulator
+# OR
+bun run android  # For Android Emulator
 ```
-3. Copy the environment variables:  
+
+### First Time Setup
+
+**iOS**: Make sure Xcode is installed with iOS Simulator
+- If simulator not found: Xcode → Settings → Platforms → Download iOS Simulator
+
+**Android**: Make sure Android Studio is installed with an AVD
+- If emulator not found: Android Studio → AVD Manager → Create Virtual Device
+
+### Troubleshooting
+
 ```bash
-cp .env.example .env
-```
-4. Add your Supabase credentials to `.env`:
-   - `EXPO_PUBLIC_SUPABASE_URL`: Your Supabase project URL
-   - `EXPO_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase anonymous key
-   - OAuth provider credentials (see OAuth Setup section below)
+# Clear cache if you encounter issues
+bun expo start -c
 
-### Running the App
-
-```bash
-# Start the development server (for development builds)
-bun expo start --dev-client
-
-# Run on iOS
-bun run ios
-
-# Run on Android
-bun run android
-
-# Run linting
-bun run lint
-
-# Run type checking
+# Check for TypeScript errors
 bun run typecheck
+
+# Run linter
+bun run lint
 ```
-
-### OAuth Setup
-
-This app uses OAuth authentication with Google and Twitter. To set up OAuth:
-
-1. **Development Build Required**: OAuth does not work with Expo Go. You need to create a development build:
-   ```bash
-   # Install EAS CLI globally
-   bun install -g eas-cli
-   
-   # Build for iOS Simulator
-   eas build --profile development-simulator --platform ios
-   ```
-
-2. **Configure OAuth Providers**:
-   - Set up OAuth apps in Google Cloud Console and Twitter Developer Portal
-   - Add the redirect URLs to your Supabase project
-   - Add the client IDs and secrets to your `.env` file
-
-3. **Deep Linking**: The app uses `snapbet://` URL scheme for OAuth redirects
-
-## Project Structure
-
-```
-snapbet/
-├── app/                    # Expo Router screens
-│   ├── (auth)/            # Auth group
-│   ├── (tabs)/            # Main app tabs
-│   └── _layout.tsx        # Root layout
-├── components/            # UI components
-├── hooks/                 # React hooks
-├── services/              # API/Supabase
-├── stores/                # Zustand stores
-├── utils/                 # Helpers
-├── types/                 # TypeScript
-├── assets/                # Media files
-├── scripts/               # Dev scripts
-└── supabase/             # Supabase config
-
-```
-
-## Tech Stack
-
-* **Frontend**: React Native with Expo
-* **Navigation**: Expo Router
-* **UI**: Tamagui
-* **Backend**: Supabase
-* **State Management**: Zustand
-* **Language**: TypeScript
 
 ## Development
 
-This project uses:
+### Project Structure
 
-* ESLint for linting
-* Prettier for code formatting
-* TypeScript for type safety
+```
+snapbet/
+├── app/          # Expo Router screens
+├── components/   # UI components
+├── hooks/        # React hooks
+├── services/     # API/Supabase
+├── stores/       # Zustand stores
+├── types/        # TypeScript
+└── supabase/     # Database migrations
+```
 
-All imports use path aliases (e.g., `@/components/Button`).
+### Available Scripts
+
+```bash
+bun start         # Start Expo dev server
+bun run ios       # Run on iOS Simulator
+bun run android   # Run on Android Emulator
+bun run lint      # Run ESLint
+bun run typecheck # Run TypeScript checks
+```
+
+### Tech Stack
+
+- **Frontend**: React Native with Expo
+- **UI**: Tamagui
+- **Backend**: Supabase
+- **State**: Zustand
+- **Language**: TypeScript
+
+## Notes
+
+- OAuth authentication requires a development build (not Expo Go)
+- The app uses `snapbet://` URL scheme for deep linking
+- Mock data is included for testing without a real Supabase instance
 
 ## About
 

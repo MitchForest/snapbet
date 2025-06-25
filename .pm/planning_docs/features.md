@@ -221,27 +221,56 @@
 **Requirements**:
 - Must include photo or video
 - Optional caption (280 characters)
-- Optional bet attachment
-- Can share to multiple destinations
+- Must select post type before capture
+- Can add emoji effects
 - Auto-expire based on type
 
-**Post Types**:
-1. **Pick Post**:
-   - Has attached bet
-   - Shows bet details overlay
-   - Enables tail/fade buttons
-   - Expires at game time
+**Three Post Types**:
 
-2. **Result Post**:
-   - References completed bet
-   - Shows win/loss amount
-   - Celebration/commiseration
-   - Expires in 24 hours
+#### 1. Content Post
+- **Entry Point**: Camera tab (raised button)
+- **Requirements**: Photo/video + optional caption
+- **Features**: 
+  - Full emoji effects library
+  - No bet attachment
+  - Comments and reactions enabled
+  - 24-hour expiration
+- **Use Case**: General sports commentary, reactions, lifestyle content
 
-3. **Content Post**:
-   - General sports content
-   - No bet attached
-   - Expires in 24 hours
+#### 2. Pick Post  
+- **Entry Point**: "Share Pick" button after placing bet
+- **Requirements**: Photo/video + bet attachment
+- **Features**:
+  - Bet overlay showing teams, odds, selection
+  - Emoji effects for personality
+  - Tail/fade buttons enabled
+  - Comments and reactions enabled
+  - Expires at game end (~3 hours after start)
+- **Use Case**: Sharing betting picks for others to tail/fade
+
+#### 3. Outcome Post
+- **Entry Point**: "Share Result" from settled bet in profile
+- **Requirements**: Photo/video + settled bet reference
+- **Features**:
+  - Outcome overlay showing W/L and profit/loss
+  - Auto-suggested celebration/commiseration effects
+  - Comments and reactions enabled
+  - 24-hour expiration
+- **Use Case**: Celebrating wins or commiserating losses
+
+**Post Creation Flow**:
+1. Select entry point (determines post type)
+2. Capture photo/video
+3. Add emoji effect (optional)
+4. Add caption (optional)
+5. Review with overlay (if pick/outcome)
+6. Share to feed and/or story
+
+**Validation**:
+- Media required (no text-only posts)
+- Pick posts require active bet
+- Outcome posts require settled bet
+- Cannot change post type after creation
 
 ### Stories System
 **Description**: 24-hour ephemeral content shown at top of feed.
@@ -266,20 +295,32 @@
 - Screenshot notification (iOS only)
 
 ### Content Expiration
-**Description**: All content disappears after set time.
+**Description**: All content is ephemeral and disappears after set time.
 
 **Expiration Rules**:
-- Pick posts: Expire at game start time
+- Pick posts: Expire at game end (approximately 3 hours after game start)
+- Outcome posts: 24 hours from creation
+- Content posts: 24 hours from creation
 - Stories: 24 hours from creation
-- Regular posts: 24 hours from creation
-- Messages: 24 hours from sending
-- Group messages: 24 hours
+- Messages: User-selected (1 hour, 24 hours, or 1 week)
+
+**Visual Indicators**:
+- Countdown timer on pick posts showing time until game
+- "Expires in X hours" on all posts
+- Fading effect as posts near expiration
+- Red timer when less than 1 hour remaining
 
 **Cleanup Process**:
-- Soft delete (hidden from UI)
+- Soft delete (hidden from UI) immediately at expiration
 - Hard delete after 7 days
-- Media files purged
-- Stats preserved
+- Media files purged with hard delete
+- Stats and bet records preserved forever
+
+**User Experience**:
+- Cannot interact with expired posts
+- Expired posts removed from feed on refresh
+- Tail/fade buttons disabled 5 minutes before game start
+- Push notification before pick expires (optional)
 
 ## Camera & Media Creation
 
@@ -536,7 +577,7 @@
 ## Messaging System
 
 ### Direct Messages
-**Description**: One-on-one private conversations.
+**Description**: One-on-one private conversations with ephemeral messaging.
 
 **Features**:
 - Text messages
@@ -545,7 +586,14 @@
 - Reactions (emoji)
 - Read receipts
 - Typing indicators
-- 24-hour expiration
+- User-selectable message expiration
+
+**Message Expiration Options**:
+- 1 hour (default for sensitive content)
+- 24 hours (default setting)
+- 1 week (for longer conversations)
+- Selected per conversation, not per message
+- Timer visible on messages
 
 **DM Capabilities**:
 - Start from profile or feed
@@ -553,9 +601,10 @@
 - Reply to stories via DM
 - Mute conversations
 - Clear chat history
+- Set expiration time for conversation
 
 ### Group Chats
-**Description**: Multi-person conversations.
+**Description**: Multi-person ephemeral conversations.
 
 **Group Features**:
 - 2-50 members
@@ -564,6 +613,7 @@
 - Admin privileges
 - Add/remove members
 - Leave group
+- Group-wide expiration settings
 
 **Group Messaging**:
 - All DM features
@@ -571,6 +621,13 @@
 - Show member list
 - Member roles (admin/member)
 - Join/leave notifications
+- Admin sets expiration policy
+
+**Group Expiration Rules**:
+- Admin sets expiration time (1 hour, 24 hours, 1 week)
+- Applies to all messages in group
+- Members see expiration setting
+- Cannot be changed after group creation
 
 ### Message Types
 **Description**: Different content types in messages.
@@ -584,14 +641,15 @@
 **2. Media Messages**:
 - Photos from camera/gallery
 - Videos (10 seconds max)
-- Disappear after viewing
-- Save notification (future)
+- Compressed for quick loading
+- Expire with conversation
 
 **3. Pick Shares**:
 - Share active picks
 - Tappable card format
 - Shows bet details
 - Enable tail/fade from chat
+- Expires with conversation
 
 **4. Reactions**:
 - Long press to react
@@ -599,18 +657,46 @@
 - Show reaction count
 
 ### Message Expiration
-**Description**: Auto-deletion of messages.
+**Description**: All messages are ephemeral with configurable expiration.
 
-**Expiration Rules**:
-- All messages: 24 hours
-- Timer starts on send
-- No way to save (MVP)
-- Deleted from server
+**Expiration Options**:
+- **1 Hour**: For time-sensitive picks or quick discussions
+- **24 Hours**: Default setting, balances privacy and convenience
+- **1 Week**: For ongoing conversations about upcoming games
+
+**Expiration Behavior**:
+- Timer starts when message is sent
+- Messages fade out as expiration approaches
+- Deleted from server after expiration
+- No way to recover expired messages
+- Expiration time shown in conversation info
 
 **Visual Indicators**:
-- Countdown timer (future)
-- Fading effect (future)
-- "Expired" placeholder
+- Clock icon shows remaining time
+- Different colors for different expiration times
+- Warning when conversation is about to expire
+- "Expired" placeholder for old messages
+
+**Implementation Details**:
+- Server-side job runs hourly to clean expired messages
+- Soft delete first (hidden from UI)
+- Hard delete after additional 24 hours
+- Media files purged immediately on expiration
+
+### Blocked Users & Moderation
+**Description**: Safety features for messaging.
+
+**Block List Integration**:
+- Blocked users cannot send you messages
+- You cannot message blocked users
+- Existing conversations hidden when blocked
+- Group messages from blocked users hidden
+- No notification to blocked user
+
+**Content Moderation**:
+- Basic profanity filter (future)
+- Report message option (future)
+- Admin review queue (future)
 
 ## Social Features
 
