@@ -166,7 +166,10 @@ class FollowService {
         // Follow - check if target is private
         if (targetUserIsPrivate) {
           // Create follow request
-          const result = await followRequestService.createFollowRequest(targetUserId);
+          const result = await followRequestService.createFollowRequest(
+            targetUserId,
+            currentlyFollowing
+          );
 
           if (result.success) {
             // Update cache to show pending

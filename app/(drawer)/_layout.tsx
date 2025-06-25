@@ -23,10 +23,9 @@ export default function DrawerLayout() {
         }}
       />
       <Drawer.Screen
-        name="camera"
+        name="camera" // This now refers to the entire camera stack directory
         options={{
           drawerItemStyle: { display: 'none' },
-          presentation: 'fullScreenModal',
         }}
       />
       <Drawer.Screen

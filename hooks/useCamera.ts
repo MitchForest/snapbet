@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
-import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { CameraView } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 
