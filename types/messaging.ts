@@ -8,7 +8,7 @@ type DbUser = Database['public']['Tables']['users']['Row'];
 type DbBet = Database['public']['Tables']['bets']['Row'];
 
 // Message types
-export type MessageType = 'text' | 'media' | 'pick';
+export type MessageType = 'text' | 'media' | 'pick' | 'system';
 
 // Message content for sending
 export interface MessageContent {
@@ -126,4 +126,49 @@ export interface ReadReceipt {
 export interface SendMessageResponse {
   message: Message;
   tempId?: string;
+}
+
+// Group-specific types
+export interface GroupCreationData {
+  name: string;
+  avatarUrl?: string;
+  memberIds: string[];
+  expirationHours: number;
+}
+
+export interface GroupMember extends ChatMemberWithUser {
+  isCreator: boolean;
+}
+
+export interface MentionSuggestion {
+  userId: string;
+  username: string;
+  avatarUrl?: string;
+}
+
+export interface SystemMessageMetadata {
+  action: 'group_created' | 'member_added' | 'member_removed' | 'member_role_changed';
+  actor_id?: string;
+  actor_username?: string;
+  target_id?: string;
+  target_username?: string;
+  old_role?: string;
+  new_role?: string;
+}
+
+// Extended message with system message support
+export interface SystemMessage extends Omit<Message, 'metadata'> {
+  metadata: SystemMessageMetadata;
+}
+
+// Group info for display
+export interface GroupInfo {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+  memberCount: number;
+  createdBy: string;
+  createdAt: string;
+  expirationHours: number;
+  userRole: 'admin' | 'member';
 }

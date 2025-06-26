@@ -4,6 +4,7 @@ import { messageService } from '@/services/messaging/messageService';
 import { Message, MessageContent } from '@/types/messaging';
 import { useAuthStore } from '@/stores/authStore';
 import { RealtimeChannel } from '@supabase/supabase-js';
+import type { Json } from '@/types/supabase';
 
 // Extended message type with optimistic flag
 interface OptimisticMessage extends Omit<Message, 'bet_id' | 'media_url' | 'message_type'> {
@@ -12,6 +13,7 @@ interface OptimisticMessage extends Omit<Message, 'bet_id' | 'media_url' | 'mess
   bet_id: string | null;
   media_url: string | null;
   message_type: string | null;
+  metadata: Json;
 }
 
 interface UseMessagesOptions {
@@ -92,6 +94,7 @@ export function useMessages({ chatId, pageSize = 50 }: UseMessagesOptions) {
         media_url: content.mediaUrl || null,
         bet_id: content.betId || null,
         message_type: content.mediaUrl ? 'media' : content.betId ? 'pick' : 'text',
+        metadata: null,
       };
 
       // Add to optimistic set

@@ -4,6 +4,7 @@ import { Pressable, ActivityIndicator } from 'react-native';
 import { Colors } from '@/theme';
 import { Message } from '@/types/messaging';
 import { Avatar } from '@/components/common/Avatar';
+import { MentionableText } from '@/components/messaging/MentionableText';
 import { MediaMessage } from './MediaMessage';
 import { PickShareCard } from './PickShareCard';
 import { MessageStatus } from './MessageStatus';
@@ -15,6 +16,8 @@ interface ChatBubbleProps {
   message: Message;
   isOwn: boolean;
   showAvatar?: boolean;
+  showSenderName?: boolean;
+  chatType?: 'dm' | 'group';
   onResend?: () => void;
   onLongPress?: () => void;
 }
@@ -23,6 +26,8 @@ export function ChatBubble({
   message,
   isOwn,
   showAvatar = false,
+  showSenderName = false,
+  chatType = 'dm',
   onResend,
   onLongPress,
 }: ChatBubbleProps) {
@@ -89,10 +94,22 @@ export function ChatBubble({
       return <PickShareCard betId={extMessage.bet_id} bet={extendedBet} isOwn={isOwn} />;
     }
 
+    // Extract mentions from metadata
+    const mentions =
+      typeof message.metadata === 'object' &&
+      message.metadata !== null &&
+      'mentions' in message.metadata
+        ? (message.metadata.mentions as string[])
+        : [];
+
     return (
-      <Text fontSize="$4" color={textColor} lineHeight={22}>
-        {message.content}
-      </Text>
+      <MentionableText
+        text={message.content || ''}
+        mentions={mentions}
+        color={textColor}
+        fontSize="$4"
+        fontWeight="400"
+      />
     );
   };
 
@@ -115,62 +132,88 @@ export function ChatBubble({
 
       <Pressable onLongPress={handleLongPress} disabled={message.isOptimistic}>
         <Stack maxWidth="75%">
-          <View style={bubbleStyle} padding="$3">
-            {/* Message content */}
-            {renderContent()}
+          {/* Sender name for group chats */}
+          {!isOwn && chatType === 'group' && showSenderName && message.sender.username && (
+            <Text fontSize="$2" color="$gray11" marginBottom="$1" marginLeft="$3" fontWeight="500">
+              {message.sender.username}
+            </Text>
+          )}
 
-            {/* Footer with time and status */}
-            <Stack
-              flexDirection="row"
-              marginTop="$1"
-              alignItems="center"
-              gap="$1"
-              justifyContent={isOwn ? 'flex-end' : 'flex-start'}
+          {/* System messages */}
+          {message.message_type === 'system' && (
+            <View
+              alignSelf="center"
+              paddingHorizontal="$3"
+              paddingVertical="$2"
+              backgroundColor="$gray3"
+              borderRadius="$3"
+              marginVertical="$2"
             >
-              <Text fontSize="$2" color={timeColor}>
-                {timestamp}
+              <Text fontSize="$3" color="$gray11" textAlign="center">
+                {message.content}
               </Text>
+            </View>
+          )}
 
-              {/* Expiration timer */}
-              {message.expires_at && (
-                <ExpirationTimer expiresAt={message.expires_at} color={timeColor} />
+          {/* Regular message bubble */}
+          {message.message_type !== 'system' && (
+            <View style={bubbleStyle} padding="$3">
+              {/* Message content */}
+              {renderContent()}
+
+              {/* Footer with time and status */}
+              <Stack
+                flexDirection="row"
+                marginTop="$1"
+                alignItems="center"
+                gap="$1"
+                justifyContent={isOwn ? 'flex-end' : 'flex-start'}
+              >
+                <Text fontSize="$2" color={timeColor}>
+                  {timestamp}
+                </Text>
+
+                {/* Expiration timer */}
+                {message.expires_at && (
+                  <ExpirationTimer expiresAt={message.expires_at} color={timeColor} />
+                )}
+
+                {/* Status for own messages */}
+                {isOwn && <MessageStatus status={message.status || 'sent'} color={Colors.white} />}
+              </Stack>
+
+              {/* Failed state */}
+              {message.status === 'failed' && (
+                <Pressable onPress={handleResend}>
+                  <Stack flexDirection="row" marginTop="$2" alignItems="center" gap="$1">
+                    <Text fontSize="$2" color={Colors.error} fontWeight="600">
+                      Failed to send
+                    </Text>
+                    <Text fontSize="$2" color={Colors.error} textDecorationLine="underline">
+                      Tap to retry
+                    </Text>
+                  </Stack>
+                </Pressable>
               )}
 
-              {/* Status for own messages */}
-              {isOwn && <MessageStatus status={message.status || 'sent'} color={Colors.white} />}
-            </Stack>
-
-            {/* Failed state */}
-            {message.status === 'failed' && (
-              <Pressable onPress={handleResend}>
-                <Stack flexDirection="row" marginTop="$2" alignItems="center" gap="$1">
-                  <Text fontSize="$2" color={Colors.error} fontWeight="600">
-                    Failed to send
-                  </Text>
-                  <Text fontSize="$2" color={Colors.error} textDecorationLine="underline">
-                    Tap to retry
-                  </Text>
+              {/* Sending state */}
+              {message.status === 'sending' && (
+                <Stack
+                  position="absolute"
+                  top={0}
+                  right={0}
+                  bottom={0}
+                  left={0}
+                  backgroundColor={Colors.black + '33'} // 20% opacity
+                  borderRadius={16}
+                  justifyContent="center"
+                  alignItems="center"
+                >
+                  <ActivityIndicator size="small" color={Colors.white} />
                 </Stack>
-              </Pressable>
-            )}
-
-            {/* Sending state */}
-            {message.status === 'sending' && (
-              <Stack
-                position="absolute"
-                top={0}
-                right={0}
-                bottom={0}
-                left={0}
-                backgroundColor={Colors.black + '33'} // 20% opacity
-                borderRadius={16}
-                justifyContent="center"
-                alignItems="center"
-              >
-                <ActivityIndicator size="small" color={Colors.white} />
-              </Stack>
-            )}
-          </View>
+              )}
+            </View>
+          )}
         </Stack>
       </Pressable>
     </Stack>

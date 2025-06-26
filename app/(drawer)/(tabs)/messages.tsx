@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { View, Text } from '@tamagui/core';
-import { RefreshControl, Pressable } from 'react-native';
+import { RefreshControl, Pressable, StyleSheet } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { useChats } from '@/hooks/useChats';
@@ -44,6 +44,11 @@ export default function MessagesScreen() {
   // Start new chat
   const handleStartChat = useCallback(() => {
     router.push('/search');
+  }, [router]);
+
+  // Create new group
+  const handleCreateGroup = useCallback(() => {
+    router.push('/create-group');
   }, [router]);
 
   // Render individual chat item
@@ -117,6 +122,36 @@ export default function MessagesScreen() {
         }
         ListFooterComponent={!isSearching && chats.length > 0 ? ListFooter : null}
       />
+
+      {/* Floating Action Buttons */}
+      <View position="absolute" bottom={20} right={20} gap="$2">
+        <Pressable onPress={handleCreateGroup} style={styles.fab}>
+          <Text fontSize="$6" color="white">
+            👥
+          </Text>
+        </Pressable>
+        <Pressable onPress={handleStartChat} style={styles.fab}>
+          <Text fontSize="$6" color="white">
+            💬
+          </Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  fab: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+});

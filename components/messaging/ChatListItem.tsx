@@ -79,7 +79,7 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
   const displayName =
     chat.chat_type === 'dm' ? chat.other_member_username : chat.name || 'Group Chat';
   const avatarUrl = chat.chat_type === 'dm' ? chat.other_member_avatar_url : chat.avatar_url;
-  const avatarFallback = displayName?.[0]?.toUpperCase() || '?';
+  const avatarFallback = chat.chat_type === 'group' ? '👥' : displayName?.[0]?.toUpperCase() || '?';
 
   // Format last message
   const lastMessageText = typingUsers.length > 0 ? 'typing...' : chat.last_message_content;
@@ -128,6 +128,12 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
             <View flexDirection="row" justifyContent="space-between" alignItems="center">
               <Text fontSize="$4" fontWeight="600" numberOfLines={1} flex={1}>
                 {displayName}
+                {chat.chat_type === 'group' && chat.member_count > 0 && (
+                  <Text fontSize="$3" color="$gray11" fontWeight="400">
+                    {' '}
+                    ({chat.member_count})
+                  </Text>
+                )}
               </Text>
               {lastMessageTime && (
                 <Text fontSize="$2" color="$gray11">

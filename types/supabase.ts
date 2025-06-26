@@ -506,6 +506,7 @@ export type Database = {
           id: string
           media_url: string | null
           message_type: string | null
+          metadata: Json | null
           sender_id: string
         }
         Insert: {
@@ -518,6 +519,7 @@ export type Database = {
           id?: string
           media_url?: string | null
           message_type?: string | null
+          metadata?: Json | null
           sender_id: string
         }
         Update: {
@@ -530,6 +532,7 @@ export type Database = {
           id?: string
           media_url?: string | null
           message_type?: string | null
+          metadata?: Json | null
           sender_id?: string
         }
         Relationships: [
@@ -1166,6 +1169,24 @@ export type Database = {
       check_perfect_nfl_sunday: {
         Args: { p_user_id: string; p_week_start?: string }
         Returns: boolean
+      }
+      create_group_chat: {
+        Args: {
+          p_name: string
+          p_avatar_url?: string
+          p_created_by?: string
+          p_member_ids?: string[]
+          p_settings?: Json
+        }
+        Returns: {
+          id: string
+          chat_type: Database["public"]["Enums"]["chat_type"]
+          name: string
+          avatar_url: string
+          created_by: string
+          created_at: string
+          settings: Json
+        }[]
       }
       create_notification: {
         Args: { p_user_id: string; p_type: string; p_data: Json }
