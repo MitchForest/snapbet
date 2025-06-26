@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text } from '@tamagui/core';
-import { ActivityIndicator, RefreshControl, ScrollView } from 'react-native';
+import { RefreshControl, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/services/supabase/client';
@@ -8,10 +8,15 @@ import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { ProfileTabs } from '@/components/profile/ProfileTabs';
 import { PostsList } from '@/components/profile/PostsList';
 import { BetsList } from '@/components/profile/BetsList';
+import { BlockConfirmation } from '@/components/moderation/BlockConfirmation';
+import { ProfileSkeleton } from '@/components/skeletons/ProfileSkeleton';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { useFollowState } from '@/hooks/useFollowState';
+import { useBlockedUsers } from '@/hooks/useBlockedUsers';
 import { privacyService } from '@/services/privacy/privacyService';
+import { Colors } from '@/theme';
 
-export default function ProfileScreen() {
+function ProfileScreenContent() {
   const { username } = useLocalSearchParams<{ username: string }>();
   const currentUser = useAuthStore((state) => state.user);
 
@@ -49,8 +54,13 @@ export default function ProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [canViewContent, setCanViewContent] = useState(false);
   const [privacySettings, setPrivacySettings] = useState<PrivacySettings | null>(null);
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
 
   const isOwnProfile = currentUser?.user_metadata?.username === username;
+
+  // Use block functionality
+  const { blockUser, unblockUser, isBlocked } = useBlockedUsers();
+  const isUserBlocked = profileUser ? isBlocked(profileUser.id) : false;
 
   // Use the new follow state hook
   const { isFollowing, toggleFollow } = useFollowState(profileUser?.id || '', {
@@ -138,17 +148,29 @@ export default function ProfileScreen() {
     await toggleFollow();
   };
 
+  const handleBlockPress = () => {
+    setShowBlockConfirm(true);
+  };
+
+  const handleBlockConfirm = async () => {
+    if (profileUser) {
+      if (isUserBlocked) {
+        await unblockUser(profileUser.id);
+      } else {
+        await blockUser(profileUser.id);
+        // Navigate back after blocking
+        router.back();
+      }
+    }
+  };
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchProfileData();
   };
 
   if (isLoading) {
-    return (
-      <View flex={1} justifyContent="center" alignItems="center" backgroundColor="$background">
-        <ActivityIndicator size="large" color="#10b981" />
-      </View>
-    );
+    return <ProfileSkeleton />;
   }
 
   if (!profileUser) {
@@ -157,6 +179,46 @@ export default function ProfileScreen() {
         <Text fontSize={18} color="$textSecondary">
           Profile not found
         </Text>
+      </View>
+    );
+  }
+
+  // If user is blocked, show limited view
+  if (isUserBlocked) {
+    return (
+      <View flex={1} backgroundColor="$background">
+        <ProfileHeader
+          user={profileUser}
+          stats={null}
+          badges={[]}
+          isOwnProfile={false}
+          isFollowing={false}
+          isPrivate={true}
+          privacySettings={null}
+          onFollow={() => {}}
+          onEditProfile={() => {}}
+        />
+
+        <View flex={1} alignItems="center" justifyContent="center" paddingTop="$10">
+          <Text fontSize={20} marginBottom="$2">
+            🚫
+          </Text>
+          <Text fontSize={18} fontWeight="600" color="$textPrimary" marginBottom="$1">
+            You&apos;ve blocked this user
+          </Text>
+          <Text
+            fontSize={14}
+            color="$textSecondary"
+            textAlign="center"
+            paddingHorizontal="$6"
+            marginBottom="$4"
+          >
+            You won&apos;t see their posts or stories
+          </Text>
+          <TouchableOpacity style={styles.unblockButton} onPress={handleBlockPress}>
+            <Text style={styles.unblockButtonText}>Unblock</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -188,6 +250,15 @@ export default function ProfileScreen() {
             Follow this account to see their posts, stats, and betting history
           </Text>
         </View>
+
+        {/* Block option for private accounts */}
+        {!isOwnProfile && (
+          <View style={styles.blockContainer}>
+            <TouchableOpacity onPress={handleBlockPress}>
+              <Text style={styles.blockText}>Block @{profileUser.username}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     );
   }
@@ -218,7 +289,60 @@ export default function ProfileScreen() {
         ) : (
           <BetsList userId={profileUser.id} canView={canViewContent || isOwnProfile} />
         )}
+
+        {/* Block option */}
+        {!isOwnProfile && (
+          <View style={styles.blockContainer}>
+            <TouchableOpacity onPress={handleBlockPress}>
+              <Text style={styles.blockText}>Block @{profileUser.username}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
+
+      {/* Block Confirmation */}
+      <BlockConfirmation
+        isVisible={showBlockConfirm}
+        onClose={() => setShowBlockConfirm(false)}
+        onConfirm={handleBlockConfirm}
+        username={profileUser.username}
+        isBlocking={!isUserBlocked}
+      />
     </View>
   );
 }
+
+export default function ProfileScreen() {
+  return (
+    <ErrorBoundary level="tab">
+      <ProfileScreenContent />
+    </ErrorBoundary>
+  );
+}
+
+const styles = StyleSheet.create({
+  blockContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray[200],
+    marginTop: 20,
+  },
+  blockText: {
+    fontSize: 14,
+    color: Colors.error,
+    fontWeight: '600',
+  },
+  unblockButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  unblockButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+});

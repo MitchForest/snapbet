@@ -2,104 +2,141 @@ import React from 'react';
 import { View, Text } from '@tamagui/core';
 import { ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import { useAuthStore } from '@/stores/authStore';
-import { SettingsRow } from '@/components/settings/SettingsRow';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { Colors } from '@/theme';
+import { SettingsRow } from '@/components/settings/SettingsRow';
+import { useAuthStore } from '@/stores/authStore';
+import { toastService } from '@/services/toastService';
+
+// Admin check utility
+const isAdmin = (userId: string): boolean => {
+  const adminIds = process.env.EXPO_PUBLIC_ADMIN_USER_IDS?.split(',') || [];
+  return adminIds.includes(userId);
+};
 
 export default function SettingsScreen() {
   const user = useAuthStore((state) => state.user);
+  const signOut = useAuthStore((state) => state.signOut);
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      router.replace('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toastService.showError('Failed to sign out');
+    }
+  };
+
+  const showAdminOptions = user && isAdmin(user.id);
 
   return (
-    <View flex={1} backgroundColor={Colors.background}>
+    <View flex={1} backgroundColor="$background">
       <ScreenHeader title="Settings" />
 
       <ScrollView>
-        {/* Profile Settings */}
-        <View marginTop="$3">
+        {/* Account Section */}
+        <View paddingTop="$4">
           <Text fontSize={12} color="$textSecondary" paddingHorizontal="$4" marginBottom="$2">
-            PROFILE
+            ACCOUNT
           </Text>
+
           <SettingsRow
-            icon="✏️"
+            icon="👤"
             label="Edit Profile"
             onPress={() => router.push('/settings/profile')}
             showArrow
           />
-          <SettingsRow
-            icon="📊"
-            label="Stats Display"
-            subtitle="Choose your primary stat"
-            onPress={() => router.push('/settings/stats-display')}
-            showArrow
-          />
-        </View>
 
-        {/* Notifications */}
-        <View marginTop="$6">
-          <Text fontSize={12} color="$textSecondary" paddingHorizontal="$4" marginBottom="$2">
-            NOTIFICATIONS
-          </Text>
-          <SettingsRow
-            icon="🔔"
-            label="Notification Preferences"
-            onPress={() => router.push('/settings/notifications')}
-            showArrow
-          />
-        </View>
-
-        {/* Privacy */}
-        <View marginTop="$6">
-          <Text fontSize={12} color="$textSecondary" paddingHorizontal="$4" marginBottom="$2">
-            PRIVACY
-          </Text>
           <SettingsRow
             icon="🔒"
-            label="Privacy Settings"
+            label="Privacy"
             onPress={() => router.push('/settings/privacy')}
             showArrow
           />
-        </View>
 
-        {/* Account */}
-        <View marginTop="$6">
-          <Text fontSize={12} color="$textSecondary" paddingHorizontal="$4" marginBottom="$2">
-            ACCOUNT
-          </Text>
           <SettingsRow
-            icon="🏈"
-            label="Favorite Team"
-            subtitle={user?.user_metadata?.favorite_team || 'Not set'}
-            onPress={() => {
-              // TODO: Show team selection modal
-            }}
+            icon="🔔"
+            label="Notifications"
+            onPress={() => router.push('/settings/notifications')}
             showArrow
           />
-          <SettingsRow icon="📧" label="Email" subtitle={user?.email || ''} disabled />
+
+          <SettingsRow
+            icon="📊"
+            label="Stats Display"
+            onPress={() => router.push('/settings/stats-display')}
+            showArrow
+          />
+
+          <SettingsRow
+            icon="🚫"
+            label="Blocked Users"
+            onPress={() => router.push('/settings/blocked')}
+            showArrow
+          />
         </View>
 
-        {/* About */}
-        <View marginTop="$6" marginBottom="$6">
+        {/* Admin Section */}
+        {showAdminOptions && (
+          <View paddingTop="$6">
+            <Text fontSize={12} color="$textSecondary" paddingHorizontal="$4" marginBottom="$2">
+              ADMIN
+            </Text>
+
+            <SettingsRow
+              icon="🛡️"
+              label="Moderation Panel"
+              onPress={() => router.push('/admin/moderation')}
+              showArrow
+            />
+          </View>
+        )}
+
+        {/* Support Section */}
+        <View paddingTop="$6">
           <Text fontSize={12} color="$textSecondary" paddingHorizontal="$4" marginBottom="$2">
-            ABOUT
+            SUPPORT
           </Text>
-          <SettingsRow icon="📱" label="Version" subtitle="1.0.0" disabled />
+
+          <SettingsRow
+            icon="❓"
+            label="How to Play"
+            onPress={() => router.push('/how-to-play')}
+            showArrow
+          />
+
+          <SettingsRow
+            icon="📧"
+            label="Contact Support"
+            onPress={() => toastService.showComingSoon('Contact Support')}
+            showArrow
+          />
+        </View>
+
+        {/* Legal Section */}
+        <View paddingTop="$6">
+          <Text fontSize={12} color="$textSecondary" paddingHorizontal="$4" marginBottom="$2">
+            LEGAL
+          </Text>
+
           <SettingsRow
             icon="📄"
             label="Terms of Service"
-            onPress={() => {
-              // TODO: Open terms
-            }}
+            onPress={() => toastService.showComingSoon('Terms of Service')}
             showArrow
           />
+
           <SettingsRow
             icon="🔐"
             label="Privacy Policy"
-            onPress={() => {
-              // TODO: Open privacy policy
-            }}
+            onPress={() => toastService.showComingSoon('Privacy Policy')}
             showArrow
           />
+        </View>
+
+        {/* Logout */}
+        <View paddingTop="$6" paddingBottom="$8">
+          <SettingsRow icon="🚪" label="Log Out" onPress={handleLogout} />
         </View>
       </ScrollView>
     </View>

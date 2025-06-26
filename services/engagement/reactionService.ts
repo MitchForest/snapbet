@@ -26,9 +26,13 @@ export interface GetReactionUsersResult {
 
 class ReactionService {
   /**
-   * Toggle a reaction on a post (add, update, or remove)
+   * Toggle a reaction on a post or story (add, update, or remove)
    */
-  async toggleReaction(postId: string, emoji: string): Promise<ToggleReactionResult> {
+  async toggleReaction(
+    contentId: string,
+    emoji: string,
+    isStory = false
+  ): Promise<ToggleReactionResult> {
     // Validate emoji
     if (!ALLOWED_REACTIONS.includes(emoji as AllowedReaction)) {
       throw new Error('Invalid reaction emoji');
@@ -42,13 +46,17 @@ class ReactionService {
     }
 
     try {
-      // Check if user already has a reaction on this post
-      const { data: existingReaction } = await supabase
-        .from('reactions')
-        .select('*')
-        .eq('post_id', postId)
-        .eq('user_id', user.id)
-        .single();
+      // Build query based on content type
+      const query = supabase.from('reactions').select('*').eq('user_id', user.id);
+
+      if (isStory) {
+        query.eq('story_id', contentId).is('post_id', null);
+      } else {
+        query.eq('post_id', contentId).is('story_id', null);
+      }
+
+      // Check if user already has a reaction on this content
+      const { data: existingReaction } = await query.single();
 
       if (existingReaction) {
         if (existingReaction.emoji === emoji) {
@@ -70,26 +78,33 @@ class ReactionService {
           if (error) throw error;
 
           // Create notification for new reaction type
-          await this.createReactionNotification(postId, user.id, emoji);
+          if (!isStory) {
+            await this.createReactionNotification(contentId, user.id, emoji);
+          }
 
           return { reaction: updatedReaction, removed: false };
         }
       } else {
         // No existing reaction - create new one
+        const insertData = {
+          user_id: user.id,
+          emoji,
+          post_id: isStory ? null : contentId,
+          story_id: isStory ? contentId : null,
+        };
+
         const { data: newReaction, error } = await supabase
           .from('reactions')
-          .insert({
-            post_id: postId,
-            user_id: user.id,
-            emoji,
-          })
+          .insert(insertData)
           .select()
           .single();
 
         if (error) throw error;
 
-        // Create notification
-        await this.createReactionNotification(postId, user.id, emoji);
+        // Create notification (only for posts)
+        if (!isStory) {
+          await this.createReactionNotification(contentId, user.id, emoji);
+        }
 
         return { reaction: newReaction, removed: false };
       }
@@ -99,14 +114,19 @@ class ReactionService {
   }
 
   /**
-   * Get aggregated reactions for a post
+   * Get aggregated reactions for a post or story
    */
-  async getReactions(postId: string): Promise<ReactionSummary[]> {
+  async getReactions(contentId: string, isStory = false): Promise<ReactionSummary[]> {
     try {
-      const { data: reactions, error } = await supabase
-        .from('reactions')
-        .select('emoji')
-        .eq('post_id', postId);
+      const query = supabase.from('reactions').select('emoji');
+
+      if (isStory) {
+        query.eq('story_id', contentId);
+      } else {
+        query.eq('post_id', contentId);
+      }
+
+      const { data: reactions, error } = await query;
 
       if (error) throw error;
 
@@ -130,16 +150,23 @@ class ReactionService {
   }
 
   /**
-   * Get the current user's reaction for a post
+   * Get the current user's reaction for a post or story
    */
-  async getUserReaction(postId: string, userId: string): Promise<string | null> {
+  async getUserReaction(
+    contentId: string,
+    userId: string,
+    isStory = false
+  ): Promise<string | null> {
     try {
-      const { data: reaction, error } = await supabase
-        .from('reactions')
-        .select('emoji')
-        .eq('post_id', postId)
-        .eq('user_id', userId)
-        .single();
+      const query = supabase.from('reactions').select('emoji').eq('user_id', userId);
+
+      if (isStory) {
+        query.eq('story_id', contentId);
+      } else {
+        query.eq('post_id', contentId);
+      }
+
+      const { data: reaction, error } = await query.single();
 
       if (error) {
         if (error.code === 'PGRST116') return null; // Not found
@@ -156,18 +183,25 @@ class ReactionService {
    * Get users who reacted with a specific emoji
    */
   async getReactionUsers(
-    postId: string,
+    contentId: string,
     emoji: string,
+    isStory = false,
     limit: number = 50,
     offset: number = 0
   ): Promise<GetReactionUsersResult> {
     try {
       // Get total count
-      const { count } = await supabase
-        .from('reactions')
-        .select('*', { count: 'exact', head: true })
-        .eq('post_id', postId)
-        .eq('emoji', emoji);
+      const query = supabase.from('reactions').select('*', { count: 'exact', head: true });
+
+      if (isStory) {
+        query.eq('story_id', contentId);
+      } else {
+        query.eq('post_id', contentId);
+      }
+
+      query.eq('emoji', emoji);
+
+      const { count } = await query;
 
       // Get users with pagination
       const { data: reactions, error } = await supabase
@@ -181,7 +215,7 @@ class ReactionService {
           )
         `
         )
-        .eq('post_id', postId)
+        .eq('post_id', contentId)
         .eq('emoji', emoji)
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
@@ -204,17 +238,21 @@ class ReactionService {
    * Create a notification for a reaction (helper method)
    */
   private async createReactionNotification(
-    postId: string,
+    contentId: string,
     reactorId: string,
     emoji: string
   ): Promise<void> {
     try {
       // Get post owner and reactor info
-      const { data: post } = await supabase
-        .from('posts')
-        .select('user_id')
-        .eq('id', postId)
-        .single();
+      const query = supabase.from('posts').select('user_id');
+
+      if (contentId.startsWith('story_')) {
+        query.eq('story_id', contentId);
+      } else {
+        query.eq('post_id', contentId);
+      }
+
+      const { data: post } = await query.single();
 
       if (!post || post.user_id === reactorId) return; // Don't notify self
 
@@ -232,7 +270,7 @@ class ReactionService {
         data: {
           actorId: reactorId,
           actorUsername: reactor.username,
-          postId: postId,
+          postId: contentId,
           emoji: emoji,
         },
         read: false,

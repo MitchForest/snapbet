@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-  View,
-  ScrollView,
-  StyleSheet,
-  Text,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+import { View, ScrollView, StyleSheet, Text, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Colors } from '@/theme';
@@ -16,10 +8,12 @@ import { SearchBar } from '@/components/search/SearchBar';
 import { UserSearchCard } from '@/components/search/UserSearchCard';
 import { DiscoverySection } from '@/components/search/DiscoverySection';
 import { RecentSearches } from '@/components/search/RecentSearches';
+import { SearchSkeleton } from '@/components/skeletons/SearchSkeleton';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { useSearch } from '@/hooks/useSearch';
 import { useDiscovery } from '@/hooks/useDiscovery';
 
-export default function SearchScreen() {
+function SearchScreenContent() {
   const {
     query,
     setQuery,
@@ -60,11 +54,7 @@ export default function SearchScreen() {
 
   const renderSearchResults = () => {
     if (searchState === 'searching') {
-      return (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
-      );
+      return <SearchSkeleton />;
     }
 
     if (searchState === 'empty') {
@@ -186,6 +176,14 @@ export default function SearchScreen() {
   );
 }
 
+export default function SearchScreen() {
+  return (
+    <ErrorBoundary level="tab">
+      <SearchScreenContent />
+    </ErrorBoundary>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -197,12 +195,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 100,
   },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 100,
-  },
+
   emptyContainer: {
     alignItems: 'center',
     paddingTop: 80,

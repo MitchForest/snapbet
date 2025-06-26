@@ -1,5 +1,5 @@
 import { supabase } from '@/services/supabase/client';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Storage } from '@/services/storage/storageService';
 
 interface ReferralStats {
   totalReferrals: number;
@@ -272,7 +272,7 @@ export async function getReferredUsers(userId: string): Promise<ReferredUser[]> 
  */
 export async function storePendingReferralCode(code: string): Promise<void> {
   try {
-    await AsyncStorage.setItem(REFERRAL_CODE_KEY, code.toUpperCase());
+    Storage.general.set(REFERRAL_CODE_KEY, code.toUpperCase());
   } catch (error) {
     console.error('Error storing referral code:', error);
   }
@@ -283,9 +283,9 @@ export async function storePendingReferralCode(code: string): Promise<void> {
  */
 export async function getPendingReferralCode(): Promise<string | null> {
   try {
-    const code = await AsyncStorage.getItem(REFERRAL_CODE_KEY);
+    const code = Storage.general.get<string>(REFERRAL_CODE_KEY);
     if (code) {
-      await AsyncStorage.removeItem(REFERRAL_CODE_KEY);
+      Storage.general.delete(REFERRAL_CODE_KEY);
     }
     return code;
   } catch (error) {
@@ -302,4 +302,73 @@ export function getShareContent(code: string): { message: string; url: string } 
     message: `Join me on SnapBet! Use my invite code ${code} when you sign up. Let's bet together! 🎯`,
     url: `https://snapbet.app/invite/${code}`, // For future web landing page
   };
+}
+
+/**
+ * Gets referral rewards information for a user
+ */
+export async function getReferralRewards(userId: string): Promise<{
+  referralCount: number;
+  weeklyBonus: number;
+  nextResetDate: Date;
+}> {
+  try {
+    // Get user's referral count
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('referral_count')
+      .eq('id', userId)
+      .single();
+
+    if (userError || !userData) {
+      console.error('Error fetching user referral count:', userError);
+      return {
+        referralCount: 0,
+        weeklyBonus: 0,
+        nextResetDate: getNextMondayMidnight(),
+      };
+    }
+
+    const referralCount = userData.referral_count || 0;
+    const weeklyBonus = referralCount * 10000; // $100 per referral in cents
+
+    return {
+      referralCount,
+      weeklyBonus,
+      nextResetDate: getNextMondayMidnight(),
+    };
+  } catch (error) {
+    console.error('Error getting referral rewards:', error);
+    return {
+      referralCount: 0,
+      weeklyBonus: 0,
+      nextResetDate: getNextMondayMidnight(),
+    };
+  }
+}
+
+/**
+ * Calculates the weekly bankroll including referral bonus
+ */
+export function calculateWeeklyBankroll(referralCount: number): number {
+  const BASE_BANKROLL = 100000; // $1,000 in cents
+  const REFERRAL_BONUS = 10000; // $100 in cents
+  return BASE_BANKROLL + referralCount * REFERRAL_BONUS;
+}
+
+/**
+ * Gets the next Monday at midnight for reset timing
+ */
+function getNextMondayMidnight(): Date {
+  const now = new Date();
+  const nextMonday = new Date(now);
+
+  // Set to next Monday
+  const daysUntilMonday = (8 - now.getDay()) % 7 || 7;
+  nextMonday.setDate(now.getDate() + daysUntilMonday);
+
+  // Set to midnight
+  nextMonday.setHours(0, 0, 0, 0);
+
+  return nextMonday;
 }

@@ -2,6 +2,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/services/supabase/client';
 import { Storage, CacheUtils, StorageKeys } from '@/services/storage/storageService';
 import { followRequestService } from './followRequestService';
+import { eventEmitter, FeedEvents } from '@/utils/eventEmitter';
 
 interface FollowState {
   isFollowing: boolean;
@@ -161,6 +162,13 @@ class FollowService {
         });
 
         this.persistCachedStates();
+
+        // Emit event for feed refresh
+        eventEmitter.emit(FeedEvents.FOLLOW_STATUS_CHANGED, {
+          userId: targetUserId,
+          isFollowing: false,
+        });
+
         return { success: true };
       } else {
         // Follow - check if target is private
@@ -168,7 +176,7 @@ class FollowService {
           // Create follow request
           const result = await followRequestService.createFollowRequest(
             targetUserId,
-            currentlyFollowing
+            false // isAlreadyFollowing - we're in the follow branch, so they're not following yet
           );
 
           if (result.success) {
@@ -209,6 +217,13 @@ class FollowService {
           });
 
           this.persistCachedStates();
+
+          // Emit event for feed refresh
+          eventEmitter.emit(FeedEvents.FOLLOW_STATUS_CHANGED, {
+            userId: targetUserId,
+            isFollowing: true,
+          });
+
           return { success: true };
         }
       }

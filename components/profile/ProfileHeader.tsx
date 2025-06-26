@@ -5,6 +5,7 @@ import { Avatar } from '@/components/common/Avatar';
 import { WeeklyBadgeGrid } from '@/components/badges/WeeklyBadgeGrid';
 import { followService } from '@/services/social/followService';
 import { FollowRequestButton } from './FollowRequestButton';
+import { useReferralRewards } from '@/hooks/useReferralRewards';
 
 interface ProfileUser {
   id: string;
@@ -66,6 +67,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   // Get follower/following counts with real-time updates
   const [followerCount, setFollowerCount] = React.useState(0);
   const [followingCount, setFollowingCount] = React.useState(0);
+
+  // Get referral rewards for own profile
+  const { referralCount, formattedBonus } = useReferralRewards();
 
   React.useEffect(() => {
     const fetchCounts = async () => {
@@ -141,6 +145,22 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <Text fontSize={14} color="$textPrimary" marginBottom="$3" lineHeight={20}>
           {user.bio}
         </Text>
+      )}
+
+      {/* Referral Bonus Info - only show on own profile */}
+      {isOwnProfile && referralCount > 0 && (
+        <View
+          backgroundColor="$emerald"
+          paddingHorizontal="$3"
+          paddingVertical="$2"
+          borderRadius="$2"
+          marginBottom="$3"
+          alignSelf="flex-start"
+        >
+          <Text fontSize={14} fontWeight="600" color="white">
+            {referralCount} referrals • +{formattedBonus}/week
+          </Text>
+        </View>
       )}
 
       {/* Weekly Badges - only show if we have stats access */}

@@ -1,17 +1,26 @@
 import React from 'react';
 import { Drawer } from 'expo-router/drawer';
 import { DrawerContent } from '@/components/ui/DrawerContent';
+import { useAuthStore } from '@/stores/authStore';
+import { Ionicons } from '@expo/vector-icons';
+
+const isAdmin = (userId: string): boolean => {
+  const adminIds = process.env.EXPO_PUBLIC_ADMIN_USER_IDS?.split(',') || [];
+  return adminIds.includes(userId);
+};
 
 export default function DrawerLayout() {
+  const user = useAuthStore((state) => state.user);
+  const showAdminOptions = user && isAdmin(user.id);
+
   return (
     <Drawer
       drawerContent={(props) => <DrawerContent {...props} />}
       screenOptions={{
         headerShown: false,
-        drawerPosition: 'left',
-        drawerType: 'slide',
         drawerStyle: {
-          width: '80%',
+          backgroundColor: '#FAF9F5',
+          width: 280,
         },
       }}
     >
@@ -19,20 +28,42 @@ export default function DrawerLayout() {
         name="(tabs)"
         options={{
           drawerLabel: 'Home',
-          title: 'Home',
+          title: 'SnapBet',
         }}
       />
       <Drawer.Screen
-        name="camera" // This now refers to the entire camera stack directory
+        name="camera"
         options={{
-          drawerItemStyle: { display: 'none' },
+          drawerLabel: 'Camera',
+          title: 'Camera',
         }}
       />
       <Drawer.Screen
         name="notifications"
         options={{
-          drawerItemStyle: { display: 'none' },
+          drawerLabel: 'Notifications',
           title: 'Notifications',
+        }}
+      />
+      <Drawer.Screen
+        name="invite"
+        options={{
+          drawerLabel: 'Invite Friends',
+          title: 'Invite Friends',
+        }}
+      />
+      <Drawer.Screen
+        name="how-to-play"
+        options={{
+          drawerLabel: 'How to Play',
+          title: 'How to Play',
+        }}
+      />
+      <Drawer.Screen
+        name="settings/index"
+        options={{
+          drawerLabel: 'Settings',
+          title: 'Settings',
         }}
       />
       <Drawer.Screen
@@ -43,10 +74,24 @@ export default function DrawerLayout() {
         }}
       />
       <Drawer.Screen
-        name="settings/index"
+        name="followers"
         options={{
           drawerItemStyle: { display: 'none' },
-          title: 'Settings',
+          title: 'Followers',
+        }}
+      />
+      <Drawer.Screen
+        name="following"
+        options={{
+          drawerItemStyle: { display: 'none' },
+          title: 'Following',
+        }}
+      />
+      <Drawer.Screen
+        name="follow-requests"
+        options={{
+          drawerItemStyle: { display: 'none' },
+          title: 'Follow Requests',
         }}
       />
       <Drawer.Screen
@@ -60,14 +105,14 @@ export default function DrawerLayout() {
         name="settings/notifications"
         options={{
           drawerItemStyle: { display: 'none' },
-          title: 'Notification Settings',
+          title: 'Notifications',
         }}
       />
       <Drawer.Screen
         name="settings/privacy"
         options={{
           drawerItemStyle: { display: 'none' },
-          title: 'Privacy Settings',
+          title: 'Privacy',
         }}
       />
       <Drawer.Screen
@@ -78,33 +123,40 @@ export default function DrawerLayout() {
         }}
       />
       <Drawer.Screen
-        name="following"
+        name="settings/blocked"
         options={{
           drawerItemStyle: { display: 'none' },
-          title: 'Following',
+          title: 'Blocked Users',
         }}
       />
       <Drawer.Screen
-        name="followers"
+        name="story/_layout"
         options={{
           drawerItemStyle: { display: 'none' },
-          title: 'Followers',
+          title: 'Story',
         }}
       />
       <Drawer.Screen
-        name="invite"
+        name="story/[id]"
         options={{
           drawerItemStyle: { display: 'none' },
-          title: 'Invite Friends',
+          title: 'Story',
         }}
       />
-      <Drawer.Screen
-        name="how-to-play"
-        options={{
-          drawerItemStyle: { display: 'none' },
-          title: 'How to Play',
-        }}
-      />
+
+      {/* Admin screens - conditionally rendered */}
+      {showAdminOptions && (
+        <Drawer.Screen
+          name="admin/moderation"
+          options={{
+            drawerLabel: 'Moderation',
+            title: 'Moderation Panel',
+            drawerIcon: ({ color, size }) => (
+              <Ionicons name="shield-outline" size={size} color={color} />
+            ),
+          }}
+        />
+      )}
     </Drawer>
   );
 }

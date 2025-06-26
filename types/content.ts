@@ -74,6 +74,7 @@ export interface PostWithType {
   tail_count: number;
   fade_count: number;
   reaction_count: number;
+  report_count?: number;
   created_at: string;
   expires_at: string;
   deleted_at: string | null;

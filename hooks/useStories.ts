@@ -3,6 +3,7 @@ import { StoryWithType } from '@/types/content';
 import { supabase } from '@/services/supabase';
 import { useAuth } from './useAuth';
 import { getFollowingIds } from '@/services/api/followUser';
+import { eventEmitter, FeedEvents } from '@/utils/eventEmitter';
 
 interface StorySummary {
   id: string;
@@ -114,6 +115,17 @@ export function useStories() {
       setIsLoading(false);
     }
   }, [user?.id]);
+
+  // Listen for story creation events
+  useEffect(() => {
+    const subscription = eventEmitter.addListener(FeedEvents.STORY_CREATED, () => {
+      fetchStories();
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [fetchStories]);
 
   useEffect(() => {
     fetchStories();

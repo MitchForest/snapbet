@@ -2,22 +2,23 @@ import React, { useCallback } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useFeed } from '@/hooks/useFeed';
-import { PostCard } from '@/components/content/PostCard';
+import { MemoizedPostCard } from '@/utils/performance/memoHelpers';
 import { PostWithType } from '@/types/content';
 import { StoriesBar } from '@/components/ui/StoriesBar';
 import { EmptyFeed } from '@/components/feed/EmptyFeed';
 import { FeedSkeleton } from '@/components/feed/FeedSkeleton';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Colors } from '@/theme';
 import { useAuth } from '@/hooks/useAuth';
 
 const ESTIMATED_POST_HEIGHT = 500; // Approximate height for PostCard
 
-export default function HomeScreen() {
+function HomeScreenContent() {
   const { user } = useAuth();
   const { posts, isLoading, isLoadingMore, refreshing, refetch, loadMore, hasMore } = useFeed();
 
   const renderPost = useCallback(
-    ({ item }: { item: PostWithType }) => <PostCard post={item} />,
+    ({ item }: { item: PostWithType }) => <MemoizedPostCard post={item} />,
     []
   );
 
@@ -75,6 +76,14 @@ export default function HomeScreen() {
         removeClippedSubviews={true}
       />
     </View>
+  );
+}
+
+export default function HomeScreen() {
+  return (
+    <ErrorBoundary level="tab">
+      <HomeScreenContent />
+    </ErrorBoundary>
   );
 }
 

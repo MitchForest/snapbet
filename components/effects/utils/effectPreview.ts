@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Storage } from '@/services/storage/storageService';
 import { EmojiEffect } from '@/types/effects';
 
 const PREVIEW_DURATION = 5000; // 5 seconds
@@ -98,8 +98,8 @@ export class EffectPreviewManager {
 
   private async getPreviewData(): Promise<PreviewData> {
     try {
-      const data = await AsyncStorage.getItem(PREVIEW_STORAGE_KEY);
-      return data ? JSON.parse(data) : {};
+      const data = Storage.general.get<PreviewData>(PREVIEW_STORAGE_KEY);
+      return data || {};
     } catch (error) {
       console.error('Error reading preview data:', error);
       return {};
@@ -112,7 +112,7 @@ export class EffectPreviewManager {
       data[effectId] = {
         lastPreviewDate: new Date().toISOString(),
       };
-      await AsyncStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify(data));
+      Storage.general.set(PREVIEW_STORAGE_KEY, data);
     } catch (error) {
       console.error('Error marking effect as previewed:', error);
     }
@@ -136,7 +136,7 @@ export class EffectPreviewManager {
         }
       }
 
-      await AsyncStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify(cleaned));
+      Storage.general.set(PREVIEW_STORAGE_KEY, cleaned);
     } catch (error) {
       console.error('Error cleaning up preview data:', error);
     }

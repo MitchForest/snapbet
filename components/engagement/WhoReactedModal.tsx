@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -33,44 +33,41 @@ export function WhoReactedModal({ postId, emoji, isOpen, onClose }: WhoReactedMo
   const insets = useSafeAreaInsets();
   const [users, setUsers] = useState<ReactingUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
 
-  // Load users who reacted
-  const loadUsers = async (pageNum: number = 0) => {
-    try {
-      if (pageNum === 0) {
-        setIsLoading(true);
-      } else {
-        setIsLoadingMore(true);
+  const loadUsers = useCallback(
+    async (pageNum: number) => {
+      if (!postId || !emoji) return;
+
+      setIsLoading(true);
+      try {
+        const result = await reactionService.getReactionUsers(
+          postId,
+          emoji,
+          false, // isStory
+          USERS_PER_PAGE,
+          pageNum * USERS_PER_PAGE
+        );
+
+        if (pageNum === 0) {
+          setUsers(result.users);
+        } else {
+          setUsers((prev) => [...prev, ...result.users]);
+        }
+
+        setTotal(result.total);
+        setHasMore(result.hasMore);
+      } catch (error) {
+        console.error('Error loading users:', error);
+        toastService.showError('Failed to load users');
+      } finally {
+        setIsLoading(false);
       }
-
-      const result = await reactionService.getReactionUsers(
-        postId,
-        emoji,
-        USERS_PER_PAGE,
-        pageNum * USERS_PER_PAGE
-      );
-
-      if (pageNum === 0) {
-        setUsers(result.users);
-      } else {
-        setUsers((prev) => [...prev, ...result.users]);
-      }
-
-      setTotal(result.total);
-      setHasMore(result.hasMore);
-      setPage(pageNum);
-    } catch (error) {
-      console.error('Failed to load reaction users:', error);
-      toastService.showError('Failed to load users');
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
-    }
-  };
+    },
+    [postId, emoji]
+  );
 
   // Load initial data when modal opens
   useEffect(() => {
@@ -82,8 +79,10 @@ export function WhoReactedModal({ postId, emoji, isOpen, onClose }: WhoReactedMo
 
   // Handle load more
   const handleLoadMore = () => {
-    if (!hasMore || isLoadingMore) return;
-    loadUsers(page + 1);
+    if (!hasMore || isLoading) return;
+    const nextPage = page + 1;
+    setPage(nextPage);
+    loadUsers(nextPage);
   };
 
   // Render user item
@@ -100,7 +99,7 @@ export function WhoReactedModal({ postId, emoji, isOpen, onClose }: WhoReactedMo
 
   // Render footer
   const renderFooter = () => {
-    if (!isLoadingMore) return null;
+    if (!isLoading || page === 0) return null;
     return (
       <View style={styles.loadingMore}>
         <ActivityIndicator size="small" color={Colors.primary} />

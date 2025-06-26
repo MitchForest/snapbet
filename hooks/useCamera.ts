@@ -1,9 +1,8 @@
 import { useState, useRef } from 'react';
 import { CameraView } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
-import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
-import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 
 export interface CapturedMedia {
   uri: string;
@@ -55,10 +54,6 @@ export function useCamera(): UseCameraReturn {
     setEnableTorch((current) => !current);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
-
-  import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
-
-  // ... (rest of the file is the same until capturePhoto)
 
   const capturePhoto = async () => {
     if (!cameraRef.current) return;
@@ -141,7 +136,7 @@ export function useCamera(): UseCameraReturn {
   const pickFromGallery = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaType.All,
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
         allowsEditing: false,
         quality: 0.9,
         videoMaxDuration: 30,

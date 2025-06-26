@@ -44,6 +44,7 @@ export type Database = {
           last_reset: string | null;
           loss_count: number;
           push_count: number;
+          referral_bonus: number | null;
           reset_count: number | null;
           season_high: number | null;
           season_low: number | null;
@@ -62,6 +63,7 @@ export type Database = {
           last_reset?: string | null;
           loss_count?: number;
           push_count?: number;
+          referral_bonus?: number | null;
           reset_count?: number | null;
           season_high?: number | null;
           season_low?: number | null;
@@ -80,6 +82,7 @@ export type Database = {
           last_reset?: string | null;
           loss_count?: number;
           push_count?: number;
+          referral_bonus?: number | null;
           reset_count?: number | null;
           season_high?: number | null;
           season_low?: number | null;
@@ -166,6 +169,39 @@ export type Database = {
           {
             foreignKeyName: 'bets_user_id_fkey';
             columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      blocked_users: {
+        Row: {
+          blocked_id: string;
+          blocker_id: string;
+          created_at: string | null;
+        };
+        Insert: {
+          blocked_id: string;
+          blocker_id: string;
+          created_at?: string | null;
+        };
+        Update: {
+          blocked_id?: string;
+          blocker_id?: string;
+          created_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'blocked_users_blocked_id_fkey';
+            columns: ['blocked_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'blocked_users_blocker_id_fkey';
+            columns: ['blocker_id'];
             isOneToOne: false;
             referencedRelation: 'users';
             referencedColumns: ['id'];
@@ -259,6 +295,7 @@ export type Database = {
           deleted_at: string | null;
           id: string;
           post_id: string;
+          report_count: number | null;
           user_id: string;
         };
         Insert: {
@@ -267,6 +304,7 @@ export type Database = {
           deleted_at?: string | null;
           id?: string;
           post_id: string;
+          report_count?: number | null;
           user_id: string;
         };
         Update: {
@@ -275,6 +313,7 @@ export type Database = {
           deleted_at?: string | null;
           id?: string;
           post_id?: string;
+          report_count?: number | null;
           user_id?: string;
         };
         Relationships: [
@@ -594,6 +633,7 @@ export type Database = {
           media_url: string;
           post_type: string | null;
           reaction_count: number | null;
+          report_count: number | null;
           settled_bet_id: string | null;
           tail_count: number | null;
           thumbnail_url: string | null;
@@ -613,6 +653,7 @@ export type Database = {
           media_url: string;
           post_type?: string | null;
           reaction_count?: number | null;
+          report_count?: number | null;
           settled_bet_id?: string | null;
           tail_count?: number | null;
           thumbnail_url?: string | null;
@@ -632,6 +673,7 @@ export type Database = {
           media_url?: string;
           post_type?: string | null;
           reaction_count?: number | null;
+          report_count?: number | null;
           settled_bet_id?: string | null;
           tail_count?: number | null;
           thumbnail_url?: string | null;
@@ -666,21 +708,24 @@ export type Database = {
           created_at: string | null;
           emoji: string;
           id: string;
-          post_id: string;
+          post_id: string | null;
+          story_id: string | null;
           user_id: string;
         };
         Insert: {
           created_at?: string | null;
           emoji: string;
           id?: string;
-          post_id: string;
+          post_id?: string | null;
+          story_id?: string | null;
           user_id: string;
         };
         Update: {
           created_at?: string | null;
           emoji?: string;
           id?: string;
-          post_id?: string;
+          post_id?: string | null;
+          story_id?: string | null;
           user_id?: string;
         };
         Relationships: [
@@ -689,6 +734,13 @@ export type Database = {
             columns: ['post_id'];
             isOneToOne: false;
             referencedRelation: 'posts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'reactions_story_id_fkey';
+            columns: ['story_id'];
+            isOneToOne: false;
+            referencedRelation: 'stories';
             referencedColumns: ['id'];
           },
           {
@@ -768,6 +820,60 @@ export type Database = {
           },
         ];
       };
+      reports: {
+        Row: {
+          action_taken: string | null;
+          additional_info: string | null;
+          content_id: string;
+          content_type: string;
+          created_at: string | null;
+          id: string;
+          reason: string;
+          reporter_id: string;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+        };
+        Insert: {
+          action_taken?: string | null;
+          additional_info?: string | null;
+          content_id: string;
+          content_type: string;
+          created_at?: string | null;
+          id?: string;
+          reason: string;
+          reporter_id: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+        };
+        Update: {
+          action_taken?: string | null;
+          additional_info?: string | null;
+          content_id?: string;
+          content_type?: string;
+          created_at?: string | null;
+          id?: string;
+          reason?: string;
+          reporter_id?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'reports_reporter_id_fkey';
+            columns: ['reporter_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'reports_reviewed_by_fkey';
+            columns: ['reviewed_by'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       stories: {
         Row: {
           caption: string | null;
@@ -778,6 +884,7 @@ export type Database = {
           media_type: Database['public']['Enums']['media_type'];
           media_url: string;
           metadata: Json | null;
+          report_count: number | null;
           story_content_type: string | null;
           story_type: Database['public']['Enums']['story_type'] | null;
           user_id: string;
@@ -792,6 +899,7 @@ export type Database = {
           media_type: Database['public']['Enums']['media_type'];
           media_url: string;
           metadata?: Json | null;
+          report_count?: number | null;
           story_content_type?: string | null;
           story_type?: Database['public']['Enums']['story_type'] | null;
           user_id: string;
@@ -806,6 +914,7 @@ export type Database = {
           media_type?: Database['public']['Enums']['media_type'];
           media_url?: string;
           metadata?: Json | null;
+          report_count?: number | null;
           story_content_type?: string | null;
           story_type?: Database['public']['Enums']['story_type'] | null;
           user_id?: string;
@@ -945,6 +1054,7 @@ export type Database = {
           oauth_id: string;
           oauth_provider: Database['public']['Enums']['oauth_provider'];
           privacy_settings: Json | null;
+          referral_count: number | null;
           show_bankroll: boolean | null;
           show_picks: boolean | null;
           show_stats: boolean | null;
@@ -968,6 +1078,7 @@ export type Database = {
           oauth_id: string;
           oauth_provider: Database['public']['Enums']['oauth_provider'];
           privacy_settings?: Json | null;
+          referral_count?: number | null;
           show_bankroll?: boolean | null;
           show_picks?: boolean | null;
           show_stats?: boolean | null;
@@ -991,6 +1102,7 @@ export type Database = {
           oauth_id?: string;
           oauth_provider?: Database['public']['Enums']['oauth_provider'];
           privacy_settings?: Json | null;
+          referral_count?: number | null;
           show_bankroll?: boolean | null;
           show_picks?: boolean | null;
           show_stats?: boolean | null;
@@ -1022,6 +1134,10 @@ export type Database = {
         Args: { stake: number; odds: number };
         Returns: number;
       };
+      calculate_referral_bonus: {
+        Args: { user_id: string };
+        Returns: number;
+      };
       check_perfect_nfl_sunday: {
         Args: { p_user_id: string; p_week_start?: string };
         Returns: boolean;
@@ -1033,6 +1149,12 @@ export type Database = {
       fade_pick: {
         Args: { p_user_id: string; p_post_id: string };
         Returns: string;
+      };
+      get_blocked_user_ids: {
+        Args: { p_user_id: string };
+        Returns: {
+          blocked_id: string;
+        }[];
       };
       get_feed: {
         Args: { p_user_id: string; p_limit?: number; p_offset?: number };
@@ -1159,6 +1281,10 @@ export type Database = {
       tail_pick: {
         Args: { p_user_id: string; p_post_id: string };
         Returns: string;
+      };
+      users_blocked: {
+        Args: { user1_id: string; user2_id: string };
+        Returns: boolean;
       };
     };
     Enums: {

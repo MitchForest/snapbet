@@ -40,7 +40,14 @@ export class FeedService {
         return { posts: [], nextCursor: null, hasMore: false };
       }
 
-      // Build query with privacy filter
+      // Get blocked user IDs to filter out
+      const { data: blockedUsers } = await supabase.rpc('get_blocked_user_ids', {
+        p_user_id: userId,
+      });
+
+      const blockedIds = (blockedUsers || []).map((row) => row.blocked_id);
+
+      // Build query with privacy filter and blocked users filter
       let query = supabase
         .from('posts')
         .select(
@@ -59,6 +66,7 @@ export class FeedService {
           tail_count,
           fade_count,
           reaction_count,
+          report_count,
           created_at,
           expires_at,
           deleted_at,
@@ -90,10 +98,14 @@ export class FeedService {
       // Type assertion since generated types don't include new columns
       const posts = (data || []) as unknown as PostWithType[];
 
-      // Filter out posts from private accounts we don't follow
+      // Filter out posts from blocked users and private accounts we don't follow
       // This is a client-side filter as a safety measure
-      // The main privacy enforcement should happen at the database level
       const visiblePosts = posts.filter((post) => {
+        // Filter out blocked users
+        if (blockedIds.includes(post.user_id)) {
+          return false;
+        }
+
         // Always show own posts
         if (post.user_id === userId) return true;
 
@@ -182,7 +194,17 @@ export class FeedService {
     const now = new Date();
     const expiresAt = new Date(post.expires_at);
 
-    return !post.deleted_at && expiresAt > now;
+    // Check if post is expired or deleted
+    if (post.deleted_at || expiresAt <= now) {
+      return false;
+    }
+
+    // Check if post has too many reports (auto-hide)
+    if (post.report_count && post.report_count >= 3) {
+      return false;
+    }
+
+    return true;
   }
 }
 

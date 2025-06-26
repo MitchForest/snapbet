@@ -14,9 +14,36 @@ export const StoriesBar: React.FC = () => {
     router.push('/camera');
   };
 
+  const getAllStoryIds = () => {
+    const allStoryIds: string[] = [];
+    storySummaries.forEach((summary) => {
+      // Add stories in chronological order (oldest first) for each user
+      summary.stories
+        .sort(
+          (a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+        )
+        .forEach((story) => allStoryIds.push(story.id));
+    });
+    return allStoryIds;
+  };
+
   const handleStoryPress = (userId: string) => {
-    // TODO: Navigate to story viewer in Sprint 04.06
-    console.log('Story pressed:', userId);
+    // Find the first story for this user
+    const userSummary = storySummaries.find((s) => s.id === userId);
+    if (!userSummary || userSummary.stories.length === 0) return;
+
+    const firstStory = userSummary.stories[0];
+    const allStoryIds = getAllStoryIds();
+    const startIndex = allStoryIds.indexOf(firstStory.id);
+
+    router.push({
+      pathname: '/(drawer)/story/[id]',
+      params: {
+        id: firstStory.id,
+        allStoryIds: allStoryIds.join(','),
+        startIndex: startIndex.toString(),
+      },
+    });
   };
 
   if (isLoading) {

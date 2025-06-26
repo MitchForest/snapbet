@@ -1,25 +1,66 @@
 import { supabase } from '@/services/supabase/client';
 
 /**
- * Reset all weekly badges - to be called every Monday at midnight
+ * Reset all weekly badges and bankrolls - to be called every Monday at midnight
  * In production, this would be triggered by a cron job
  */
 export async function resetWeeklyBadges(): Promise<void> {
   try {
     // Call the database function to reset weekly badges
-    const { error } = await supabase.rpc('reset_weekly_badges');
+    const { error: badgeError } = await supabase.rpc('reset_weekly_badges');
 
-    if (error) {
-      console.error('Error resetting weekly badges:', error);
-      throw error;
+    if (badgeError) {
+      console.error('Error resetting weekly badges:', badgeError);
+      throw badgeError;
     }
 
     console.log('Weekly badges reset successfully');
+
+    // Reset all user bankrolls with referral bonuses
+    await resetAllBankrolls();
 
     // TODO: In production, trigger badge recalculation for active users
     // This could be done via a background job or queue system
   } catch (error) {
     console.error('Failed to reset weekly badges:', error);
+    throw error;
+  }
+}
+
+/**
+ * Reset all user bankrolls with referral bonuses
+ */
+async function resetAllBankrolls(): Promise<void> {
+  try {
+    // Get all users
+    const { data: users, error: usersError } = await supabase.from('users').select('id');
+
+    if (usersError) {
+      console.error('Error fetching users for bankroll reset:', usersError);
+      throw usersError;
+    }
+
+    if (!users || users.length === 0) {
+      console.log('No users to reset bankrolls for');
+      return;
+    }
+
+    // Reset each user's bankroll (the function now includes referral bonus)
+    const resetPromises = users.map((user) =>
+      supabase.rpc('reset_bankroll', { p_user_id: user.id })
+    );
+
+    const results = await Promise.allSettled(resetPromises);
+
+    // Log any failures
+    const failures = results.filter((r) => r.status === 'rejected');
+    if (failures.length > 0) {
+      console.error(`Failed to reset ${failures.length} bankrolls`);
+    }
+
+    console.log(`Successfully reset ${users.length - failures.length} bankrolls with bonuses`);
+  } catch (error) {
+    console.error('Error resetting bankrolls:', error);
     throw error;
   }
 }

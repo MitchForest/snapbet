@@ -4,6 +4,8 @@ import { ScrollView } from 'react-native';
 import { useReferral } from '@/hooks/useReferral';
 import { InviteCard } from '@/components/invite/InviteCard';
 import { ReferralStats } from '@/components/invite/ReferralStats';
+import { ReferralStatsCard } from '@/components/referral/ReferralStatsCard';
+import { ReferralBonusDisplay } from '@/components/referral/ReferralBonusDisplay';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Colors } from '@/theme';
 
@@ -16,6 +18,14 @@ export default function InviteScreen() {
 
       <ScrollView>
         <View padding="$4" gap="$4">
+          {/* Referral Rewards Card */}
+          <ReferralStatsCard />
+
+          {/* Weekly Bankroll Display */}
+          <View backgroundColor="$surface" padding="$4" borderRadius="$3" marginBottom="$2">
+            <ReferralBonusDisplay variant="detailed" />
+          </View>
+
           {/* Invite Card */}
           <InviteCard referralCode={code || ''} />
 

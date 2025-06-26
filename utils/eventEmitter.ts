@@ -33,11 +33,22 @@ export const UserEvents = {
   FOLLOW_REQUEST_REJECTED: 'FOLLOW_REQUEST_REJECTED',
 } as const;
 
+/**
+ * Event names for moderation-related events
+ */
+export const ModerationEvents = {
+  USER_BLOCKED: 'user:blocked',
+  USER_UNBLOCKED: 'user:unblocked',
+  CONTENT_REPORTED: 'content:reported',
+  CONTENT_HIDDEN: 'content:hidden',
+} as const;
+
 // Type for all event names
 export type EventName =
   | (typeof FeedEvents)[keyof typeof FeedEvents]
   | (typeof EngagementEvents)[keyof typeof EngagementEvents]
-  | (typeof UserEvents)[keyof typeof UserEvents];
+  | (typeof UserEvents)[keyof typeof UserEvents]
+  | (typeof ModerationEvents)[keyof typeof ModerationEvents];
 
 // Event data types
 export interface EventData {
@@ -56,6 +67,14 @@ export interface EventData {
   [UserEvents.FOLLOW_REQUEST_SENT]: { fromUserId: string; toUserId: string };
   [UserEvents.FOLLOW_REQUEST_ACCEPTED]: { fromUserId: string; toUserId: string };
   [UserEvents.FOLLOW_REQUEST_REJECTED]: { fromUserId: string; toUserId: string };
+  [ModerationEvents.USER_BLOCKED]: { userId: string; blockedBy: string };
+  [ModerationEvents.USER_UNBLOCKED]: { userId: string; unblockedBy: string };
+  [ModerationEvents.CONTENT_REPORTED]: {
+    contentType: string;
+    contentId: string;
+    reporterId: string;
+  };
+  [ModerationEvents.CONTENT_HIDDEN]: { contentType: string; contentId: string };
 }
 
 /**

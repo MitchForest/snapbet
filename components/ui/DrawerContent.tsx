@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/services/supabase/client';
 import { useNotifications } from '@/hooks/useNotifications';
 import { followRequestService } from '@/services/social/followRequestService';
+import { ReferralBonusDisplay } from '@/components/referral/ReferralBonusDisplay';
 
 interface MenuItemProps {
   icon: string;
@@ -125,7 +126,7 @@ export const DrawerContent: React.FC<DrawerContentComponentProps> = ({ navigatio
   const handleResetBankroll = () => {
     Alert.alert(
       'Reset Bankroll',
-      'Are you sure you want to reset your bankroll to $1,000? This will clear your betting history.',
+      'Are you sure you want to reset your bankroll? This will clear your betting history and reset to your weekly amount (including referral bonuses).',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -136,7 +137,7 @@ export const DrawerContent: React.FC<DrawerContentComponentProps> = ({ navigatio
             if (error) {
               Alert.alert('Error', 'Failed to reset bankroll');
             } else {
-              Alert.alert('Success', 'Your bankroll has been reset to $1,000');
+              Alert.alert('Success', 'Your bankroll has been reset to your weekly amount');
             }
           },
         },
@@ -186,12 +187,12 @@ export const DrawerContent: React.FC<DrawerContentComponentProps> = ({ navigatio
             </Text>
 
             {/* Current Bankroll */}
-            <Text fontSize={24} fontWeight="600" color="$primary" marginTop="$3">
-              ${userStats ? (userStats.balance / 100).toFixed(2) : '1,000.00'}
-            </Text>
-            <Text fontSize={12} color="$textSecondary">
-              Current Bankroll
-            </Text>
+            <View marginTop="$3">
+              <ReferralBonusDisplay variant="simple" />
+              <Text fontSize={12} color="$textSecondary">
+                Weekly Bankroll
+              </Text>
+            </View>
           </View>
 
           {/* Profile Section */}

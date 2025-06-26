@@ -3,6 +3,7 @@ import { commentService } from '@/services/engagement/commentService';
 import { subscriptionManager } from '@/services/realtime/subscriptionManager';
 import { Comment } from '@/types/database';
 import { useAuth } from '@/hooks/useAuth';
+import { useBlockedUsers } from '@/hooks/useBlockedUsers';
 import { toastService } from '@/services/toastService';
 import { supabase } from '@/services/supabase/client';
 
@@ -29,6 +30,7 @@ interface UseCommentsResult {
 
 export function useComments(postId: string): UseCommentsResult {
   const { user } = useAuth();
+  const { blockedUserIds } = useBlockedUsers();
   const [comments, setComments] = useState<CommentWithUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
@@ -39,6 +41,9 @@ export function useComments(postId: string): UseCommentsResult {
 
   const tempIdCounter = useRef(0);
   const isSubscribed = useRef(false);
+
+  // Filter comments from blocked users
+  const filteredComments = comments.filter((comment) => !blockedUserIds.includes(comment.user_id));
 
   // Load initial comments
   const loadComments = useCallback(
@@ -226,12 +231,12 @@ export function useComments(postId: string): UseCommentsResult {
   }, [postId, loadComments]);
 
   return {
-    comments,
+    comments: filteredComments,
     isLoading,
     isAdding,
     error,
     hasMore,
-    total,
+    total: total - (comments.length - filteredComments.length),
     addComment,
     deleteComment,
     loadMore,

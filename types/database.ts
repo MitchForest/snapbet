@@ -77,7 +77,8 @@ export interface Comment {
 // Reaction type
 export interface Reaction {
   id: string;
-  post_id: string;
+  post_id: string | null;
+  story_id: string | null;
   user_id: string;
   emoji: string;
   created_at: string | null;

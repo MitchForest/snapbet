@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Text } from '@tamagui/core';
 import { Pressable, ActivityIndicator } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Colors } from '@/theme';
 import { followUser, unfollowUser } from '@/services/api/followUser';
 import { toastService } from '@/services/toastService';
@@ -24,6 +25,9 @@ export function FollowButton({
   const handlePress = async () => {
     if (isLoading) return;
 
+    // Haptic feedback
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
     const newFollowState = !isFollowing;
 
     // Optimistic update
@@ -37,10 +41,16 @@ export function FollowButton({
       } else {
         await unfollowUser(userId);
       }
+
+      // Success haptic
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
       // Revert on error
       setIsFollowing(!newFollowState);
       onFollowChange?.(!newFollowState);
+
+      // Error haptic
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
 
       toastService.show({
         message: newFollowState ? "Couldn't follow user" : "Couldn't unfollow user",
