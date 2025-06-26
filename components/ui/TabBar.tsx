@@ -3,6 +3,8 @@ import { View, Text } from '@tamagui/core';
 import { Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { useChats } from '@/hooks/useChats';
+import { Colors } from '@/theme';
 
 interface TabItem {
   route: string;
@@ -20,10 +22,12 @@ const tabs: TabItem[] = [
 
 export const TabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
   const insets = useSafeAreaInsets();
+  const { totalUnreadCount } = useChats();
 
   const renderTab = (route: { key: string; name: string }, index: number) => {
     const isFocused = state.index === index;
     const tabConfig = tabs.find((t) => t.route === route.name);
+    const isMessagesTab = route.name === 'messages';
 
     const onPress = () => {
       const event = navigation.emit({
@@ -39,13 +43,32 @@ export const TabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
 
     return (
       <Pressable key={route.key} onPress={onPress}>
-        <View flex={1} alignItems="center" paddingVertical="$2">
+        <View flex={1} alignItems="center" paddingVertical="$2" position="relative">
           <Text fontSize={24} color={isFocused ? '$primary' : '$textSecondary'}>
             {tabConfig?.icon}
           </Text>
           <Text fontSize={10} color={isFocused ? '$primary' : '$textSecondary'} marginTop="$1">
             {tabConfig?.label}
           </Text>
+          {/* Unread badge for messages tab */}
+          {isMessagesTab && totalUnreadCount > 0 && (
+            <View
+              position="absolute"
+              top={-4}
+              right={-8}
+              backgroundColor={Colors.error}
+              borderRadius="$round"
+              paddingHorizontal="$1.5"
+              paddingVertical="$0.5"
+              minWidth={18}
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Text fontSize="$1" color="white" fontWeight="600">
+                {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+              </Text>
+            </View>
+          )}
         </View>
       </Pressable>
     );

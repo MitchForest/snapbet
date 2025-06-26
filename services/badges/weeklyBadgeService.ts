@@ -1,5 +1,4 @@
 import { supabase } from '@/services/supabase/client';
-import { WeeklyStatsRow } from '@/types/supabase';
 
 interface WeeklyStats {
   user_id: string;
@@ -25,12 +24,12 @@ export async function calculateWeeklyBadges(userId: string): Promise<string[]> {
       p_user_id: userId,
     });
 
-    if (statsError || !statsData || (statsData as WeeklyStatsRow[]).length === 0) {
+    if (statsError || !statsData || (statsData as WeeklyStats[]).length === 0) {
       console.error('Error fetching weekly stats:', statsError);
       return [];
     }
 
-    const stats = (statsData as WeeklyStatsRow[])[0] as WeeklyStats;
+    const stats = (statsData as WeeklyStats[])[0];
     const badges: string[] = [];
 
     // 1. Hot Streak - 3+ wins in a row

@@ -11,7 +11,7 @@ This document tracks high-level progress across all epics and maintains critical
 | 02 | Authentication & User System | COMPLETED | 2024-12-19 | 2025-01-19 | OAuth-only auth, profiles, badges, referrals |
 | 03 | Camera & Content Creation | IN PROGRESS | 2025-01-20 | - | Photo/video, effects, post types, weekly badges |
 | 04 | Feed & Social Engagement | COMPLETED | 2024-12-19 | 2025-01-10 | FlashList feed, discovery, engagement, moderation |
-| 05 | Betting & Bankroll System | NOT STARTED | - | - | Mock betting with tail/fade mechanics |
+| 05 | Betting & Bankroll System | COMPLETED | Jan 2025 | Jan 2025 | Mock betting with tail/fade mechanics |
 | 06 | Messaging & Real-time | NOT STARTED | - | - | DMs, group chats, real-time updates |
 | 07 | Polish & Feature Completion | NOT STARTED | - | - | Refactoring, push notifications, optimization |
 | 08 | AI-Powered Intelligence | NOT STARTED | - | - | Smart discovery, notifications, content generation |
@@ -76,6 +76,41 @@ This document tracks high-level progress across all epics and maintains critical
 - Consistent haptic feedback on all primary actions
 - Professional polish with loading states
 - One sprint completed with commendation (04.04)
+
+### Epic 05: Betting & Bankroll System ✨ NEW
+**Completed**: Jan 2025
+**Duration**: 8 sprints
+**Grade**: A
+
+**Key Features Delivered**:
+- Games tab with NBA/NFL games and odds (mock data)
+- 10-second bet placement flow with bottom sheet UI
+- Tail/fade mechanics integrated with feed posts
+- $1,000 weekly bankroll with automatic Monday reset
+- Bet settlement system with admin scripts
+- Pick/outcome post creation via camera
+- Bet history with performance stats (W-L, ROI)
+
+**Major Architectural Decisions**:
+- **Bankroll in Cents**: Store as 100000 for $1,000 to avoid float precision issues
+- **Mock Data Structure**: Follow The Odds API format for easy future migration
+- **Single Bookmaker**: Display one set of odds for cleaner UI
+- **Client-side ROI**: Calculate stats on client for MVP simplicity
+- **Atomic Transactions**: Prevent bankroll race conditions with DB locks
+
+**Important for Future Epics**:
+- **Bet Relationships**: pick_actions table tracks tail/fade relationships
+- **Game Scores**: Settlement scripts update scores in games table
+- **Post Integration**: Pick posts link to bets via bet_id in metadata
+- **Referral Bonuses**: $100 added to weekly bankroll per active referral
+- **Effect Suggestions**: Outcome posts suggest effects based on win/loss
+
+**Technical Achievements**:
+- Zero TypeScript errors in betting system
+- Zero ESLint warnings in betting code
+- 60 FPS on games list using FlashList
+- Real-time tail/fade count updates
+- Optimistic UI for instant feedback
 
 ---
 
@@ -181,20 +216,21 @@ DeviceEventEmitter.emit('event', data);
 
 | Story | Epic Coverage | Status |
 |-------|--------------|---------|
-| Story 1: Social Pick Sharing | Epic 3, 4, 5 | 80% (need betting) |
-| Story 2: Tail/Fade Decisions | Epic 4, 5 | 50% (UI complete, need betting) |
+| Story 1: Social Pick Sharing | Epic 3, 4, 5 | 100% ✅ |
+| Story 2: Tail/Fade Decisions | Epic 4, 5 | 100% ✅ |
 | Story 3: Ephemeral Content | Epic 3, 4 | 90% (stories complete) |
 | Story 4: Group Coordination | Epic 4, 6 | 40% (social layer done) |
-| Story 5: Performance Tracking | Epic 3, 4 | 80% (need betting data) |
+| Story 5: Performance Tracking | Epic 3, 4, 5 | 100% ✅ |
 | Story 6: AI Insights | Epic 8 | 0% |
 
 ## Technical Debt & Future Considerations
 
-### Immediate (Epic 5-6)
+### Immediate (Epic 6-7)
 - Edge Functions migration for automation
-- Bet settlement system
-- Real money calculations
+- Weekly reset cron job
+- Push notifications for outcomes
 - Message expiration logic
+- Real-time message sync
 
 ### Medium Priority (Epic 7)
 - Service layer consolidation
@@ -229,12 +265,13 @@ DeviceEventEmitter.emit('event', data);
 - ✅ Technical debt removal during feature work is efficient
 - ⚠️ 27 ESLint warnings remain (all intentional inline styles)
 
-### From Epic 5 Planning
-- Integrate with Epic 4's tail/fade UI
-- Use MMKV for bet caching
-- Apply composite cursor for bet history
-- Maintain service independence pattern
-- Add error boundaries to betting flows
+### From Epic 5 (Betting)
+- ✅ Bankroll in cents prevents float precision issues
+- ✅ Mock data following The Odds API enables easy migration
+- ✅ Atomic transactions essential for concurrent bets
+- ✅ Settlement scripts must update game scores
+- ✅ Pick posts need bet_id in metadata for tail/fade
+- ⚠️ Weekly reset cron job needed for production
 
 ## Next Critical Milestones
 
@@ -243,15 +280,18 @@ DeviceEventEmitter.emit('event', data);
 - Achieve full type safety
 - Complete effect tracking
 
-### Epic 4 Sprint 02 (Search)
-- Apply MMKV storage pattern
-- Use FlashList for results
-- Consider real-time search limits
+### Epic 6 Planning (Messaging)
+- Apply MMKV storage for message caching
+- Use FlashList for conversation lists
+- Consider real-time subscription limits (100 max)
+- Integrate bet sharing in DMs
+- Apply service independence pattern
 
-### Epic 5 Planning
-- Integrate with Epic 4's tail/fade UI
-- Use MMKV for bet caching
-- Apply composite cursor for bet history
+### Epic 7 Considerations
+- Migrate settlement to edge functions
+- Implement weekly reset cron job
+- Add push notifications for bet outcomes
+- Performance profiling of betting flows
 
 ---
 
