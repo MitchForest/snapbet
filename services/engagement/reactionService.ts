@@ -191,31 +191,36 @@ class ReactionService {
   ): Promise<GetReactionUsersResult> {
     try {
       // Get total count
-      const query = supabase.from('reactions').select('*', { count: 'exact', head: true });
+      const countQuery = supabase.from('reactions').select('*', { count: 'exact', head: true });
 
       if (isStory) {
-        query.eq('story_id', contentId);
+        countQuery.eq('story_id', contentId);
       } else {
-        query.eq('post_id', contentId);
+        countQuery.eq('post_id', contentId);
       }
 
-      query.eq('emoji', emoji);
+      countQuery.eq('emoji', emoji);
 
-      const { count } = await query;
+      const { count } = await countQuery;
 
       // Get users with pagination
-      const { data: reactions, error } = await supabase
-        .from('reactions')
-        .select(
-          `
+      const dataQuery = supabase.from('reactions').select(
+        `
           user:users!user_id (
             id,
             username,
             avatar_url
           )
         `
-        )
-        .eq('post_id', contentId)
+      );
+
+      if (isStory) {
+        dataQuery.eq('story_id', contentId);
+      } else {
+        dataQuery.eq('post_id', contentId);
+      }
+
+      const { data: reactions, error } = await dataQuery
         .eq('emoji', emoji)
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);

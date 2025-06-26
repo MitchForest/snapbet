@@ -116,6 +116,6 @@ export const PostsList: React.FC<PostsListProps> = ({ userId, canView = true }) 
 const styles = StyleSheet.create({
   listContent: {
     paddingVertical: 8,
-    paddingBottom: 100, // Extra padding to account for tab bar
+    paddingBottom: 150, // Increased from 100 to ensure full visibility
   },
 });

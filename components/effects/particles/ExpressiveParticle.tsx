@@ -409,6 +409,104 @@ export const ExpressiveParticle: React.FC<ParticleProps> = ({
         break;
       }
 
+      case 'flexPump': {
+        // Muscle flex animation - pump up and show off
+        const flexX = particleIndex === 0 ? -80 : 80; // Two arms flexing
+        translateX.value = flexX;
+        translateY.value = 0;
+        opacity.value = 1;
+
+        // Continuous flexing motion
+        scale.value = withDelay(
+          particleDelay,
+          withRepeat(
+            withSequence(
+              withTiming(0.8, { duration: 300 }),
+              withSpring(1.5, { damping: 4, stiffness: 200 }),
+              withTiming(1.2, { duration: 200 }),
+              withTiming(1, { duration: 300 })
+            ),
+            -1
+          )
+        );
+
+        // Slight rotation during flex
+        rotate.value = withDelay(
+          particleDelay,
+          withRepeat(
+            withSequence(
+              withTiming(particleIndex === 0 ? -15 : 15, { duration: 400 }),
+              withTiming(0, { duration: 400 })
+            ),
+            -1
+          )
+        );
+
+        // Subtle up/down motion
+        translateY.value = withDelay(
+          particleDelay,
+          withRepeat(
+            withSequence(withTiming(-20, { duration: 600 }), withTiming(20, { duration: 600 })),
+            -1
+          )
+        );
+        break;
+      }
+
+      case 'formLetter': {
+        // Form a W shape for big_w effect
+        const wPositions = [
+          // First V of W
+          { x: -100, y: -50 },
+          { x: -75, y: 0 },
+          { x: -50, y: 50 },
+          { x: -25, y: 0 },
+          // Second V of W
+          { x: 0, y: -50 },
+          { x: 25, y: 0 },
+          { x: 50, y: 50 },
+          { x: 75, y: 0 },
+          { x: 100, y: -50 },
+        ];
+
+        const position = wPositions[particleIndex % wPositions.length];
+        opacity.value = 0;
+        scale.value = 0;
+
+        // Animate to position with stagger
+        translateX.value = withDelay(
+          particleDelay + particleIndex * 30,
+          withSpring(position.x, { damping: 10, stiffness: 150 })
+        );
+        translateY.value = withDelay(
+          particleDelay + particleIndex * 30,
+          withSpring(position.y, { damping: 10, stiffness: 150 })
+        );
+
+        // Pop in effect
+        opacity.value = withDelay(
+          particleDelay + particleIndex * 30,
+          withTiming(1, { duration: 200 })
+        );
+        scale.value = withDelay(
+          particleDelay + particleIndex * 30,
+          withSpring(1, { damping: 6, stiffness: 200, overshootClamping: false })
+        );
+
+        // Gentle floating after formation
+        translateY.value = withDelay(
+          particleDelay + 1000,
+          withRepeat(
+            withSequence(
+              withTiming(position.y - 10, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+              withTiming(position.y + 10, { duration: 2000, easing: Easing.inOut(Easing.ease) })
+            ),
+            -1
+          )
+        );
+        break;
+      }
+
       default:
         // Fallback to float
         opacity.value = 1;

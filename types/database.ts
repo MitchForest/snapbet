@@ -159,3 +159,30 @@ export interface UserWithPrivacy {
   show_stats?: boolean;
   show_picks?: boolean;
 }
+
+// Game types
+export interface GameOdds {
+  bookmakers: Array<{
+    key: string;
+    markets: {
+      h2h: { home: number; away: number };
+      spreads: { line: number; home: number; away: number };
+      totals: { line: number; over: number; under: number };
+    };
+  }>;
+}
+
+export interface Game {
+  id: string;
+  sport: string;
+  sport_title: string;
+  home_team: string;
+  away_team: string;
+  commence_time: string;
+  status: 'scheduled' | 'live' | 'completed' | 'cancelled';
+  home_score: number | null;
+  away_score: number | null;
+  odds_data: GameOdds | null;
+  created_at: string | null;
+  last_updated: string | null;
+}

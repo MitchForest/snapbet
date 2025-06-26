@@ -66,7 +66,10 @@ export function PostCard({ post, onPress }: PostCardProps) {
   };
 
   const handleMorePress = () => {
-    if (!isOwnPost) {
+    if (isOwnPost) {
+      // For own posts, show delete option (coming soon)
+      toastService.showComingSoon('Post options');
+    } else {
       setShowReportModal(true);
     }
   };
@@ -96,11 +99,9 @@ export function PostCard({ post, onPress }: PostCardProps) {
           </Pressable>
           <View style={styles.headerRight}>
             <PostTypeIndicator type={post.post_type} />
-            {!isOwnPost && (
-              <TouchableOpacity onPress={handleMorePress} style={styles.moreButton}>
-                <Text style={styles.moreIcon}>⋯</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity onPress={handleMorePress} style={styles.moreButton}>
+              <Text style={styles.moreIcon}>⋯</Text>
+            </TouchableOpacity>
           </View>
         </View>
 

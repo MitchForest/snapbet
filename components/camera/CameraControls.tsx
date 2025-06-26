@@ -120,11 +120,11 @@ export function CameraControls({
 
         {/* Effects Toggle Button */}
         {onEffectsToggle ? (
-          <Pressable 
+          <Pressable
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               onEffectsToggle();
-            }} 
+            }}
             style={[styles.sideButton, effectsOpen && styles.sideButtonActive]}
           >
             <Text fontSize={28}>✨</Text>

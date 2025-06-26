@@ -9,6 +9,7 @@ declare const global: { nativeCallSyncHook: unknown };
 let feedStorageInstance: MMKV | null = null;
 let settingsStorageInstance: MMKV | null = null;
 let generalStorageInstance: MMKV | null = null;
+let gamesStorageInstance: MMKV | null = null;
 
 // In-memory fallback for remote debugging environments where JSI is not available.
 const createInMemoryStorage = (): MMKV => {
@@ -73,6 +74,13 @@ const getGeneralStorage = (): MMKV => {
   return generalStorageInstance;
 };
 
+const getGamesStorage = (): MMKV => {
+  if (!gamesStorageInstance) {
+    gamesStorageInstance = getStorageInstance('games-storage');
+  }
+  return gamesStorageInstance;
+};
+
 // --- Storage Keys (restored for compatibility) ---
 export const StorageKeys = {
   FEED: {
@@ -87,6 +95,13 @@ export const StorageKeys = {
   },
   SEARCH: {
     RECENT_SEARCHES: 'recent_searches',
+  },
+  GAMES: {
+    CACHED_GAMES: 'games_cached',
+    LAST_FETCH: 'games_last_fetch',
+  },
+  BETTING: {
+    SELECTED_GAME: 'selected_game',
   },
 };
 
@@ -143,5 +158,11 @@ export const Storage = {
   },
   get settings() {
     return createStorageWrapper(getSettingsStorage());
+  },
+  get games() {
+    return createStorageWrapper(getGamesStorage());
+  },
+  get betting() {
+    return createStorageWrapper(getGeneralStorage()); // Use general storage for betting
   },
 };

@@ -1,4 +1,5 @@
 import type { Database } from '../../types/supabase';
+import { NBA_TEAMS as TEAMS_NBA, NFL_TEAMS as TEAMS_NFL } from '../../data/teams';
 
 type GameInsert = Database['public']['Tables']['games']['Insert'];
 
@@ -13,52 +14,42 @@ interface OddsData {
   }>;
 }
 
-// NBA teams for realistic matchups
-const NBA_TEAMS = {
-  // Eastern Conference
-  BOS: 'Boston Celtics',
-  BKN: 'Brooklyn Nets',
-  NYK: 'New York Knicks',
-  PHI: 'Philadelphia 76ers',
-  TOR: 'Toronto Raptors',
-  CHI: 'Chicago Bulls',
-  CLE: 'Cleveland Cavaliers',
-  DET: 'Detroit Pistons',
-  IND: 'Indiana Pacers',
-  MIL: 'Milwaukee Bucks',
-  ATL: 'Atlanta Hawks',
-  CHA: 'Charlotte Hornets',
-  MIA: 'Miami Heat',
-  ORL: 'Orlando Magic',
-  WAS: 'Washington Wizards',
+// Convert teams array to object for easier access
+const NBA_TEAMS = TEAMS_NBA.reduce(
+  (acc, team) => {
+    acc[team.abbreviation] = `${team.city} ${team.name}`;
+    return acc;
+  },
+  {} as Record<string, string>
+);
 
-  // Western Conference
-  DEN: 'Denver Nuggets',
-  MIN: 'Minnesota Timberwolves',
-  OKC: 'Oklahoma City Thunder',
-  POR: 'Portland Trail Blazers',
-  UTA: 'Utah Jazz',
-  GSW: 'Golden State Warriors',
-  LAC: 'Los Angeles Clippers',
-  LAL: 'Los Angeles Lakers',
-  PHX: 'Phoenix Suns',
-  SAC: 'Sacramento Kings',
-  DAL: 'Dallas Mavericks',
-  HOU: 'Houston Rockets',
-  MEM: 'Memphis Grizzlies',
-  NOP: 'New Orleans Pelicans',
-  SAS: 'San Antonio Spurs',
-};
+const NFL_TEAMS = TEAMS_NFL.reduce(
+  (acc, team) => {
+    acc[team.abbreviation] = `${team.city} ${team.name}`;
+    return acc;
+  },
+  {} as Record<string, string>
+);
 
 // Generate realistic odds based on spread
-function generateOddsFromSpread(spread: number): OddsData {
+function generateOddsFromSpread(spread: number, sport: 'NBA' | 'NFL'): OddsData {
   // Convert spread to moneyline
-  const favoriteML = spread > 8 ? -400 : spread > 5 ? -250 : spread > 2 ? -150 : -120;
-  const underdogML = spread > 8 ? 320 : spread > 5 ? 200 : spread > 2 ? 130 : 100;
+  let favoriteML: number;
+  let underdogML: number;
 
-  // Generate total based on team styles (simplified)
-  const baseTotal = 225;
-  const totalVariance = Math.floor(Math.random() * 20) - 10;
+  if (sport === 'NBA') {
+    favoriteML = spread > 8 ? -400 : spread > 5 ? -250 : spread > 2 ? -150 : -120;
+    underdogML = spread > 8 ? 320 : spread > 5 ? 200 : spread > 2 ? 130 : 100;
+  } else {
+    // NFL has different ML conversions
+    favoriteML = spread > 10 ? -450 : spread > 7 ? -300 : spread > 3 ? -175 : -130;
+    underdogML = spread > 10 ? 350 : spread > 7 ? 250 : spread > 3 ? 155 : 110;
+  }
+
+  // Generate total based on sport
+  const baseTotal = sport === 'NBA' ? 225 : 45;
+  const totalVariance =
+    sport === 'NBA' ? Math.floor(Math.random() * 20) - 10 : Math.floor(Math.random() * 10) - 5;
   const total = baseTotal + totalVariance;
 
   return {
@@ -86,6 +77,191 @@ function generateOddsFromSpread(spread: number): OddsData {
   };
 }
 
+// Get the current week's Thursday for NFL scheduling
+function getThisWeekThursday(): Date {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const thursday = new Date(now);
+
+  // Calculate days until Thursday (4)
+  const daysUntilThursday = (4 - dayOfWeek + 7) % 7;
+  thursday.setDate(now.getDate() + daysUntilThursday);
+
+  // If it's past Thursday, get next week's Thursday
+  if (daysUntilThursday === 0 && now.getHours() >= 23) {
+    thursday.setDate(thursday.getDate() + 7);
+  }
+
+  return thursday;
+}
+
+// Generate NFL games with realistic weekly schedule
+function generateNFLGames(): GameInsert[] {
+  const games: GameInsert[] = [];
+  const nflTeams = Object.keys(NFL_TEAMS);
+  const thursday = getThisWeekThursday();
+
+  // Shuffle teams for matchups
+  const shuffledTeams = [...nflTeams].sort(() => Math.random() - 0.5);
+  let teamIndex = 0;
+
+  // Thursday Night Football - 1 game at 8:20 PM ET
+  const thursdayGame = new Date(thursday);
+  thursdayGame.setHours(20, 20, 0, 0);
+
+  const thursdayHome = shuffledTeams[teamIndex++];
+  const thursdayAway = shuffledTeams[teamIndex++];
+  const thursdaySpread = [-3, -6.5, -7, -10, -2.5][Math.floor(Math.random() * 5)];
+
+  games.push({
+    id: `nfl_${thursdayGame.toISOString().split('T')[0]}_${thursdayAway}_${thursdayHome}`,
+    sport: 'american_football_nfl',
+    sport_title: 'NFL',
+    home_team: NFL_TEAMS[thursdayHome as keyof typeof NFL_TEAMS],
+    away_team: NFL_TEAMS[thursdayAway as keyof typeof NFL_TEAMS],
+    commence_time: thursdayGame.toISOString(),
+    odds_data: generateOddsFromSpread(
+      thursdaySpread,
+      'NFL'
+    ) as unknown as Database['public']['Tables']['games']['Insert']['odds_data'],
+    status: 'scheduled',
+    home_score: null,
+    away_score: null,
+  });
+
+  // Sunday games
+  const sunday = new Date(thursday);
+  sunday.setDate(thursday.getDate() + 3);
+
+  // Early games - 5 games at 1:00 PM ET
+  for (let i = 0; i < 5 && teamIndex + 1 < shuffledTeams.length; i++) {
+    const gameTime = new Date(sunday);
+    gameTime.setHours(13, 0, 0, 0);
+
+    const homeTeam = shuffledTeams[teamIndex++];
+    const awayTeam = shuffledTeams[teamIndex++];
+    const spread = [-3, -6.5, -7, -10, -2.5, -13.5, -1][Math.floor(Math.random() * 7)];
+
+    games.push({
+      id: `nfl_${gameTime.toISOString().split('T')[0]}_${awayTeam}_${homeTeam}_early${i}`,
+      sport: 'american_football_nfl',
+      sport_title: 'NFL',
+      home_team: NFL_TEAMS[homeTeam as keyof typeof NFL_TEAMS],
+      away_team: NFL_TEAMS[awayTeam as keyof typeof NFL_TEAMS],
+      commence_time: gameTime.toISOString(),
+      odds_data: generateOddsFromSpread(
+        spread,
+        'NFL'
+      ) as unknown as Database['public']['Tables']['games']['Insert']['odds_data'],
+      status: 'scheduled',
+      home_score: null,
+      away_score: null,
+    });
+  }
+
+  // Late games - 4 games at 4:05/4:25 PM ET
+  for (let i = 0; i < 4 && teamIndex + 1 < shuffledTeams.length; i++) {
+    const gameTime = new Date(sunday);
+    const isLateLate = i % 2 === 0;
+    gameTime.setHours(16, isLateLate ? 25 : 5, 0, 0);
+
+    const homeTeam = shuffledTeams[teamIndex++];
+    const awayTeam = shuffledTeams[teamIndex++];
+    const spread = [-3, -6.5, -7, -10, -2.5, -14, -1.5][Math.floor(Math.random() * 7)];
+
+    games.push({
+      id: `nfl_${gameTime.toISOString().split('T')[0]}_${awayTeam}_${homeTeam}_late${i}`,
+      sport: 'american_football_nfl',
+      sport_title: 'NFL',
+      home_team: NFL_TEAMS[homeTeam as keyof typeof NFL_TEAMS],
+      away_team: NFL_TEAMS[awayTeam as keyof typeof NFL_TEAMS],
+      commence_time: gameTime.toISOString(),
+      odds_data: generateOddsFromSpread(
+        spread,
+        'NFL'
+      ) as unknown as Database['public']['Tables']['games']['Insert']['odds_data'],
+      status: 'scheduled',
+      home_score: null,
+      away_score: null,
+    });
+  }
+
+  // Sunday Night Football - 1 game at 8:20 PM ET
+  if (teamIndex + 1 < shuffledTeams.length) {
+    const sundayNightGame = new Date(sunday);
+    sundayNightGame.setHours(20, 20, 0, 0);
+
+    const homeTeam = shuffledTeams[teamIndex++];
+    const awayTeam = shuffledTeams[teamIndex++];
+    const spread = [-3, -6.5, -7, -4.5][Math.floor(Math.random() * 4)];
+
+    games.push({
+      id: `nfl_${sundayNightGame.toISOString().split('T')[0]}_${awayTeam}_${homeTeam}_snf`,
+      sport: 'american_football_nfl',
+      sport_title: 'NFL',
+      home_team: NFL_TEAMS[homeTeam as keyof typeof NFL_TEAMS],
+      away_team: NFL_TEAMS[awayTeam as keyof typeof NFL_TEAMS],
+      commence_time: sundayNightGame.toISOString(),
+      odds_data: generateOddsFromSpread(
+        spread,
+        'NFL'
+      ) as unknown as Database['public']['Tables']['games']['Insert']['odds_data'],
+      status: 'scheduled',
+      home_score: null,
+      away_score: null,
+    });
+  }
+
+  // Monday Night Football - 1 game at 8:15 PM ET
+  if (teamIndex + 1 < shuffledTeams.length) {
+    const monday = new Date(sunday);
+    monday.setDate(sunday.getDate() + 1);
+    monday.setHours(20, 15, 0, 0);
+
+    const homeTeam = shuffledTeams[teamIndex++];
+    const awayTeam = shuffledTeams[teamIndex++];
+    const spread = [-3, -6.5, -7, -2.5][Math.floor(Math.random() * 4)];
+
+    games.push({
+      id: `nfl_${monday.toISOString().split('T')[0]}_${awayTeam}_${homeTeam}_mnf`,
+      sport: 'american_football_nfl',
+      sport_title: 'NFL',
+      home_team: NFL_TEAMS[homeTeam as keyof typeof NFL_TEAMS],
+      away_team: NFL_TEAMS[awayTeam as keyof typeof NFL_TEAMS],
+      commence_time: monday.toISOString(),
+      odds_data: generateOddsFromSpread(
+        spread,
+        'NFL'
+      ) as unknown as Database['public']['Tables']['games']['Insert']['odds_data'],
+      status: 'scheduled',
+      home_score: null,
+      away_score: null,
+    });
+  }
+
+  // Add some completed games from last week for testing
+  const lastSunday = new Date(sunday);
+  lastSunday.setDate(sunday.getDate() - 7);
+
+  games.push({
+    id: `nfl_${lastSunday.toISOString().split('T')[0]}_KC_BUF`,
+    sport: 'american_football_nfl',
+    sport_title: 'NFL',
+    home_team: NFL_TEAMS.BUF,
+    away_team: NFL_TEAMS.KC,
+    commence_time: lastSunday.toISOString(),
+    odds_data: generateOddsFromSpread(
+      -3,
+      'NFL'
+    ) as unknown as Database['public']['Tables']['games']['Insert']['odds_data'],
+    status: 'completed',
+    home_score: 24,
+    away_score: 27,
+  });
+
+  return games;
+}
+
 // Generate games for the next N days
 export function generateMockGames(daysAhead: number = 7): GameInsert[] {
   const games: GameInsert[] = [];
@@ -95,6 +271,7 @@ export function generateMockGames(daysAhead: number = 7): GameInsert[] {
   // Track which teams have played to avoid duplicates
   const teamsPlayedByDay: Set<string>[] = [];
 
+  // Generate NBA games
   for (let day = 0; day < daysAhead; day++) {
     const gameDate = new Date(now);
     gameDate.setDate(gameDate.getDate() + day);
@@ -133,7 +310,7 @@ export function generateMockGames(daysAhead: number = 7): GameInsert[] {
 
       // Generate spread based on "team strength" (random for now)
       const spread = (Math.random() * 20 - 10).toFixed(1);
-      const odds = generateOddsFromSpread(parseFloat(spread));
+      const odds = generateOddsFromSpread(parseFloat(spread), 'NBA');
 
       // Create game ID
       const gameId = `nba_${gameDate.toISOString().split('T')[0]}_${awayTeam}_${homeTeam}`;
@@ -189,7 +366,8 @@ export function generateMockGames(daysAhead: number = 7): GameInsert[] {
     away_team: NBA_TEAMS.LAL,
     commence_time: yesterday.toISOString(),
     odds_data: generateOddsFromSpread(
-      -5.5
+      -5.5,
+      'NBA'
     ) as unknown as Database['public']['Tables']['games']['Insert']['odds_data'],
     status: 'completed',
     home_score: 118,
@@ -204,12 +382,17 @@ export function generateMockGames(daysAhead: number = 7): GameInsert[] {
     away_team: NBA_TEAMS.GSW,
     commence_time: yesterday.toISOString(),
     odds_data: generateOddsFromSpread(
-      -3.5
+      -3.5,
+      'NBA'
     ) as unknown as Database['public']['Tables']['games']['Insert']['odds_data'],
     status: 'completed',
     home_score: 125,
     away_score: 123,
   });
+
+  // Add NFL games
+  const nflGames = generateNFLGames();
+  games.push(...nflGames);
 
   return games;
 }

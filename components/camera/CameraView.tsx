@@ -1,7 +1,17 @@
-import React, { useState, useRef } from 'react';
-import { View, TouchableOpacity, StyleSheet, Text, Alert, ActivityIndicator, Animated, Pressable } from 'react-native';
+import React, { useState, useRef, useCallback } from 'react';
+import {
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  Text,
+  Alert,
+  ActivityIndicator,
+  Animated,
+  Pressable,
+} from 'react-native';
 import { CameraView } from 'expo-camera';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useCamera, CapturedMedia } from '@/hooks/useCamera';
 import { CameraControls } from './CameraControls';
 import { PermissionRequest } from './PermissionRequest';
@@ -13,6 +23,7 @@ import { EffectPreviewManager } from '../effects/utils/effectPreview';
 import { getEffectById } from '../effects/constants/allEffects';
 import { useMediaPermissions } from '@/hooks/useMediaPermissions';
 import { OpacityColors } from '@/theme';
+import { EmojiEffect } from '@/types/effects';
 
 interface CameraScreenProps {
   onCapture: (media: CapturedMedia) => void;
@@ -101,6 +112,26 @@ export function CameraScreen({ onCapture, onClose }: CameraScreenProps) {
     }
   };
 
+  const handlePreviewLocked = useCallback(async (effect: EmojiEffect) => {
+    const previewManager = EffectPreviewManager.getInstance();
+    const canPreview = await previewManager.canPreview(effect.id);
+
+    if (!canPreview) {
+      Alert.alert('Preview Limit', 'You can preview this effect once every 24 hours');
+      return;
+    }
+
+    const started = await previewManager.startPreview(effect, () => {
+      // Reset selection when preview ends
+      setSelectedEffectId(null);
+    });
+
+    if (started) {
+      setSelectedEffectId(effect.id);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  }, []);
+
   const handleRequestPermissions = async () => {
     await requestAllPermissions();
   };
@@ -178,29 +209,32 @@ export function CameraScreen({ onCapture, onClose }: CameraScreenProps) {
 
       {/* Effect Selector - bottom sheet */}
       {effectsPanelOpen && (
-        <Pressable 
-          style={styles.effectsOverlay}
-          onPress={() => setEffectsPanelOpen(false)}
-        />
+        <Pressable style={styles.effectsOverlay} onPress={() => setEffectsPanelOpen(false)} />
       )}
-      
-      <Animated.View 
+
+      <Animated.View
         style={[
           styles.effectSelectorContainer,
           {
-            transform: [{
-              translateY: effectsPanelAnimation.interpolate({
-                inputRange: [0, 1],
-                outputRange: [350, 0], // Slide up from bottom
-              })
-            }]
-          }
+            transform: [
+              {
+                translateY: effectsPanelAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [350, 0], // Slide up from bottom
+                }),
+              },
+            ],
+          },
         ]}
       >
         <View style={styles.effectsHandle}>
           <View style={styles.effectsHandleBar} />
         </View>
-        <EffectSelector onSelectEffect={setSelectedEffectId} currentEffectId={selectedEffectId} />
+        <EffectSelector
+          onSelectEffect={setSelectedEffectId}
+          currentEffectId={selectedEffectId}
+          onPreviewLocked={handlePreviewLocked}
+        />
       </Animated.View>
 
       {/* Camera Controls */}

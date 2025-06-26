@@ -64,8 +64,15 @@ export function EmojiEffectsManager({
   // Map physics types to their respective components
   const PHYSICS_COMPONENT_MAP: Record<string, PhysicsType[]> = {
     BaseParticle: [
-      'float', 'floatUp', 'fall', 'explode', 'launch',
-      'gentleFloat', 'slideDown', 'lookAround', 'riseUp'
+      'float',
+      'floatUp',
+      'fall',
+      'explode',
+      'launch',
+      'gentleFloat',
+      'slideDown',
+      'lookAround',
+      'riseUp',
     ],
     AnimatedParticle: [
       'bounce',
@@ -171,10 +178,13 @@ export function EmojiEffectsManager({
           ? particleGroup.size.min +
             Math.random() * (particleGroup.size.max - particleGroup.size.min)
           : 24;
-        const delay = particleGroup.delay
+        // Add staggered spawning based on particle index
+        const staggerDelay = i * 30; // 30ms between each particle
+        const groupDelay = particleGroup.delay
           ? particleGroup.delay.min +
             Math.random() * (particleGroup.delay.max - particleGroup.delay.min)
           : 0;
+        const delay = groupDelay + staggerDelay;
 
         // Calculate start positions for old-style particles
         const startX = Math.random() * SCREEN_WIDTH - SCREEN_WIDTH / 2;
@@ -269,8 +279,16 @@ export function EmojiEffectsManager({
   };
 
   return (
-    <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+    <View style={[StyleSheet.absoluteFillObject, styles.container]} pointerEvents="none">
       {particles.map(renderParticle)}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

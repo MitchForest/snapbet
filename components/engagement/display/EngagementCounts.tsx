@@ -97,7 +97,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 4,
-    gap: 16,
+    gap: 12,
+    flexWrap: 'wrap',
   },
   countItem: {
     flexDirection: 'row',
@@ -107,6 +108,6 @@ const styles = StyleSheet.create({
     width: 1,
     height: 16,
     backgroundColor: OpacityColors.gray.light,
-    marginHorizontal: 12,
+    marginHorizontal: 8,
   },
 });

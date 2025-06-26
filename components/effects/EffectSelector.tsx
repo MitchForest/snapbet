@@ -25,15 +25,18 @@ const CATEGORIES: { id: EffectCategory | 'all'; label: string; emoji: string }[]
 const styles = StyleSheet.create({
   categoryScroll: {
     maxHeight: 60,
+    flexGrow: 0,
   },
   categoryContent: {
     paddingHorizontal: 16,
     paddingVertical: 12,
+    alignItems: 'center',
   },
   effectsContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 24, // Extra padding to ensure bottom effects are visible
+    paddingBottom: 40, // Extra padding to ensure bottom effects are visible
+    flexGrow: 1,
   },
 });
 
@@ -98,45 +101,54 @@ export function EffectSelector({
         showsHorizontalScrollIndicator={false}
         style={styles.categoryScroll}
         contentContainerStyle={styles.categoryContent}
+        bounces={false}
+        scrollEventThrottle={16}
       >
-        <Stack flexDirection="row" gap="$2">
-          {CATEGORIES.map((category) => (
-            <Pressable key={category.id} onPress={() => handleCategorySelect(category.id)}>
-              <View
-                paddingHorizontal="$3"
-                paddingVertical="$2"
-                borderRadius="$3"
-                backgroundColor={
-                  selectedCategory === category.id ? Colors.primary : 'rgba(255, 255, 255, 0.1)'
-                }
+        {CATEGORIES.map((category) => (
+          <Pressable
+            key={category.id}
+            onPress={() => handleCategorySelect(category.id)}
+            style={{ marginRight: 8 }}
+          >
+            <View
+              paddingHorizontal="$3"
+              paddingVertical="$2"
+              borderRadius="$3"
+              backgroundColor={
+                selectedCategory === category.id ? Colors.primary : 'rgba(255, 255, 255, 0.1)'
+              }
+            >
+              <Text
+                fontSize="$3"
+                color={selectedCategory === category.id ? Colors.white : 'rgba(255, 255, 255, 0.8)'}
               >
-                <Text
-                  fontSize="$3"
-                  color={
-                    selectedCategory === category.id ? Colors.white : 'rgba(255, 255, 255, 0.8)'
-                  }
-                >
-                  {category.emoji} {category.label}
-                </Text>
-              </View>
-            </Pressable>
-          ))}
-        </Stack>
+                {category.emoji} {category.label}
+              </Text>
+            </View>
+          </Pressable>
+        ))}
       </ScrollView>
 
       {/* Effects Grid */}
       <ScrollView
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={true}
         contentContainerStyle={styles.effectsContent}
         style={{ flex: 1 }}
+        bounces={true}
+        scrollEventThrottle={16}
+        nestedScrollEnabled={true}
       >
-        <Stack flexDirection="row" flexWrap="wrap" gap="$2" justifyContent="space-evenly">
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-evenly' }}>
           {effects.map((effect) => {
             const isSelected = effect.id === currentEffectId;
             const isLocked = !effect.isUnlocked;
 
             return (
-              <Pressable key={effect.id} onPress={() => handleSelectEffect(effect)}>
+              <Pressable
+                key={effect.id}
+                onPress={() => handleSelectEffect(effect)}
+                style={{ marginBottom: 12, marginHorizontal: 6 }}
+              >
                 <View
                   width={65}
                   height={65}
@@ -185,7 +197,7 @@ export function EffectSelector({
               </Pressable>
             );
           })}
-        </Stack>
+        </View>
       </ScrollView>
     </Stack>
   );
