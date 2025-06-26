@@ -456,6 +456,91 @@ export type Database = {
         };
         Relationships: [];
       };
+      job_executions: {
+        Row: {
+          affected_count: number | null;
+          details: Json | null;
+          duration_ms: number | null;
+          executed_at: string | null;
+          executed_by: string | null;
+          id: string;
+          job_name: string;
+          message: string | null;
+          success: boolean;
+        };
+        Insert: {
+          affected_count?: number | null;
+          details?: Json | null;
+          duration_ms?: number | null;
+          executed_at?: string | null;
+          executed_by?: string | null;
+          id?: string;
+          job_name: string;
+          message?: string | null;
+          success: boolean;
+        };
+        Update: {
+          affected_count?: number | null;
+          details?: Json | null;
+          duration_ms?: number | null;
+          executed_at?: string | null;
+          executed_by?: string | null;
+          id?: string;
+          job_name?: string;
+          message?: string | null;
+          success?: boolean;
+        };
+        Relationships: [];
+      };
+      message_pick_actions: {
+        Row: {
+          action_type: Database['public']['Enums']['pick_action'];
+          created_at: string | null;
+          id: string;
+          message_id: string;
+          resulting_bet_id: string | null;
+          user_id: string;
+        };
+        Insert: {
+          action_type: Database['public']['Enums']['pick_action'];
+          created_at?: string | null;
+          id?: string;
+          message_id: string;
+          resulting_bet_id?: string | null;
+          user_id: string;
+        };
+        Update: {
+          action_type?: Database['public']['Enums']['pick_action'];
+          created_at?: string | null;
+          id?: string;
+          message_id?: string;
+          resulting_bet_id?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'message_pick_actions_message_id_fkey';
+            columns: ['message_id'];
+            isOneToOne: false;
+            referencedRelation: 'messages';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'message_pick_actions_resulting_bet_id_fkey';
+            columns: ['resulting_bet_id'];
+            isOneToOne: false;
+            referencedRelation: 'bets';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'message_pick_actions_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       message_privacy_settings: {
         Row: {
           online_status_visible: boolean | null;
@@ -486,6 +571,45 @@ export type Database = {
             foreignKeyName: 'message_privacy_settings_user_id_fkey';
             columns: ['user_id'];
             isOneToOne: true;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      message_reactions: {
+        Row: {
+          created_at: string | null;
+          emoji: string;
+          id: string;
+          message_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          emoji: string;
+          id?: string;
+          message_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string | null;
+          emoji?: string;
+          id?: string;
+          message_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'message_reactions_message_id_fkey';
+            columns: ['message_id'];
+            isOneToOne: false;
+            referencedRelation: 'messages';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'message_reactions_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
             referencedRelation: 'users';
             referencedColumns: ['id'];
           },
@@ -592,6 +716,7 @@ export type Database = {
           expires_at: string;
           id: string;
           is_blocked: boolean | null;
+          media_type: string | null;
           media_url: string | null;
           message_type: string | null;
           metadata: Json | null;
@@ -607,6 +732,7 @@ export type Database = {
           expires_at?: string;
           id?: string;
           is_blocked?: boolean | null;
+          media_type?: string | null;
           media_url?: string | null;
           message_type?: string | null;
           metadata?: Json | null;
@@ -622,6 +748,7 @@ export type Database = {
           expires_at?: string;
           id?: string;
           is_blocked?: boolean | null;
+          media_type?: string | null;
           media_url?: string | null;
           message_type?: string | null;
           metadata?: Json | null;
@@ -1266,6 +1393,10 @@ export type Database = {
       check_perfect_nfl_sunday: {
         Args: { p_user_id: string; p_week_start?: string };
         Returns: boolean;
+      };
+      cleanup_old_job_executions: {
+        Args: Record<PropertyKey, never>;
+        Returns: undefined;
       };
       create_group_chat: {
         Args: {

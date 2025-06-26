@@ -67,13 +67,21 @@ export function useTypingIndicator({ chatId }: UseTypingIndicatorOptions) {
 
     const channelName = getTypingChannelName(chatId);
 
+    // Capture the current timers map for cleanup
+    const currentTimers = typingTimersRef.current;
+
     // Subscribe to typing events using centralized manager
     realtimeManager.subscribe(channelName, subscriberId, {
       broadcast: { event: 'typing' },
-      onBroadcast: (payload: {
-        payload: { userId: string; isTyping: boolean; username: string };
-      }) => {
-        const { userId, isTyping, username } = payload.payload;
+      onBroadcast: (payload) => {
+        // Type assertion to get the specific payload type
+        const typingPayload = payload as {
+          type: 'broadcast';
+          event: string;
+          payload: { userId: string; isTyping: boolean; username: string };
+        };
+
+        const { userId, isTyping, username } = typingPayload.payload;
 
         // Ignore our own typing events
         if (userId === user.id) return;
@@ -103,7 +111,7 @@ export function useTypingIndicator({ chatId }: UseTypingIndicatorOptions) {
         // Set a timer to remove user after 5 seconds of no activity
         if (isTyping) {
           // Clear the timeout for this user if it exists
-          const existingTimer = typingTimersRef.current.get(userId);
+          const existingTimer = currentTimers.get(userId);
           if (existingTimer) {
             clearTimeout(existingTimer);
           }
@@ -111,16 +119,16 @@ export function useTypingIndicator({ chatId }: UseTypingIndicatorOptions) {
           // Set a new timeout to remove the user after 3 seconds
           const timer = setTimeout(() => {
             setTypingUsers((prev) => prev.filter((u) => u.userId !== userId));
-            typingTimersRef.current.delete(userId);
+            currentTimers.delete(userId);
           }, 3000);
 
-          typingTimersRef.current.set(userId, timer);
+          currentTimers.set(userId, timer);
         } else {
           // Clear timer if user stopped typing
-          const timer = typingTimersRef.current.get(userId);
+          const timer = currentTimers.get(userId);
           if (timer) {
             clearTimeout(timer);
-            typingTimersRef.current.delete(userId);
+            currentTimers.delete(userId);
           }
         }
       },
@@ -128,17 +136,17 @@ export function useTypingIndicator({ chatId }: UseTypingIndicatorOptions) {
 
     return () => {
       // Store ref in variable to avoid stale closure warning
-      const timers = typingTimersRef.current;
+      const timeout = typingTimeoutRef.current;
 
       realtimeManager.unsubscribe(channelName, subscriberId);
 
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
+      if (timeout) {
+        clearTimeout(timeout);
       }
 
       // Clear all typing timers
-      timers.forEach((timer) => clearTimeout(timer));
-      timers.clear();
+      currentTimers.forEach((timer) => clearTimeout(timer));
+      currentTimers.clear();
     };
   }, [chatId, user, subscriberId]);
 

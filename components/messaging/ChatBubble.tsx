@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Stack } from '@tamagui/core';
-import { Pressable, ActivityIndicator, LayoutRectangle } from 'react-native';
+import { Pressable, ActivityIndicator } from 'react-native';
 import { Colors } from '@/theme';
 import { Message } from '@/types/messaging';
 import { Avatar } from '@/components/common/Avatar';
@@ -34,7 +34,6 @@ export function ChatBubble({
   onLongPress,
 }: ChatBubbleProps) {
   const [showActionMenu, setShowActionMenu] = useState(false);
-  const [messageLayout, setMessageLayout] = useState<LayoutRectangle>();
   const { reactions, userReaction, toggleReaction } = useMessageReactions(message.id);
 
   const handleLongPress = () => {
@@ -175,11 +174,7 @@ export function ChatBubble({
 
           {/* Regular message bubble */}
           {message.message_type !== 'system' && (
-            <Pressable
-              onLongPress={handleLongPress}
-              disabled={message.isOptimistic}
-              onLayout={(e) => setMessageLayout(e.nativeEvent.layout)}
-            >
+            <Pressable onLongPress={handleLongPress} disabled={message.isOptimistic}>
               <View style={bubbleStyle} padding="$3">
                 {/* Message content */}
                 {renderContent()}
@@ -300,7 +295,6 @@ export function ChatBubble({
         isVisible={showActionMenu}
         onClose={() => setShowActionMenu(false)}
         onReactionSelect={toggleReaction}
-        messagePosition={messageLayout}
       />
     </>
   );

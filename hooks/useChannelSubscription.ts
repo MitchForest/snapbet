@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useId } from 'react';
+import { useEffect, useCallback, useId, useRef } from 'react';
 import { realtimeManager, ChannelConfig } from '@/services/realtime/realtimeManager';
 
 interface UseChannelSubscriptionOptions extends ChannelConfig {
@@ -16,11 +16,15 @@ export function useChannelSubscription(
   const subscriberId = useId();
   const { enabled = true, ...config } = options;
 
+  // Use a ref to track config changes without causing re-subscriptions
+  const configRef = useRef(config);
+  configRef.current = config;
+
   useEffect(() => {
     if (!enabled || !channelName) return;
 
     try {
-      realtimeManager.subscribe(channelName, subscriberId, config);
+      realtimeManager.subscribe(channelName, subscriberId, configRef.current);
     } catch (error) {
       console.error(`[useChannelSubscription] Error subscribing to ${channelName}:`, error);
     }

@@ -1,5 +1,4 @@
-import { useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/services/supabase/client';
 import { MessageReaction } from '@/types/messaging';
 import { toastService } from '@/services/toastService';
@@ -7,13 +6,13 @@ import { useAuthStore } from '@/stores/authStore';
 import * as Haptics from 'expo-haptics';
 
 export function useMessageReactions(messageId: string) {
-  const queryClient = useQueryClient();
-  const { user } = useAuthStore();
+  const user = useAuthStore((state) => state.user);
+  const [reactions, setReactions] = useState<MessageReaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch reactions for a message
-  const { data: reactions = [], isLoading } = useQuery({
-    queryKey: ['message-reactions', messageId],
-    queryFn: async () => {
+  // Fetch reactions for the message
+  const fetchReactions = useCallback(async () => {
+    try {
       const { data, error } = await supabase
         .from('message_reactions')
         .select(
@@ -30,103 +29,167 @@ export function useMessageReactions(messageId: string) {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      return data as MessageReaction[];
-    },
-    enabled: !!messageId,
-  });
 
-  // Add reaction mutation
-  const addReactionMutation = useMutation({
-    mutationFn: async (emoji: string) => {
-      if (!user) throw new Error('Not authenticated');
+      // Map the data to match MessageReaction type
+      const validReactions: MessageReaction[] = (data || [])
+        .filter((reaction) => reaction.created_at !== null)
+        .map((reaction) => ({
+          id: reaction.id,
+          message_id: reaction.message_id,
+          user_id: reaction.user_id,
+          emoji: reaction.emoji,
+          created_at: reaction.created_at!,
+          user: reaction.user
+            ? {
+                id: reaction.user.id,
+                username: reaction.user.username,
+                avatar_url: reaction.user.avatar_url,
+              }
+            : undefined,
+        }));
 
-      const { data, error } = await supabase
-        .from('message_reactions')
-        .insert({
+      setReactions(validReactions);
+    } catch (error) {
+      console.error('Error fetching reactions:', error);
+      toastService.showError('Failed to load reactions');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [messageId]);
+
+  // Add a reaction
+  const addReaction = useCallback(
+    async (emoji: string) => {
+      if (!user) return;
+
+      try {
+        const { error } = await supabase.from('message_reactions').insert({
           message_id: messageId,
           user_id: user.id,
           emoji,
-        })
-        .select()
-        .single();
+        });
 
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    },
-    onError: (error) => {
-      console.error('Failed to add reaction:', error);
-      toastService.showError('Failed to add reaction');
-    },
-  });
+        if (error) throw error;
 
-  // Remove reaction mutation
-  const removeReactionMutation = useMutation({
-    mutationFn: async () => {
-      if (!user) throw new Error('Not authenticated');
+        // Get user profile for optimistic update
+        const { data: userProfile } = await supabase
+          .from('users')
+          .select('username, avatar_url')
+          .eq('id', user.id)
+          .single();
 
-      const { error } = await supabase
-        .from('message_reactions')
-        .delete()
-        .eq('message_id', messageId)
-        .eq('user_id', user.id);
+        // Optimistically update UI
+        const newReaction: MessageReaction = {
+          id: `temp_${Date.now()}`,
+          message_id: messageId,
+          user_id: user.id,
+          emoji,
+          created_at: new Date().toISOString(),
+          user: {
+            id: user.id,
+            username: userProfile?.username || null,
+            avatar_url: userProfile?.avatar_url || null,
+          },
+        };
+        setReactions((prev) => [...prev, newReaction]);
 
-      if (error) throw error;
+        // Haptic feedback
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+        // Refresh reactions
+        fetchReactions();
+      } catch (error: unknown) {
+        console.error('Error adding reaction:', error);
+        toastService.showError('Failed to add reaction');
+      }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    [messageId, user, fetchReactions]
+  );
+
+  // Remove a reaction
+  const removeReaction = useCallback(
+    async (emoji: string) => {
+      if (!user) return;
+
+      try {
+        const { error } = await supabase
+          .from('message_reactions')
+          .delete()
+          .eq('message_id', messageId)
+          .eq('user_id', user.id)
+          .eq('emoji', emoji);
+
+        if (error) throw error;
+
+        // Optimistically update UI
+        setReactions((prev) => prev.filter((r) => !(r.user_id === user.id && r.emoji === emoji)));
+
+        // Refresh reactions
+        fetchReactions();
+      } catch (error: unknown) {
+        console.error('Error removing reaction:', error);
+        toastService.showError('Failed to remove reaction');
+      }
     },
-    onError: (error) => {
-      console.error('Failed to remove reaction:', error);
-      toastService.showError('Failed to remove reaction');
+    [messageId, user, fetchReactions]
+  );
+
+  // Toggle reaction (add if not exists, remove if exists)
+  const toggleReaction = useCallback(
+    async (emoji: string) => {
+      if (!user) return;
+
+      const existingReaction = reactions.find((r) => r.user_id === user.id && r.emoji === emoji);
+
+      if (existingReaction) {
+        await removeReaction(emoji);
+      } else {
+        await addReaction(emoji);
+      }
     },
-  });
+    [user, reactions, addReaction, removeReaction]
+  );
 
   // Get user's current reaction
   const userReaction = reactions.find((r) => r.user_id === user?.id)?.emoji || null;
 
   // Group reactions by emoji
   const reactionSummary = reactions.reduce(
-    (acc, reaction) => {
+    (
+      acc: Array<{
+        emoji: string;
+        count: number;
+        users: Array<{ id: string; username: string | null; avatar_url: string | null }>;
+      }>,
+      reaction
+    ) => {
       const existing = acc.find((r) => r.emoji === reaction.emoji);
       if (existing) {
         existing.count++;
-        existing.users.push(reaction.user);
+        if (reaction.user) {
+          existing.users.push(reaction.user);
+        }
       } else {
         acc.push({
           emoji: reaction.emoji,
           count: 1,
-          users: [reaction.user],
+          users: reaction.user ? [reaction.user] : [],
         });
       }
       return acc;
     },
-    [] as Array<{
-      emoji: string;
-      count: number;
-      users: Array<{ id: string; username: string | null; avatar_url: string | null }>;
-    }>
+    []
   );
 
-  const toggleReaction = useCallback(
-    (emoji: string) => {
-      if (userReaction === emoji) {
-        removeReactionMutation.mutate();
-      } else {
-        addReactionMutation.mutate(emoji);
-      }
-    },
-    [userReaction, addReactionMutation, removeReactionMutation]
-  );
+  // Initial load
+  useEffect(() => {
+    fetchReactions();
+  }, [fetchReactions]);
 
   return {
     reactions: reactionSummary,
     userReaction,
     toggleReaction,
-    isLoading: isLoading || addReactionMutation.isLoading || removeReactionMutation.isLoading,
+    isLoading,
   };
 }

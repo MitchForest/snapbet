@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Message } from '@/types/messaging';
+import { Message, MessageReportReason } from '@/types/messaging';
 import { messagingPrivacyService } from '@/services/messaging/messagingPrivacyService';
 import { shouldHideMessage, getFilteredText } from '@/utils/messaging/contentFilter';
 import { useBlockedUsers } from '@/hooks/useBlockedUsers';
@@ -73,7 +73,7 @@ export const useMessageModeration = () => {
       const result = await messagingPrivacyService.reportMessage(
         messageId,
         userId,
-        reason,
+        reason as MessageReportReason,
         details
       );
 

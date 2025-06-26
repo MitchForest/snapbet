@@ -58,8 +58,10 @@ class PresenceService {
       // Subscribe to global presence channel
       this.presenceChannel = realtimeManager.subscribe('presence:global', userId, {
         presence: true,
-        onPresence: (state: PresenceData) => {
-          this.updatePresenceStore(state);
+        onPresence: (state) => {
+          // Type assertion to convert from PresenceState to PresenceData
+          const presenceData = state as unknown as PresenceData;
+          this.updatePresenceStore(presenceData);
         },
       });
 

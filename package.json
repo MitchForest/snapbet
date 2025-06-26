@@ -17,10 +17,21 @@
     "db:seed-mock": "bun scripts/seed-mock-data.ts",
     "db:add-games": "bun scripts/add-games.ts",
     "db:settle": "bun scripts/settle-bets.ts",
-    "db:generate-activity": "bun scripts/generate-activity.ts"
+    "db:generate-activity": "bun scripts/generate-activity.ts",
+    "jobs": "bun run scripts/jobs/cli.ts",
+    "jobs:expire": "bun run scripts/jobs/cli.ts expire",
+    "jobs:badges": "bun run scripts/jobs/cli.ts badges",
+    "jobs:reset": "bun run scripts/jobs/cli.ts reset-bankrolls",
+    "jobs:settle": "bun run scripts/jobs/cli.ts settle-games",
+    "jobs:stats": "bun run scripts/jobs/cli.ts stats",
+    "jobs:cleanup": "bun run scripts/jobs/cli.ts cleanup",
+    "jobs:media": "bun run scripts/jobs/cli.ts media-cleanup",
+    "jobs:all": "bun run scripts/jobs/cli.ts all",
+    "jobs:schedule": "bun run scripts/jobs/cli.ts schedule"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.1.2",
+    "commander": "^12.0.0",
     "@react-native-community/netinfo": "^11.4.1",
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/drawer": "^7.3.9",

@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, Stack, TextArea, Button } from '@tamagui/core';
-import { Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, Stack } from '@tamagui/core';
+import {
+  Pressable,
+  StyleSheet,
+  ActivityIndicator,
+  TextInput,
+  TouchableOpacity,
+} from 'react-native';
 import { BaseSheet } from '@/components/engagement/sheets/BaseSheet';
 import { Colors } from '@/theme';
 import { Message } from '@/types/messaging';
@@ -128,16 +134,16 @@ export const MessageReportModal: React.FC<MessageReportModalProps> = ({
             <Text fontSize="$4" fontWeight="600">
               Additional details
             </Text>
-            <TextArea
+            <TextInput
               placeholder="Please provide more details..."
               value={details}
               onChangeText={setDetails}
-              minHeight={100}
-              maxHeight={150}
-              disabled={isSubmitting}
-              backgroundColor="$surface2"
-              borderWidth={1}
-              borderColor="$borderColor"
+              multiline
+              numberOfLines={4}
+              maxLength={500}
+              style={[styles.textInput, isSubmitting && styles.textInputDisabled]}
+              editable={!isSubmitting}
+              placeholderTextColor={Colors.text.secondary}
             />
             <Text fontSize="$2" color="$gray11" textAlign="right">
               {details.length}/500
@@ -146,23 +152,33 @@ export const MessageReportModal: React.FC<MessageReportModalProps> = ({
         )}
 
         <Stack flexDirection="row" gap="$3">
-          <Button flex={1} size="$4" variant="outlined" onPress={onClose} disabled={isSubmitting}>
-            Cancel
-          </Button>
+          <TouchableOpacity
+            style={[styles.button, styles.cancelButton]}
+            onPress={onClose}
+            disabled={isSubmitting}
+          >
+            <Text fontSize="$4" fontWeight="600">
+              Cancel
+            </Text>
+          </TouchableOpacity>
 
-          <Button
-            flex={1}
-            size="$4"
-            backgroundColor="$danger"
+          <TouchableOpacity
+            style={[
+              styles.button,
+              styles.submitButton,
+              (!selectedReason || isSubmitting) && styles.buttonDisabled,
+            ]}
             disabled={!selectedReason || isSubmitting}
             onPress={handleSubmit}
           >
             {isSubmitting ? (
               <ActivityIndicator size="small" color={Colors.white} />
             ) : (
-              'Submit Report'
+              <Text fontSize="$4" fontWeight="600" color="white">
+                Submit Report
+              </Text>
             )}
-          </Button>
+          </TouchableOpacity>
         </Stack>
       </Stack>
     </BaseSheet>
@@ -187,5 +203,38 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     backgroundColor: Colors.primary,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: Colors.border.default,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    color: Colors.text.primary,
+    minHeight: 100,
+    maxHeight: 150,
+    backgroundColor: Colors.surface,
+    textAlignVertical: 'top',
+  },
+  textInputDisabled: {
+    opacity: 0.5,
+  },
+  button: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    borderWidth: 1,
+    borderColor: Colors.border.default,
+    backgroundColor: Colors.surface,
+  },
+  submitButton: {
+    backgroundColor: Colors.error,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
 });

@@ -1,5 +1,4 @@
-import { useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import {
   messagingPrivacyService,
@@ -18,35 +17,55 @@ const DEFAULT_PRIVACY_SETTINGS: PrivacySettings = {
 
 export const useMessagePrivacy = () => {
   const user = useAuthStore((state) => state.user);
-  const queryClient = useQueryClient();
+  const [settings, setSettings] = useState<PrivacySettings>(DEFAULT_PRIVACY_SETTINGS);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  const { data: settings, isLoading } = useQuery({
-    queryKey: ['message-privacy', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return DEFAULT_PRIVACY_SETTINGS;
-      return messagingPrivacyService.getPrivacySettings(user.id);
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    enabled: !!user?.id,
-  });
-
-  const updateSettings = useMutation({
-    mutationFn: async (updates: Partial<PrivacySettings>) => {
-      if (!user?.id) throw new Error('User not authenticated');
-      const result = await messagingPrivacyService.updatePrivacySettings(user.id, updates);
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to update settings');
+  useEffect(() => {
+    const loadSettings = async () => {
+      if (!user?.id) {
+        setIsLoading(false);
+        return;
       }
-      return result;
+
+      try {
+        const privacySettings = await messagingPrivacyService.getPrivacySettings(user.id);
+        setSettings(privacySettings);
+      } catch (error) {
+        console.error('Error loading privacy settings:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, [user?.id]);
+
+  const updateSettings = useCallback(
+    async (updates: Partial<PrivacySettings>) => {
+      if (!user?.id) {
+        toastService.showError('User not authenticated');
+        return;
+      }
+
+      setIsUpdating(true);
+      try {
+        const result = await messagingPrivacyService.updatePrivacySettings(user.id, updates);
+        if (result.success) {
+          setSettings((prev: PrivacySettings) => ({ ...prev, ...updates }));
+          toastService.showSuccess('Privacy settings updated');
+        } else {
+          toastService.showError(result.error || 'Failed to update settings');
+        }
+      } catch (error) {
+        console.error('Error updating settings:', error);
+        toastService.showError('Failed to update settings');
+      } finally {
+        setIsUpdating(false);
+      }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['message-privacy', user?.id] });
-      toastService.showSuccess('Privacy settings updated');
-    },
-    onError: (error: Error) => {
-      toastService.showError(error.message || 'Failed to update settings');
-    },
-  });
+    [user?.id]
+  );
 
   const canMessage = useCallback(
     async (recipientId: string) => {
@@ -57,10 +76,10 @@ export const useMessagePrivacy = () => {
   );
 
   return {
-    settings: settings || DEFAULT_PRIVACY_SETTINGS,
+    settings,
     isLoading,
-    updateSettings: updateSettings.mutate,
-    isUpdating: updateSettings.isPending,
+    updateSettings,
+    isUpdating,
     canMessage,
   };
 };
