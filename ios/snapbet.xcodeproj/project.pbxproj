@@ -7,29 +7,29 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		04066142DB05FD2A820EE2B3 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F775FE7737BBD06B03C1ACA /* ExpoModulesProvider.swift */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		2E9E117E7CBB00CA3B4D83DD /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 531209E642B52DC46A5F49B8 /* PrivacyInfo.xcprivacy */; };
+		1681EDD53F33CF99FF1E4918 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D2491BF71B1D0D94FE89CE69 /* PrivacyInfo.xcprivacy */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
+		5E25E64A9C7A46E7833DD52E /* libPods-snapbet.a in Frameworks */ = {isa = PBXBuildFile; fileRef = BF82AF9FDB4AB8834FF77392 /* libPods-snapbet.a */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		EB33CD0553D179CFE1AA9256 /* libPods-snapbet.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 94A09ECF20D25A2959943579 /* libPods-snapbet.a */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
-		F9E0B0F39130E11E0F8BDB1F /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08D0C2BF5A45C19152A7C01F /* ExpoModulesProvider.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		08D0C2BF5A45C19152A7C01F /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-snapbet/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* snapbet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = snapbet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = snapbet/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = snapbet/Info.plist; sourceTree = "<group>"; };
-		531209E642B52DC46A5F49B8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = snapbet/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		94A09ECF20D25A2959943579 /* libPods-snapbet.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-snapbet.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		256B7D0D20BF73313617BE92 /* Pods-snapbet.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-snapbet.release.xcconfig"; path = "Target Support Files/Pods-snapbet/Pods-snapbet.release.xcconfig"; sourceTree = "<group>"; };
+		5F775FE7737BBD06B03C1ACA /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-snapbet/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = snapbet/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		D37DC5E117D9F77FDAD2C41F /* Pods-snapbet.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-snapbet.release.xcconfig"; path = "Target Support Files/Pods-snapbet/Pods-snapbet.release.xcconfig"; sourceTree = "<group>"; };
+		BF82AF9FDB4AB8834FF77392 /* libPods-snapbet.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-snapbet.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D2491BF71B1D0D94FE89CE69 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = snapbet/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = snapbet/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* snapbet-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "snapbet-Bridging-Header.h"; path = "snapbet/snapbet-Bridging-Header.h"; sourceTree = "<group>"; };
-		F299C16D975CF1BD85747FCB /* Pods-snapbet.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-snapbet.debug.xcconfig"; path = "Target Support Files/Pods-snapbet/Pods-snapbet.debug.xcconfig"; sourceTree = "<group>"; };
+		FCE0479B50C9ED7AEFA3E2E8 /* Pods-snapbet.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-snapbet.debug.xcconfig"; path = "Target Support Files/Pods-snapbet/Pods-snapbet.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,7 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				EB33CD0553D179CFE1AA9256 /* libPods-snapbet.a in Frameworks */,
+				5E25E64A9C7A46E7833DD52E /* libPods-snapbet.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,7 +53,7 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				531209E642B52DC46A5F49B8 /* PrivacyInfo.xcprivacy */,
+				D2491BF71B1D0D94FE89CE69 /* PrivacyInfo.xcprivacy */,
 			);
 			name = snapbet;
 			sourceTree = "<group>";
@@ -62,27 +62,17 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				94A09ECF20D25A2959943579 /* libPods-snapbet.a */,
+				BF82AF9FDB4AB8834FF77392 /* libPods-snapbet.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		5A3253238131C0381914B3ED /* Pods */ = {
+		43A7B21364CB08BF51E03219 /* ExpoModulesProviders */ = {
 			isa = PBXGroup;
 			children = (
-				F299C16D975CF1BD85747FCB /* Pods-snapbet.debug.xcconfig */,
-				D37DC5E117D9F77FDAD2C41F /* Pods-snapbet.release.xcconfig */,
+				B513B3E5A10FDD5951F88E1D /* snapbet */,
 			);
-			name = Pods;
-			path = Pods;
-			sourceTree = "<group>";
-		};
-		6B21D01A91C5ADE980E224FB /* snapbet */ = {
-			isa = PBXGroup;
-			children = (
-				08D0C2BF5A45C19152A7C01F /* ExpoModulesProvider.swift */,
-			);
-			name = snapbet;
+			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -99,8 +89,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				5A3253238131C0381914B3ED /* Pods */,
-				CD4208C403A0562683C9F644 /* ExpoModulesProviders */,
+				F817C4D88A847A4D35B7B807 /* Pods */,
+				43A7B21364CB08BF51E03219 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -115,6 +105,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		B513B3E5A10FDD5951F88E1D /* snapbet */ = {
+			isa = PBXGroup;
+			children = (
+				5F775FE7737BBD06B03C1ACA /* ExpoModulesProvider.swift */,
+			);
+			name = snapbet;
+			sourceTree = "<group>";
+		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
 			isa = PBXGroup;
 			children = (
@@ -124,12 +122,14 @@
 			path = snapbet/Supporting;
 			sourceTree = "<group>";
 		};
-		CD4208C403A0562683C9F644 /* ExpoModulesProviders */ = {
+		F817C4D88A847A4D35B7B807 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				6B21D01A91C5ADE980E224FB /* snapbet */,
+				FCE0479B50C9ED7AEFA3E2E8 /* Pods-snapbet.debug.xcconfig */,
+				256B7D0D20BF73313617BE92 /* Pods-snapbet.release.xcconfig */,
 			);
-			name = ExpoModulesProviders;
+			name = Pods;
+			path = Pods;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -140,13 +140,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "snapbet" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				46C8DB3DA4CAAEAC329F4995 /* [Expo] Configure project */,
+				12D3F3F4747C290BC0A83770 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				9A9667B3075F0B999260D8B2 /* [CP] Embed Pods Frameworks */,
+				4F6BFAC13A58B257A92E7C67 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -196,7 +196,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				2E9E117E7CBB00CA3B4D83DD /* PrivacyInfo.xcprivacy in Resources */,
+				1681EDD53F33CF99FF1E4918 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -240,7 +240,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		46C8DB3DA4CAAEAC329F4995 /* [Expo] Configure project */ = {
+		12D3F3F4747C290BC0A83770 /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -258,6 +258,24 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-snapbet/expo-configure-project.sh\"\n";
+		};
+		4F6BFAC13A58B257A92E7C67 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-snapbet/Pods-snapbet-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-snapbet/Pods-snapbet-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -305,24 +323,6 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-snapbet/Pods-snapbet-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		9A9667B3075F0B999260D8B2 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-snapbet/Pods-snapbet-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-snapbet/Pods-snapbet-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -331,7 +331,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				F9E0B0F39130E11E0F8BDB1F /* ExpoModulesProvider.swift in Sources */,
+				04066142DB05FD2A820EE2B3 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -340,7 +340,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = F299C16D975CF1BD85747FCB /* Pods-snapbet.debug.xcconfig */;
+			baseConfigurationReference = FCE0479B50C9ED7AEFA3E2E8 /* Pods-snapbet.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -364,7 +364,7 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
-				PRODUCT_BUNDLE_IDENTIFIER = com.snapbet.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.whitemitchell.snapbet;
 				PRODUCT_NAME = snapbet;
 				SWIFT_OBJC_BRIDGING_HEADER = "snapbet/snapbet-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -376,7 +376,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = D37DC5E117D9F77FDAD2C41F /* Pods-snapbet.release.xcconfig */;
+			baseConfigurationReference = 256B7D0D20BF73313617BE92 /* Pods-snapbet.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -395,7 +395,7 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
-				PRODUCT_BUNDLE_IDENTIFIER = com.snapbet.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.whitemitchell.snapbet;
 				PRODUCT_NAME = snapbet;
 				SWIFT_OBJC_BRIDGING_HEADER = "snapbet/snapbet-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;

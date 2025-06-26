@@ -28,7 +28,7 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>snapbet</string>
-          <string>com.snapbet.app</string>
+          <string>com.whitemitchell.snapbet</string>
         </array>
       </dict>
       <dict>

@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.snapbet.app",
+      "bundleIdentifier": "com.whitemitchell.snapbet",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -26,7 +26,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.snapbet.app"
+      "package": "com.whitemitchell.snapbet"
     },
     "web": {
       "favicon": "./assets/favicon.png"
