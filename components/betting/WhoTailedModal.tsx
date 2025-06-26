@@ -89,7 +89,11 @@ function UserListItem({ user, subtitle }: UserListItemProps) {
 
   return (
     <View style={styles.userItem}>
-      <Avatar src={user.avatar_url || undefined} size={40} fallback={user.username?.[0]?.toUpperCase() || '?'} />
+      <Avatar
+        src={user.avatar_url || undefined}
+        size={40}
+        fallback={user.username?.[0]?.toUpperCase() || '?'}
+      />
       <View style={styles.userInfo}>
         <Text style={styles.username}>{user.display_name || user.username || 'Unknown'}</Text>
         <Text style={styles.userSubtitle}>{subtitle}</Text>

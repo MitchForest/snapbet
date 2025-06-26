@@ -1,3 +1,6 @@
+import { Game } from './database';
+import { Bet } from '@/services/betting/types';
+
 export enum PostType {
   CONTENT = 'content',
   PICK = 'pick',
@@ -59,6 +62,26 @@ export interface Comment {
   };
 }
 
+export interface PendingShareBet {
+  betId: string;
+  type: 'pick' | 'outcome';
+  gameId: string;
+  betType: 'spread' | 'total' | 'moneyline';
+  betDetails: {
+    team?: string;
+    line?: number;
+    total_type?: 'over' | 'under';
+  };
+  stake: number;
+  odds: number;
+  potentialWin: number;
+  expiresAt?: string;
+  // For outcome posts
+  status?: 'won' | 'lost' | 'push';
+  actualWin?: number;
+  game?: Game;
+}
+
 export interface PostWithType {
   id: string;
   user_id: string;
@@ -84,8 +107,8 @@ export interface PostWithType {
     username: string;
     avatar_url: string | null;
   };
-  bet?: unknown; // Will be typed in Epic 5
-  settled_bet?: unknown; // Will be typed in Epic 5
+  bet?: Bet & { game?: Game };
+  settled_bet?: Bet & { game?: Game };
 }
 
 export interface CreatePostParams {

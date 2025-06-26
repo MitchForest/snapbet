@@ -1,5 +1,6 @@
 import { supabase } from '@/services/supabase/client';
 import { Game } from '@/types/database';
+import { Json } from '@/types/supabase-generated';
 import { Storage, StorageKeys, CacheUtils } from '@/services/storage/storageService';
 import { generateMockGames } from '@/scripts/data/mock-games';
 
@@ -83,6 +84,76 @@ export class GameService {
       this.clearCache();
     } catch (error) {
       console.error('Error updating game score:', error);
+      throw error;
+    }
+  }
+
+  // Update game odds
+  async updateOdds(
+    gameId: string,
+    oddsUpdate: {
+      spread?: { line: number; home: number; away: number };
+      total?: { line: number; over: number; under: number };
+      moneyline?: { home: number; away: number };
+    }
+  ): Promise<void> {
+    try {
+      // Get current game
+      const { data: game, error: fetchError } = await supabase
+        .from('games')
+        .select('odds_data')
+        .eq('id', gameId)
+        .single();
+
+      if (fetchError || !game) throw new Error('Game not found');
+
+      // Update odds data
+      interface OddsData {
+        bookmakers: Array<{
+          key: string;
+          markets: {
+            h2h?: { home: number; away: number };
+            spreads?: { line: number; home: number; away: number };
+            totals?: { line: number; over: number; under: number };
+          };
+        }>;
+      }
+
+      const currentOdds = (game.odds_data as unknown as OddsData) || { bookmakers: [] };
+      if (!currentOdds.bookmakers[0]) {
+        currentOdds.bookmakers[0] = {
+          key: 'snapbet',
+          markets: {},
+        };
+      }
+
+      const markets = currentOdds.bookmakers[0].markets;
+
+      if (oddsUpdate.spread) {
+        markets.spreads = oddsUpdate.spread;
+      }
+      if (oddsUpdate.total) {
+        markets.totals = oddsUpdate.total;
+      }
+      if (oddsUpdate.moneyline) {
+        markets.h2h = oddsUpdate.moneyline;
+      }
+
+      // Save updated odds
+      const { error: updateError } = await supabase
+        .from('games')
+        .update({
+          odds_data: currentOdds as unknown as Json,
+          last_updated: new Date().toISOString(),
+        })
+        .eq('id', gameId);
+
+      if (updateError) throw updateError;
+
+      // Clear cache to force refresh
+      this.clearCache();
+    } catch (error) {
+      console.error('Error updating odds:', error);
       throw error;
     }
   }

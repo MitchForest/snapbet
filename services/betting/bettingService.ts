@@ -211,20 +211,15 @@ class BettingService {
 
   // Private helper methods
 
-  // TODO: Replace with bankrollService.canPlaceBet() when Sprint 05.05 is complete
+  // Check if user has sufficient bankroll (considering pending bets)
   private async checkBankrollSufficient(userId: string, amount: number): Promise<boolean> {
-    const { data: bankroll, error } = (await supabase
-      .from('bankrolls')
-      .select('balance')
-      .eq('user_id', userId)
-      .single()) as { data: { balance: number } | null; error: Error | null };
-
-    if (error || !bankroll) {
+    try {
+      const { bankrollService } = await import('./bankrollService');
+      return await bankrollService.canPlaceBet(userId, amount);
+    } catch (error) {
       console.error('Error checking bankroll:', error);
       return false;
     }
-
-    return bankroll.balance >= amount;
   }
 
   private validateBet(input: BetInput, game: Game): ValidationResult {

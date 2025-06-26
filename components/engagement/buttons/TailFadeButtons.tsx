@@ -90,7 +90,8 @@ export function TailFadeButtons({ post, bet, game, onTailFadePress }: TailFadeBu
           post.user
             ? {
                 username: post.user.username || '',
-                display_name: (post.user as Record<string, unknown>).display_name as string | null || null,
+                display_name:
+                  ((post.user as Record<string, unknown>).display_name as string | null) || null,
               }
             : null
         }

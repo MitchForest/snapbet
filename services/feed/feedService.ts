@@ -76,6 +76,14 @@ export class FeedService {
             avatar_url,
             display_name,
             is_private
+          ),
+          bet:bets!bet_id (
+            *,
+            game:games!game_id (*)
+          ),
+          settled_bet:bets!settled_bet_id (
+            *,
+            game:games!game_id (*)
           )
         `
         )

@@ -5,7 +5,7 @@ import { Colors, OpacityColors } from '@/theme';
 import { PostWithType, PostType, POST_TYPE_CONFIGS } from '@/types/content';
 import { getTimeUntilExpiration } from '@/utils/content/postTypeHelpers';
 import { Avatar } from '@/components/common/Avatar';
-import { TailFadeButtons } from '@/components/engagement/buttons/TailFadeButtons';
+
 import { EngagementCounts } from '@/components/engagement/display/EngagementCounts';
 import { ReactionDisplay } from '@/components/engagement/display/ReactionDisplay';
 import { ReactionPicker } from '@/components/engagement/ReactionPicker';
@@ -14,6 +14,7 @@ import { ReportModal } from '@/components/moderation/ReportModal';
 import { useEngagement } from '@/hooks/useEngagement';
 import { useAuthStore } from '@/stores/authStore';
 import { toastService } from '@/services/toastService';
+import { TailFadeButtons } from '@/components/engagement/buttons/TailFadeButtons';
 
 interface PostCardProps {
   post: PostWithType;
@@ -43,9 +44,6 @@ export function PostCard({ post, onPress }: PostCardProps) {
 
   // Get engagement data
   const engagement = useEngagement(post.id, post.post_type);
-
-  // Check if post is expired
-  const isExpired = new Date(post.expires_at) < new Date();
 
   // Check if post is auto-hidden due to reports
   const isAutoHidden = post.report_count && post.report_count >= 3 && !showHiddenContent;
@@ -168,9 +166,11 @@ export function PostCard({ post, onPress }: PostCardProps) {
             {/* Tail/Fade Buttons for Pick Posts */}
             {post.post_type === PostType.PICK && post.bet_id && (
               <View style={styles.tailFadeContainer}>
-                <Text style={styles.tailFadeHint}>
-                  Tail/Fade functionality will be available when bet data is loaded
-                </Text>
+                {post.bet && post.bet.game ? (
+                  <TailFadeButtons post={post} bet={post.bet} game={post.bet.game} />
+                ) : (
+                  <Text style={styles.tailFadeHint}>Loading bet details...</Text>
+                )}
               </View>
             )}
 

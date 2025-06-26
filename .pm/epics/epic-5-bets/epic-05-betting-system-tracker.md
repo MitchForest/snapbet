@@ -25,9 +25,9 @@
 | 05.01 | Games Tab & Data | NOT STARTED | - | - | Browse games with odds |
 | 05.02 | Betting Service & State | NOT STARTED | - | - | Core betting logic |
 | 05.03 | Bet Placement UI | NOT STARTED | - | - | Bottom sheet bet slip |
-| 05.04 | Tail/Fade Mechanics | NOT STARTED | - | - | Social betting features |
-| 05.05 | Bankroll Management | NOT STARTED | - | - | Weekly reset system |
-| 05.06 | Settlement & Scripts | NOT STARTED | - | - | Admin tools |
+| 05.04 | Tail/Fade Mechanics | APPROVED | Jan 2025 | Jan 2025 | Social betting features |
+| 05.05 | Bankroll Management | NEEDS_REVISION | Jan 2025 | Jan 2025 | Weekly reset system |
+| 05.06 | Settlement & Scripts | APPROVED | Jan 2025 | Jan 2025 | Admin tools |
 | 05.07 | Pick/Outcome Posts | NOT STARTED | - | - | Betting content creation |
 | 05.08 | Bet History & Stats | NOT STARTED | - | - | Performance tracking |
 

@@ -12,9 +12,10 @@ import { PlaceBetButton } from './PlaceBetButton';
 import { Game } from '@/types/database';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { Storage } from '@/services/storage/storageService';
 import { toastService } from '@/services/toastService';
 import { bettingService } from '@/services/betting/bettingService';
+import { useBetSharing } from '@/hooks/useBetSharing';
+import { PendingShareBet } from '@/types/content';
 
 interface BetSheetProps {
   isVisible: boolean;
@@ -24,6 +25,7 @@ interface BetSheetProps {
 
 export function BetSheet({ isVisible, onClose, game }: BetSheetProps) {
   const router = useRouter();
+  const { storeBetForSharing } = useBetSharing();
   const [availableBankroll] = useState(100000); // $1000 default for MVP
 
   const {
@@ -79,15 +81,50 @@ export function BetSheet({ isVisible, onClose, game }: BetSheetProps) {
 
       // Handle share flow
       if (shareToFeed) {
-        // Store bet ID for camera
-        Storage.betting.set('pendingShareBetId', bet.id);
+        // Prepare bet details for sharing
+        const betDetails: {
+          team?: string;
+          line?: number;
+          total_type?: 'over' | 'under';
+        } = {};
+
+        if (betType === 'spread' || betType === 'moneyline') {
+          // Type guard for TeamSelection
+          if (selection && 'team' in selection) {
+            betDetails.team = selection.team;
+            if (betType === 'spread' && selection.line !== undefined) {
+              betDetails.line = selection.line;
+            }
+          }
+        } else if (betType === 'total') {
+          // Type guard for TotalSelection
+          if (selection && 'totalType' in selection) {
+            betDetails.total_type = selection.totalType;
+            betDetails.line = selection.line;
+          }
+        }
+
+        const pendingBet: PendingShareBet = {
+          betId: bet.id,
+          type: 'pick',
+          gameId: bet.game_id,
+          betType: bet.bet_type,
+          betDetails,
+          stake: bet.stake,
+          odds: bet.odds,
+          potentialWin: bet.potential_win,
+          expiresAt: game.commence_time,
+          game,
+        };
+
+        storeBetForSharing(pendingBet);
 
         // Close sheet first
         onClose();
 
         // Navigate to camera after a brief delay
         setTimeout(() => {
-          router.push('/camera');
+          router.push('/camera?mode=pick');
         }, 300);
       } else {
         // Just close sheet

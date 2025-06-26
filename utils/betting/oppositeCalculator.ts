@@ -4,7 +4,7 @@ import { Bet, BetType } from '@/services/betting/types';
 interface BetInput {
   gameId: string;
   betType: BetType;
-  selection: any;
+  selection: SpreadSelection | TotalSelection | MoneylineSelection;
   stake: number;
   odds: number;
 }
@@ -27,26 +27,32 @@ interface MoneylineSelection {
  * Calculate the opposite bet for fading
  */
 export function calculateFadeBet(originalBet: Bet, game: Game): Partial<BetInput> {
+  if (!originalBet.bet_details || typeof originalBet.bet_details !== 'object') {
+    throw new Error('Invalid bet details');
+  }
+
+  const details = originalBet.bet_details as Record<string, unknown>;
+
   switch (originalBet.bet_type) {
     case 'spread':
       return {
         betType: 'spread',
-        selection: getFadeSpread(originalBet.bet_details, game),
+        selection: getFadeSpread(details, game),
         odds: -110, // Standard spread odds
       };
 
     case 'total':
       return {
         betType: 'total',
-        selection: getFadeTotal(originalBet.bet_details),
+        selection: getFadeTotal(details),
         odds: -110, // Standard total odds
       };
 
     case 'moneyline':
       return {
         betType: 'moneyline',
-        selection: getFadeMoneyline(originalBet.bet_details, game),
-        odds: getFadeMoneylineOdds(originalBet.bet_details, game),
+        selection: getFadeMoneyline(details, game),
+        odds: getFadeMoneylineOdds(details, game),
       };
 
     default:
@@ -57,11 +63,11 @@ export function calculateFadeBet(originalBet: Bet, game: Game): Partial<BetInput
 /**
  * Get opposite spread bet
  */
-export function getFadeSpread(original: any, game: Game): SpreadSelection {
+export function getFadeSpread(original: Record<string, unknown>, game: Game): SpreadSelection {
   const oppositeTeam = original.team === game.home_team ? game.away_team : game.home_team;
 
   // Line flips to opposite team
-  const oppositeLine = -original.line;
+  const oppositeLine = -(original.line as number);
 
   return {
     team: oppositeTeam,
@@ -72,17 +78,20 @@ export function getFadeSpread(original: any, game: Game): SpreadSelection {
 /**
  * Get opposite total bet
  */
-export function getFadeTotal(original: any): TotalSelection {
+export function getFadeTotal(original: Record<string, unknown>): TotalSelection {
   return {
     type: original.total_type === 'over' ? 'under' : 'over',
-    line: original.line,
+    line: original.line as number,
   };
 }
 
 /**
  * Get opposite moneyline bet
  */
-export function getFadeMoneyline(original: any, game: Game): MoneylineSelection {
+export function getFadeMoneyline(
+  original: Record<string, unknown>,
+  game: Game
+): MoneylineSelection {
   const oppositeTeam = original.team === game.home_team ? game.away_team : game.home_team;
 
   return {
@@ -93,7 +102,7 @@ export function getFadeMoneyline(original: any, game: Game): MoneylineSelection 
 /**
  * Get moneyline odds for the opposite team
  */
-export function getFadeMoneylineOdds(original: any, game: Game): number {
+export function getFadeMoneylineOdds(original: Record<string, unknown>, game: Game): number {
   // Access the odds from the game data structure
   const oddsData = game.odds_data?.bookmakers?.[0]?.markets?.h2h;
 
@@ -111,17 +120,17 @@ export function getFadeMoneylineOdds(original: any, game: Game): number {
 export function formatBetDetails(bet: Bet): string {
   if (!bet.bet_details) return 'Unknown bet';
 
-  const details = bet.bet_details as any;
+  const details = bet.bet_details as Record<string, unknown>;
 
   switch (bet.bet_type) {
     case 'spread':
-      return `${details.team} ${details.line > 0 ? '+' : ''}${details.line}`;
+      return `${details.team as string} ${(details.line as number) > 0 ? '+' : ''}${details.line}`;
 
     case 'total':
-      return `${details.total_type} ${details.line}`;
+      return `${details.total_type as string} ${details.line}`;
 
     case 'moneyline':
-      return details.team;
+      return details.team as string;
 
     default:
       return 'Unknown bet';

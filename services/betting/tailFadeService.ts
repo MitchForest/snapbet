@@ -141,7 +141,7 @@ class TailFadeService {
       const betInput: BetInput = {
         gameId: originalBet.game_id,
         betType: originalBet.bet_type,
-        selection: oppositeDetails.selection,
+        selection: oppositeDetails.selection!,
         stake: input.stake,
         odds: oppositeDetails.odds!,
       };

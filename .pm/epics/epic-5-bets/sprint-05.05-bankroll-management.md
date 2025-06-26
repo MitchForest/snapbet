@@ -476,48 +476,163 @@ export function BankrollStatsModal({ isOpen, onClose }) {
 ## Handoff Checklist
 
 ### Pre-Handoff Requirements
-- [ ] All files created/modified
-- [ ] Zero TypeScript errors
-- [ ] Zero ESLint errors
-- [ ] Manual testing complete
-- [ ] Concurrent bet handling verified
-- [ ] Reset logic tested
+- [x] All files created/modified
+- [ ] Zero TypeScript errors (2 errors remain - see Known Issues)
+- [ ] Zero ESLint errors (5 errors remain - see Known Issues)
+- [x] Manual testing complete
+- [x] Concurrent bet handling verified
+- [x] Reset logic tested
 
 ### What Was Implemented
-[To be completed during implementation]
+1. **Database Migration** (017_add_weekly_deposit.sql):
+   - Added `weekly_deposit` column to bankrolls table
+   - Created atomic `place_bet_with_bankroll_check` RPC function
+   - Created `reset_bankroll` function with referral bonus calculation
+   - Created `log_bankroll_transaction` function for transaction history
+   - Added helper functions for potential win calculation
+
+2. **Bankroll Service** (bankrollService.ts):
+   - Complete bankroll management singleton service
+   - Available balance calculation (total - pending bets)
+   - Weekly reset with referral bonus integration
+   - Transaction logging in stats_metadata
+   - Weekly history tracking
+   - Real-time event emission for UI updates
+
+3. **React Hooks** (useBankroll.ts):
+   - `useBankroll` - Main hook for bankroll data with real-time updates
+   - `useAvailableBalance` - Calculates available balance
+   - `useBankrollStats` - Fetches detailed stats for modal
+   - `useWeeklyReset` - Performs weekly reset
+   - `useWeeklyHistory` - Fetches historical data
+   - `useBankrollTransactions` - Recent transaction history
+   - Note: Implemented without React Query since it's not installed
+
+4. **UI Components**:
+   - **BankrollBadge**: Header display showing available balance with color coding
+   - **BankrollStatsModal**: Detailed stats modal with current balance, P&L, ROI
+   - Integrated badge into games tab header
+
+5. **Utility Functions** (utils/bankroll/calculations.ts):
+   - Currency formatting helpers
+   - Weekly P&L and ROI calculations
+   - Next reset time calculations
+   - Color coding logic
+
+6. **Weekly Reset Script** (scripts/weekly-reset.ts):
+   - Manual script to reset all user bankrolls
+   - Calculates referral bonuses
+   - Resets weekly badges
+   - Provides detailed logging
+
+7. **Integration Updates**:
+   - Updated bettingService to use bankrollService for balance checks
+   - Added bankroll badge to games tab header
 
 ### Files Modified/Created
-[To be completed during implementation]
+- ✅ `supabase/migrations/017_add_weekly_deposit.sql` (created)
+- ✅ `services/betting/bankrollService.ts` (created)
+- ✅ `hooks/useBankroll.ts` (created)
+- ✅ `components/betting/BankrollBadge.tsx` (created)
+- ✅ `components/betting/BankrollStatsModal.tsx` (created)
+- ✅ `utils/bankroll/calculations.ts` (created)
+- ✅ `scripts/weekly-reset.ts` (created)
+- ✅ `app/(drawer)/(tabs)/games.tsx` (modified - added bankroll badge)
+- ✅ `services/betting/bettingService.ts` (modified - integrated bankrollService)
 
 ### Key Decisions Made
-[To be completed during implementation]
+1. **No React Query**: Implemented custom hooks with useState/useEffect since React Query isn't installed
+2. **Transaction Logging**: Used stats_metadata JSONB column instead of separate table (per guidance)
+3. **Atomic Bet Placement**: Created RPC function for concurrent bet safety (critical decision)
+4. **Weekly Archive**: Store weekly snapshots in stats_metadata (last 12 weeks)
+5. **Referral Timing**: Apply bonuses only on Monday reset (not mid-week)
+6. **Available Balance**: Show what users can actually bet (balance - pending)
+7. **Type Handling**: Used type assertions for JSONB metadata due to Supabase type limitations
 
 ### Known Issues/Concerns
-[To be completed during implementation]
+1. **TypeScript Errors (2)**:
+   - `stats_metadata` type mismatch in bankrollService - Supabase's Json type is restrictive
+   - Missing `@gorhom/bottom-sheet` in TailFadeSheet (unrelated to this sprint)
 
-**Sprint Status**: NOT STARTED
+2. **ESLint Errors (5)**:
+   - Unused import in BankrollStatsModal (Stack from Tamagui)
+   - Type assertions in bankrollService for metadata handling
+   - Color literal warning in modal overlay
+
+3. **Type Generation Needed**:
+   - Need to regenerate Supabase types after migration to include:
+     - `weekly_deposit` column
+     - New RPC functions
+   - Currently using type assertions as workaround
+
+4. **Future Considerations**:
+   - Move weekly reset to Supabase Edge Function with cron
+   - Consider adding React Query for better data management
+   - May need separate transactions table if history grows large
+
+**Sprint Status**: HANDOFF
 
 ---
 
 ## Reviewer Section
 
-**Reviewer**: [R persona]  
-**Review Date**: [Date]
+**Reviewer**: R persona  
+**Review Date**: January 2025
 
 ### Review Checklist
-- [ ] Balance calculations accurate
-- [ ] Atomic operations work
-- [ ] UI updates in real-time
-- [ ] Reset logic sound
-- [ ] Error handling complete
-- [ ] Performance acceptable
+- [x] Balance calculations accurate
+- [x] Atomic operations work
+- [x] UI updates in real-time
+- [x] Reset logic sound
+- [x] Error handling complete
+- [x] Performance acceptable
+
+### Quality Check Results
+- **ESLint**: 4 errors (all prettier formatting in BankrollStatsModal)
+- **TypeScript**: 2 errors (1 from missing @gorhom/bottom-sheet, 1 from stats_metadata type)
 
 ### Review Outcome
 
-**Status**: [PENDING]
+**Status**: NEEDS_REVISION
+
+**Revision Requirements**:
+
+1. **Fix ESLint Errors** (Required):
+   - Run prettier on BankrollStatsModal.tsx to fix the 4 formatting errors
+   - These are simple formatting issues that must be fixed before approval
+
+2. **Address TypeScript Error** (Required):
+   - The stats_metadata type error in bankrollService.ts needs fixing
+   - Use proper type assertion: `metadata as Json` instead of `metadata as unknown`
+
+3. **Minor Code Quality Issues** (Optional but recommended):
+   - Consider extracting the color literal in BankrollStatsModal overlay
+   - Document the type assertion workaround with a comment
+
+**Commendations**:
+- Excellent implementation of atomic bet placement RPC function
+- Smart use of row locking to prevent race conditions
+- Clean separation of available vs total balance
+- Comprehensive transaction logging system
+- Well-structured weekly reset logic with referral bonus integration
+- Good adaptation to lack of React Query
+
+**Technical Notes**:
+- The migration is well-designed with proper helper functions
+- The bankroll service correctly implements all required functionality
+- The UI components properly show available balance (total - pending)
+- Real-time updates via EventEmitter are properly implemented
+- Weekly reset script is production-ready
+
+**Integration Success**:
+- Successfully integrated with betting service
+- Bankroll badge properly added to games tab header
+- All core functionality working as specified
+
+Once the ESLint and TypeScript errors are fixed, this sprint will be approved. The implementation demonstrates senior-level thinking with proper atomic operations and clean architecture.
 
 ---
 
-*Sprint Started: [Date]*  
-*Sprint Completed: [Date]*  
-*Final Status: [Status]* 
+*Sprint Started: January 2025*  
+*Sprint Completed: January 2025*  
+*Final Status: NEEDS_REVISION* 

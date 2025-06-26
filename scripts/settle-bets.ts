@@ -1,7 +1,9 @@
 #!/usr/bin/env bun
 
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from '../types/supabase';
+import { Command } from 'commander';
+import { settlementService } from '@/services/betting/settlementService';
+import { gameService } from '@/services/games/gameService';
+import readline from 'readline';
 
 // Get Supabase URL and service key from environment
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -15,135 +17,151 @@ if (!supabaseUrl || !supabaseServiceKey) {
   process.exit(1);
 }
 
-// Create Supabase client with service key for admin operations
-const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-  },
+// Create readline interface for prompts
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
 });
 
-// Parse command line arguments
-const args = process.argv.slice(2);
-
-if (args.length < 3) {
-  console.log('Bet Settlement Script');
-  console.log('====================\n');
-  console.log('Usage: bun run scripts/settle-bets.ts <game_id> <home_score> <away_score>\n');
-  console.log('Example:');
-  console.log('  bun run scripts/settle-bets.ts nba_2024-01-15_LAL_BOS 112 118');
-  process.exit(0);
+// Helper to prompt for confirmation
+function promptConfirmation(question: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    rl.question(`${question} (y/N): `, (answer) => {
+      resolve(answer.toLowerCase() === 'y');
+    });
+  });
 }
 
-const gameId = args[0];
-const homeScore = parseInt(args[1]);
-const awayScore = parseInt(args[2]);
-
-if (isNaN(homeScore) || isNaN(awayScore)) {
-  console.error('❌ Scores must be valid numbers');
-  process.exit(1);
+// Helper to format currency
+function formatCents(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`;
 }
+
+// Helper to format timestamp
+function getTimestamp(): string {
+  return new Date().toISOString().replace('T', ' ').slice(0, 19);
+}
+
+const program = new Command();
+
+program
+  .name('settle-bets')
+  .description('Settle bets for a completed game')
+  .requiredOption('-g, --game-id <gameId>', 'Game ID to settle')
+  .requiredOption('-h, --home-score <score>', 'Final home team score', parseInt)
+  .requiredOption('-a, --away-score <score>', 'Final away team score', parseInt)
+  .option('--dry-run', 'Preview settlement without executing')
+  .option('--force', 'Skip confirmation prompt')
+  .parse(process.argv);
+
+const options = program.opts();
 
 async function settleBets() {
-  console.log('🎯 Settling bets for game...\n');
+  console.log(`\n🏈 Bet Settlement Script - ${getTimestamp()}`);
+  console.log('=====================================');
+  console.log(`Game ID: ${options.gameId}`);
+  console.log(`Final Score: Home ${options.homeScore} - Away ${options.awayScore}`);
 
   try {
-    // First, get the game details
-    const { data: game, error: gameError } = await supabase
-      .from('games')
-      .select('*')
-      .eq('id', gameId)
-      .single();
+    // Fetch game details
+    const game = await gameService.getGame(options.gameId);
+    if (!game) {
+      throw new Error('Game not found');
+    }
 
-    if (gameError || !game) {
-      console.error('❌ Game not found:', gameId);
+    console.log(`\n📋 Game: ${game.away_team} @ ${game.home_team}`);
+    console.log(`🏀 Sport: ${game.sport_title}`);
+    console.log(`📅 Started: ${new Date(game.commence_time).toLocaleString()}`);
+
+    // Get pending bets
+    const pendingBets = await settlementService.getPendingBetsForGame(options.gameId);
+    console.log(`\n📊 Found ${pendingBets.length} pending bets`);
+
+    if (pendingBets.length === 0) {
+      console.log('✅ No bets to settle');
+      rl.close();
       return;
     }
 
-    console.log(`📋 Game: ${game.away_team} @ ${game.home_team}`);
-    console.log(`📊 Final Score: ${awayScore} - ${homeScore}`);
+    // Preview settlement
+    const preview = await settlementService.previewSettlement(
+      pendingBets,
+      game,
+      options.homeScore,
+      options.awayScore
+    );
 
-    // Update game with final scores
-    const { error: updateError } = await supabase
-      .from('games')
-      .update({
-        home_score: homeScore,
-        away_score: awayScore,
-        status: 'completed' as Database['public']['Enums']['game_status'],
-      })
-      .eq('id', gameId);
+    console.log('\n📈 Settlement Preview:');
+    console.log('=====================');
+    console.log(`✅ Wins: ${preview.wins} bets (${formatCents(preview.totalWinnings)} profit)`);
+    console.log(`❌ Losses: ${preview.losses} bets`);
+    console.log(`➖ Pushes: ${preview.pushes} bets`);
+    console.log(`💰 Total Staked: ${formatCents(preview.totalStaked)}`);
+    console.log(`💸 Net Payout: ${formatCents(preview.netPayout)}`);
 
-    if (updateError) {
-      console.error('❌ Error updating game:', updateError);
-      return;
-    }
-
-    // Call the settle_game_bets function
-    const { data, error: settleError } = await supabase.rpc('settle_game_bets', {
-      p_game_id: gameId,
-    });
-
-    if (settleError) {
-      console.error('❌ Error settling bets:', settleError);
-      return;
-    }
-
-    console.log(`\n✅ Successfully settled ${data} bets for game ${gameId}`);
-
-    // Get details of settled bets
-    const { data: settledBets, error: betsError } = await supabase
-      .from('bets')
-      .select(
-        `
-        id,
-        user_id,
-        bet_type,
-        bet_details,
-        stake,
-        status,
-        actual_win,
-        users (username)
-      `
-      )
-      .eq('game_id', gameId)
-      .neq('status', 'pending');
-
-    if (!betsError && settledBets && settledBets.length > 0) {
-      console.log('\n📊 Settlement Details:');
-
-      let totalWon = 0;
-      let totalLost = 0;
-      let wonCount = 0;
-      let lostCount = 0;
-      let pushCount = 0;
-
-      settledBets.forEach((bet) => {
-        const username = bet.users?.username || 'Unknown';
-        const result = bet.status === 'won' ? '✅' : bet.status === 'lost' ? '❌' : '➖';
-        const profit = bet.actual_win ? bet.actual_win - bet.stake : -bet.stake;
+    // Show individual bet previews
+    if (preview.betPreviews.length <= 10) {
+      console.log('\n📋 Individual Bets:');
+      preview.betPreviews.forEach((betPreview) => {
+        const icon =
+          betPreview.outcome === 'won' ? '✅' : betPreview.outcome === 'lost' ? '❌' : '➖';
+        const profit =
+          betPreview.outcome === 'won'
+            ? betPreview.payout - betPreview.stake
+            : betPreview.outcome === 'push'
+              ? 0
+              : -betPreview.stake;
 
         console.log(
-          `  ${result} ${username}: ${bet.bet_type} - $${(bet.stake / 100).toFixed(2)} → $${(profit / 100).toFixed(2)}`
+          `  ${icon} ${betPreview.username}: ${betPreview.betType} - ` +
+            `${formatCents(betPreview.stake)} → ${formatCents(profit)}`
         );
-
-        if (bet.status === 'won') {
-          wonCount++;
-          totalWon += profit;
-        } else if (bet.status === 'lost') {
-          lostCount++;
-          totalLost += bet.stake;
-        } else {
-          pushCount++;
-        }
       });
-
-      console.log('\n📈 Summary:');
-      console.log(`  Won: ${wonCount} bets (+$${(totalWon / 100).toFixed(2)})`);
-      console.log(`  Lost: ${lostCount} bets (-$${(totalLost / 100).toFixed(2)})`);
-      console.log(`  Push: ${pushCount} bets`);
     }
+
+    if (options.dryRun) {
+      console.log('\n🔍 --dry-run specified, exiting without settlement');
+      rl.close();
+      return;
+    }
+
+    // Confirm settlement
+    if (!options.force) {
+      const confirm = await promptConfirmation(
+        `\n⚠️  Settle ${pendingBets.length} bets with these results?`
+      );
+      if (!confirm) {
+        console.log('❌ Settlement cancelled');
+        rl.close();
+        return;
+      }
+    }
+
+    // Execute settlement
+    console.log(`\n⏳ Executing settlement at ${getTimestamp()}...`);
+    const result = await settlementService.settleGame(
+      options.gameId,
+      options.homeScore,
+      options.awayScore
+    );
+
+    console.log(`\n✅ Settlement Complete at ${getTimestamp()}!`);
+    console.log('===================================');
+    console.log(`📊 Settled: ${result.settledCount} bets`);
+    console.log(`💰 Total paid out: ${formatCents(result.totalPaidOut)}`);
+    console.log(`🏅 Badges updated for ${result.affectedUserIds.length} users`);
+
+    if (result.errors.length > 0) {
+      console.error('\n⚠️  Errors encountered:');
+      result.errors.forEach((err) => console.error(`  - ${err}`));
+    }
+
+    console.log('\n✨ Settlement process completed successfully!');
   } catch (error) {
-    console.error('❌ Unexpected error:', error);
+    console.error(`\n❌ Settlement failed at ${getTimestamp()}:`, error);
+    process.exit(1);
+  } finally {
+    rl.close();
   }
 }
 

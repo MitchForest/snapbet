@@ -171,7 +171,7 @@ export function TailFadeSheet({
         {/* Original Bet Details */}
         <View style={styles.betDetailsContainer}>
           <Text style={styles.betDetailsLabel}>
-            {originalUser.display_name || originalUser.username}'s Bet
+            {originalUser.display_name || originalUser.username}&apos;s Bet
           </Text>
           <Text style={styles.betDetailsText}>
             {formatBetDetails(originalBet)} ({formatOdds(originalBet.odds)})
