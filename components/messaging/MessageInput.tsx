@@ -108,23 +108,6 @@ export function MessageInput({ onSendMessage, onTyping, chatExpiration }: Messag
       paddingBottom={Platform.OS === 'ios' ? '$2' : '$3'}
     >
       <Stack flexDirection="row" alignItems="flex-end" gap="$2">
-        {/* Media button */}
-        <Pressable
-          onPress={handleMediaPress}
-          disabled={isUploading || isSending}
-          style={({ pressed }) => [
-            styles.mediaButton,
-            pressed && styles.mediaButtonPressed,
-            (isUploading || isSending) && styles.mediaButtonDisabled,
-          ]}
-        >
-          {isUploading ? (
-            <ActivityIndicator size="small" color={Colors.primary} />
-          ) : (
-            <Text fontSize={20}>📷</Text>
-          )}
-        </Pressable>
-
         {/* Text input */}
         <View flex={1} style={styles.inputContainer}>
           <TextInput
@@ -142,7 +125,26 @@ export function MessageInput({ onSendMessage, onTyping, chatExpiration }: Messag
           />
         </View>
 
-        {/* Send button */}
+        {/* Media button - show when no text */}
+        {!text.trim() && (
+          <Pressable
+            onPress={handleMediaPress}
+            disabled={isUploading || isSending}
+            style={({ pressed }) => [
+              styles.mediaButton,
+              pressed && styles.mediaButtonPressed,
+              (isUploading || isSending) && styles.mediaButtonDisabled,
+            ]}
+          >
+            {isUploading ? (
+              <ActivityIndicator size="small" color={Colors.primary} />
+            ) : (
+              <Text fontSize={20}>📷</Text>
+            )}
+          </Pressable>
+        )}
+
+        {/* Send button - show when text exists */}
         {text.trim().length > 0 && (
           <Pressable
             onPress={handleSend}

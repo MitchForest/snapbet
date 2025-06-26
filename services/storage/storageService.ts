@@ -10,6 +10,8 @@ let feedStorageInstance: MMKV | null = null;
 let settingsStorageInstance: MMKV | null = null;
 let generalStorageInstance: MMKV | null = null;
 let gamesStorageInstance: MMKV | null = null;
+let authStorageInstance: MMKV | null = null;
+let appStorageInstance: MMKV | null = null;
 
 // In-memory fallback for remote debugging environments where JSI is not available.
 const createInMemoryStorage = (): MMKV => {
@@ -79,6 +81,20 @@ const getGamesStorage = (): MMKV => {
     gamesStorageInstance = getStorageInstance('games-storage');
   }
   return gamesStorageInstance;
+};
+
+const getAuthStorage = (): MMKV => {
+  if (!authStorageInstance) {
+    authStorageInstance = getStorageInstance('auth-storage');
+  }
+  return authStorageInstance;
+};
+
+const getAppStorage = (): MMKV => {
+  if (!appStorageInstance) {
+    appStorageInstance = getStorageInstance('app-storage');
+  }
+  return appStorageInstance;
 };
 
 // --- Storage Keys (restored for compatibility) ---
@@ -166,3 +182,54 @@ export const Storage = {
     return createStorageWrapper(getGeneralStorage()); // Use general storage for betting
   },
 };
+
+// Create storage instances
+const authStorage = getAuthStorage();
+const appStorage = getAppStorage();
+
+// --- Storage Service (Public API) ---
+const storageService = {
+  // Auth storage methods
+  getAccessToken: () => authStorage.getString('access_token'),
+  setAccessToken: (token: string) => authStorage.set('access_token', token),
+  clearAccessToken: () => authStorage.delete('access_token'),
+
+  getRefreshToken: () => authStorage.getString('refresh_token'),
+  setRefreshToken: (token: string) => authStorage.set('refresh_token', token),
+  clearRefreshToken: () => authStorage.delete('refresh_token'),
+
+  // User storage methods
+  getUser: () => {
+    const userString = authStorage.getString('user');
+    return userString ? JSON.parse(userString) : null;
+  },
+  setUser: (user: unknown) => authStorage.set('user', JSON.stringify(user)),
+  clearUser: () => authStorage.delete('user'),
+
+  // Clear all auth data
+  clearAuth: () => {
+    authStorage.delete('access_token');
+    authStorage.delete('refresh_token');
+    authStorage.delete('user');
+  },
+
+  // App storage methods
+  getOnboardingComplete: () => appStorage.getBoolean('onboarding_complete') ?? false,
+  setOnboardingComplete: (complete: boolean) => appStorage.set('onboarding_complete', complete),
+
+  getLastViewedNotification: () => appStorage.getString('last_viewed_notification'),
+  setLastViewedNotification: (id: string) => appStorage.set('last_viewed_notification', id),
+
+  // Media storage paths
+  getPostMediaPath: (userId: string, filename: string) => `posts/${userId}/${filename}`,
+  getStoryMediaPath: (userId: string, filename: string) => `stories/${userId}/${filename}`,
+  getMessageMediaPath: (chatId: string, messageId: string, filename: string) =>
+    `messages/${chatId}/${messageId}/${filename}`,
+  getGroupAvatarPath: (groupId: string, filename: string) => `groups/${groupId}/${filename}`,
+  getUserAvatarPath: (userId: string, filename: string) => `avatars/${userId}/${filename}`,
+
+  // Generic storage wrapper (for backward compatibility)
+  storage: createStorageWrapper(appStorage),
+};
+
+export { storageService };

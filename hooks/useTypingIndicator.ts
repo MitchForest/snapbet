@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { supabase } from '@/services/supabase';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import { useState, useEffect, useCallback, useRef, useMemo, useId } from 'react';
+import { realtimeManager } from '@/services/realtime/realtimeManager';
+import { getTypingChannelName } from '@/utils/realtime/channelHelpers';
 import { useAuth } from './useAuth';
 import { TypingUser } from '@/types/messaging';
 
@@ -23,16 +23,19 @@ interface UseTypingIndicatorOptions {
 export function useTypingIndicator({ chatId }: UseTypingIndicatorOptions) {
   const { user } = useAuth();
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
-  const channelRef = useRef<RealtimeChannel | null>(null);
+  const subscriberId = useId();
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const typingTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const typingTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   // Broadcast typing status
   const setTyping = useCallback(
     (isTyping: boolean) => {
-      if (!channelRef.current || !user) return;
+      if (!user) return;
 
-      channelRef.current.send({
+      const channel = realtimeManager.getChannel(getTypingChannelName(chatId));
+      if (!channel) return;
+
+      channel.send({
         type: 'broadcast',
         event: 'typing',
         payload: {
@@ -52,7 +55,7 @@ export function useTypingIndicator({ chatId }: UseTypingIndicatorOptions) {
         }, 3000);
       }
     },
-    [user]
+    [user, chatId]
   );
 
   // Debounced version for text input
@@ -62,9 +65,14 @@ export function useTypingIndicator({ chatId }: UseTypingIndicatorOptions) {
   useEffect(() => {
     if (!chatId || !user) return;
 
-    channelRef.current = supabase
-      .channel(`chat:${chatId}:typing`)
-      .on('broadcast', { event: 'typing' }, (payload) => {
+    const channelName = getTypingChannelName(chatId);
+
+    // Subscribe to typing events using centralized manager
+    realtimeManager.subscribe(channelName, subscriberId, {
+      broadcast: { event: 'typing' },
+      onBroadcast: (payload: {
+        payload: { userId: string; isTyping: boolean; username: string };
+      }) => {
         const { userId, isTyping, username } = payload.payload;
 
         // Ignore our own typing events
@@ -106,7 +114,7 @@ export function useTypingIndicator({ chatId }: UseTypingIndicatorOptions) {
             typingTimersRef.current.delete(userId);
           }, 3000);
 
-          typingTimersRef.current.set(userId, timer as unknown as NodeJS.Timeout);
+          typingTimersRef.current.set(userId, timer);
         } else {
           // Clear timer if user stopped typing
           const timer = typingTimersRef.current.get(userId);
@@ -115,23 +123,24 @@ export function useTypingIndicator({ chatId }: UseTypingIndicatorOptions) {
             typingTimersRef.current.delete(userId);
           }
         }
-      })
-      .subscribe();
+      },
+    });
 
     return () => {
       // Store ref in variable to avoid stale closure warning
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       const timers = typingTimersRef.current;
 
-      channelRef.current?.unsubscribe();
+      realtimeManager.unsubscribe(channelName, subscriberId);
+
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
+
       // Clear all typing timers
       timers.forEach((timer) => clearTimeout(timer));
       timers.clear();
     };
-  }, [chatId, user]);
+  }, [chatId, user, subscriberId]);
 
   return {
     typingUsers,

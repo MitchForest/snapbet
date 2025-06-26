@@ -211,6 +211,7 @@ export type Database = {
       chat_members: {
         Row: {
           chat_id: string;
+          is_archived: boolean | null;
           joined_at: string | null;
           last_read_at: string | null;
           role: Database['public']['Enums']['chat_role'] | null;
@@ -218,6 +219,7 @@ export type Database = {
         };
         Insert: {
           chat_id: string;
+          is_archived?: boolean | null;
           joined_at?: string | null;
           last_read_at?: string | null;
           role?: Database['public']['Enums']['chat_role'] | null;
@@ -225,6 +227,7 @@ export type Database = {
         };
         Update: {
           chat_id?: string;
+          is_archived?: boolean | null;
           joined_at?: string | null;
           last_read_at?: string | null;
           role?: Database['public']['Enums']['chat_role'] | null;
@@ -453,6 +456,41 @@ export type Database = {
         };
         Relationships: [];
       };
+      message_privacy_settings: {
+        Row: {
+          online_status_visible: boolean | null;
+          read_receipts_enabled: boolean | null;
+          typing_indicators_enabled: boolean | null;
+          updated_at: string | null;
+          user_id: string;
+          who_can_message: string | null;
+        };
+        Insert: {
+          online_status_visible?: boolean | null;
+          read_receipts_enabled?: boolean | null;
+          typing_indicators_enabled?: boolean | null;
+          updated_at?: string | null;
+          user_id: string;
+          who_can_message?: string | null;
+        };
+        Update: {
+          online_status_visible?: boolean | null;
+          read_receipts_enabled?: boolean | null;
+          typing_indicators_enabled?: boolean | null;
+          updated_at?: string | null;
+          user_id?: string;
+          who_can_message?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'message_privacy_settings_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: true;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       message_reads: {
         Row: {
           message_id: string;
@@ -486,35 +524,118 @@ export type Database = {
           },
         ];
       };
+      message_reports: {
+        Row: {
+          action_taken: string | null;
+          created_at: string | null;
+          details: string | null;
+          id: string;
+          message_id: string | null;
+          reason: string;
+          reporter_id: string | null;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+        };
+        Insert: {
+          action_taken?: string | null;
+          created_at?: string | null;
+          details?: string | null;
+          id?: string;
+          message_id?: string | null;
+          reason: string;
+          reporter_id?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+        };
+        Update: {
+          action_taken?: string | null;
+          created_at?: string | null;
+          details?: string | null;
+          id?: string;
+          message_id?: string | null;
+          reason?: string;
+          reporter_id?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'message_reports_message_id_fkey';
+            columns: ['message_id'];
+            isOneToOne: false;
+            referencedRelation: 'messages';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'message_reports_reporter_id_fkey';
+            columns: ['reporter_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'message_reports_reviewed_by_fkey';
+            columns: ['reviewed_by'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       messages: {
         Row: {
+          bet_id: string | null;
           chat_id: string;
           content: string;
           created_at: string | null;
           deleted_at: string | null;
           expires_at: string;
           id: string;
+          is_blocked: boolean | null;
+          media_url: string | null;
+          message_type: string | null;
+          metadata: Json | null;
+          report_count: number | null;
           sender_id: string;
         };
         Insert: {
+          bet_id?: string | null;
           chat_id: string;
           content: string;
           created_at?: string | null;
           deleted_at?: string | null;
           expires_at?: string;
           id?: string;
+          is_blocked?: boolean | null;
+          media_url?: string | null;
+          message_type?: string | null;
+          metadata?: Json | null;
+          report_count?: number | null;
           sender_id: string;
         };
         Update: {
+          bet_id?: string | null;
           chat_id?: string;
           content?: string;
           created_at?: string | null;
           deleted_at?: string | null;
           expires_at?: string;
           id?: string;
+          is_blocked?: boolean | null;
+          media_url?: string | null;
+          message_type?: string | null;
+          metadata?: Json | null;
+          report_count?: number | null;
           sender_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'messages_bet_id_fkey';
+            columns: ['bet_id'];
+            isOneToOne: false;
+            referencedRelation: 'bets';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'messages_chat_id_fkey';
             columns: ['chat_id'];
@@ -1138,9 +1259,31 @@ export type Database = {
         Args: { user_id: string };
         Returns: number;
       };
+      can_user_message: {
+        Args: { sender_id: string; recipient_id: string };
+        Returns: boolean;
+      };
       check_perfect_nfl_sunday: {
         Args: { p_user_id: string; p_week_start?: string };
         Returns: boolean;
+      };
+      create_group_chat: {
+        Args: {
+          p_name: string;
+          p_avatar_url?: string;
+          p_created_by?: string;
+          p_member_ids?: string[];
+          p_settings?: Json;
+        };
+        Returns: {
+          id: string;
+          chat_type: Database['public']['Enums']['chat_type'];
+          name: string;
+          avatar_url: string;
+          created_by: string;
+          created_at: string;
+          settings: Json;
+        }[];
       };
       create_notification: {
         Args: { p_user_id: string; p_type: string; p_data: Json };
@@ -1182,6 +1325,30 @@ export type Database = {
           game_info: Json;
           user_action: Database['public']['Enums']['pick_action'];
           user_reaction: string[];
+        }[];
+      };
+      get_user_chats_with_counts: {
+        Args: { p_user_id: string };
+        Returns: {
+          chat_id: string;
+          chat_type: string;
+          name: string;
+          avatar_url: string;
+          created_by: string;
+          created_at: string;
+          last_message_at: string;
+          settings: Json;
+          is_archived: boolean;
+          unread_count: number;
+          last_message_id: string;
+          last_message_content: string;
+          last_message_sender_id: string;
+          last_message_sender_username: string;
+          last_message_created_at: string;
+          other_member_id: string;
+          other_member_username: string;
+          other_member_avatar_url: string;
+          member_count: number;
         }[];
       };
       get_user_weekly_stats: {

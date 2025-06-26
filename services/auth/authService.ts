@@ -1,7 +1,7 @@
 import { makeRedirectUri } from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@/types/supabase';
+import type { Database } from '@/types/supabase-generated';
 import { sessionManager } from './sessionManager';
 import type {
   OAuthProvider,

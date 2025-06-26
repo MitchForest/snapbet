@@ -1,140 +1,123 @@
 import React, { useState } from 'react';
 import { View, Text } from '@tamagui/core';
-import { ScrollView, Switch, Alert, StyleSheet } from 'react-native';
-import { useAuthStore } from '@/stores/authStore';
+import { ScrollView, Switch } from 'react-native';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { SettingsRow } from '@/components/settings/SettingsRow';
 import { Colors } from '@/theme';
+import { Storage } from '@/services/storage/storageService';
 
-interface NotificationSettings {
-  tails_fades: boolean;
-  bet_results: boolean;
-  direct_messages: boolean;
-  group_mentions: boolean;
-  new_followers: boolean;
-  promotions: boolean;
+interface GlobalNotificationSettings {
+  push_enabled: boolean;
+  messages_enabled: boolean;
+  social_enabled: boolean;
+  betting_enabled: boolean;
 }
 
-export default function NotificationSettingsScreen() {
-  const user = useAuthStore((state) => state.user);
+const DEFAULT_SETTINGS: GlobalNotificationSettings = {
+  push_enabled: true,
+  messages_enabled: true,
+  social_enabled: true,
+  betting_enabled: true,
+};
 
-  const [settings, setSettings] = useState<NotificationSettings>({
-    tails_fades: user?.user_metadata?.notification_settings?.tails_fades ?? true,
-    bet_results: user?.user_metadata?.notification_settings?.bet_results ?? true,
-    direct_messages: user?.user_metadata?.notification_settings?.direct_messages ?? true,
-    group_mentions: user?.user_metadata?.notification_settings?.group_mentions ?? true,
-    new_followers: user?.user_metadata?.notification_settings?.new_followers ?? true,
-    promotions: user?.user_metadata?.notification_settings?.promotions ?? false,
+export default function NotificationSettingsScreen() {
+  const [settings, setSettings] = useState<GlobalNotificationSettings>(() => {
+    const saved = Storage.general.get<GlobalNotificationSettings>('notification_settings');
+    return saved || DEFAULT_SETTINGS;
   });
 
-  const handleToggle = async (key: keyof NotificationSettings) => {
+  const handleToggle = (key: keyof GlobalNotificationSettings) => {
     const newSettings = { ...settings, [key]: !settings[key] };
-    setSettings(newSettings);
 
-    try {
-      // For now, just save locally - in a real app, this would be saved to the database
-      // TODO: Create a proper API endpoint for updating notification settings
-      console.log('Notification settings updated:', newSettings);
-    } catch {
-      // Revert on error
-      setSettings(settings);
-      Alert.alert('Error', 'An unexpected error occurred');
+    // If turning off master switch, turn off all categories
+    if (key === 'push_enabled' && !newSettings.push_enabled) {
+      newSettings.messages_enabled = false;
+      newSettings.social_enabled = false;
+      newSettings.betting_enabled = false;
     }
+
+    setSettings(newSettings);
+    Storage.general.set('notification_settings', newSettings);
   };
 
-  const SettingRow = ({
-    label,
-    description,
-    settingKey,
-  }: {
-    label: string;
-    description?: string;
-    settingKey: keyof NotificationSettings;
-  }) => (
-    <View style={styles.settingRow}>
-      <View flex={1}>
-        <Text fontSize={16} color="$textPrimary">
-          {label}
-        </Text>
-        {description && (
-          <Text fontSize={14} color="$textSecondary" marginTop="$1">
-            {description}
-          </Text>
-        )}
-      </View>
-      <Switch
-        value={settings[settingKey]}
-        onValueChange={() => handleToggle(settingKey)}
-        trackColor={{ false: Colors.border.default, true: Colors.primary }}
-        thumbColor={Colors.white}
-      />
-    </View>
-  );
-
   return (
-    <View flex={1} backgroundColor={Colors.background}>
-      <ScreenHeader title="Notification Settings" />
+    <View flex={1} backgroundColor="$background">
+      <ScreenHeader title="Notifications" />
 
       <ScrollView>
         <View padding="$4">
-          <Text fontSize={12} color="$textSecondary" marginBottom="$3">
-            ACTIVITY
+          <Text fontSize="$6" fontWeight="bold" marginBottom="$4">
+            Push Notifications
           </Text>
 
-          <SettingRow
-            label="Tails & Fades"
-            description="When someone tails or fades your picks"
-            settingKey="tails_fades"
+          <SettingsRow
+            label="All Notifications"
+            subtitle="Master toggle for all push notifications"
+            customRight={
+              <Switch
+                value={settings.push_enabled}
+                onValueChange={() => handleToggle('push_enabled')}
+                trackColor={{ false: Colors.border.default, true: Colors.primary }}
+                thumbColor={Colors.white}
+              />
+            }
           />
 
-          <SettingRow
-            label="Bet Results"
-            description="When your bets win or lose"
-            settingKey="bet_results"
-          />
+          {settings.push_enabled && (
+            <View marginTop="$4">
+              <Text fontSize="$5" fontWeight="600" marginBottom="$3" color="$gray11">
+                Notification Categories
+              </Text>
 
-          <SettingRow
-            label="New Followers"
-            description="When someone follows you"
-            settingKey="new_followers"
-          />
+              <SettingsRow
+                label="Messages"
+                subtitle="New messages and reactions"
+                customRight={
+                  <Switch
+                    value={settings.messages_enabled}
+                    onValueChange={() => handleToggle('messages_enabled')}
+                    trackColor={{ false: Colors.border.default, true: Colors.primary }}
+                    thumbColor={Colors.white}
+                  />
+                }
+              />
 
-          <Text fontSize={12} color="$textSecondary" marginTop="$6" marginBottom="$3">
-            MESSAGES
-          </Text>
+              <SettingsRow
+                label="Social"
+                subtitle="Follows, comments, and tails/fades"
+                customRight={
+                  <Switch
+                    value={settings.social_enabled}
+                    onValueChange={() => handleToggle('social_enabled')}
+                    trackColor={{ false: Colors.border.default, true: Colors.primary }}
+                    thumbColor={Colors.white}
+                  />
+                }
+              />
 
-          <SettingRow
-            label="Direct Messages"
-            description="New messages from other users"
-            settingKey="direct_messages"
-          />
+              <SettingsRow
+                label="Betting"
+                subtitle="Bet outcomes and bankroll updates"
+                customRight={
+                  <Switch
+                    value={settings.betting_enabled}
+                    onValueChange={() => handleToggle('betting_enabled')}
+                    trackColor={{ false: Colors.border.default, true: Colors.primary }}
+                    thumbColor={Colors.white}
+                  />
+                }
+              />
+            </View>
+          )}
 
-          <SettingRow
-            label="Group Mentions"
-            description="When you're mentioned in a group"
-            settingKey="group_mentions"
-          />
-
-          <Text fontSize={12} color="$textSecondary" marginTop="$6" marginBottom="$3">
-            OTHER
-          </Text>
-
-          <SettingRow
-            label="Promotions & Updates"
-            description="News and special offers from SnapBet"
-            settingKey="promotions"
-          />
+          <View marginTop="$6">
+            <Text fontSize="$3" color="$gray11" lineHeight="$4">
+              You can manage notification permissions for SnapBet in your device&apos;s Settings
+              app.
+            </Text>
+          </View>
         </View>
       </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  settingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.light,
-  },
-});

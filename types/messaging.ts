@@ -49,6 +49,8 @@ export interface Message extends DbMessage {
   bet?: DbBet & { game: Game };
   status?: MessageStatus;
   isOptimistic?: boolean;
+  is_blocked?: boolean;
+  report_count?: number;
 }
 
 // Message with sender info
@@ -171,4 +173,100 @@ export interface GroupInfo {
   createdAt: string;
   expirationHours: number;
   userRole: 'admin' | 'member';
+}
+
+// Message reaction types
+export interface MessageReaction {
+  id: string;
+  message_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+  user?: Pick<DbUser, 'id' | 'username' | 'avatar_url'>;
+}
+
+export interface MessageWithReactions extends Message {
+  reactions?: MessageReaction[];
+  userReaction?: string | null;
+}
+
+// Media message types
+export interface MediaMessageMetadata {
+  width?: number;
+  height?: number;
+  duration?: number; // for videos
+  size: number;
+  thumbnailUrl?: string;
+}
+
+// Pick share types
+export interface PickShareMetadata {
+  bet_id: string;
+  tail_count: number;
+  fade_count: number;
+  user_action?: 'tail' | 'fade';
+}
+
+export interface MessagePickAction {
+  id: string;
+  message_id: string;
+  user_id: string;
+  action_type: 'tail' | 'fade';
+  resulting_bet_id?: string;
+  created_at: string;
+}
+
+// Media upload types
+export interface MediaUploadProgress {
+  progress: number;
+  isUploading: boolean;
+  error?: string;
+}
+
+export interface CompressedMedia {
+  uri: string;
+  type: 'photo' | 'video';
+  size: number;
+  width?: number;
+  height?: number;
+  duration?: number;
+}
+
+// Message action menu
+export interface MessageAction {
+  label: string;
+  icon: string;
+  action: () => void;
+  destructive?: boolean;
+}
+
+// Privacy and safety types
+export type MessageReportReason = 'spam' | 'harassment' | 'inappropriate' | 'hate' | 'other';
+
+export interface MessagePrivacySettings {
+  user_id: string;
+  who_can_message: 'everyone' | 'following' | 'nobody';
+  read_receipts_enabled: boolean;
+  typing_indicators_enabled: boolean;
+  online_status_visible: boolean;
+  updated_at: string;
+}
+
+export interface MessageReport {
+  id: string;
+  message_id: string;
+  reporter_id: string;
+  reason: MessageReportReason;
+  details?: string;
+  created_at: string;
+  reviewed_at?: string;
+  reviewed_by?: string;
+  action_taken?: 'dismissed' | 'content_removed' | 'user_warned' | 'user_banned';
+}
+
+export interface GlobalNotificationSettings {
+  push_enabled: boolean;
+  messages_enabled: boolean;
+  social_enabled: boolean;
+  betting_enabled: boolean;
 }

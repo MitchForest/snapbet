@@ -9,6 +9,7 @@ import { ChatListItem } from '@/components/messaging/ChatListItem';
 import { ChatListSkeleton } from '@/components/messaging/ChatListSkeleton';
 import { EmptyChats } from '@/components/messaging/EmptyChats';
 import { ChatSearch } from '@/components/messaging/ChatSearch';
+import { ConnectionStatus } from '@/components/messaging/ConnectionStatus';
 import { ChatWithDetails } from '@/types/messaging';
 import { Colors } from '@/theme';
 
@@ -101,6 +102,7 @@ export default function MessagesScreen() {
 
   return (
     <View flex={1} backgroundColor="$background">
+      <ConnectionStatus />
       <ChatSearch value={searchQuery} onChangeText={setSearchQuery} onClear={clearSearch} />
 
       <FlashList

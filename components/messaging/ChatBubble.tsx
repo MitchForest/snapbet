@@ -1,16 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, Stack } from '@tamagui/core';
-import { Pressable, ActivityIndicator } from 'react-native';
+import { Pressable, ActivityIndicator, LayoutRectangle } from 'react-native';
 import { Colors } from '@/theme';
 import { Message } from '@/types/messaging';
 import { Avatar } from '@/components/common/Avatar';
 import { MentionableText } from '@/components/messaging/MentionableText';
-import { MediaMessage } from './MediaMessage';
 import { PickShareCard } from './PickShareCard';
 import { MessageStatus } from './MessageStatus';
 import { ExpirationTimer } from './ExpirationTimer';
 import { formatDistanceToNow } from 'date-fns';
 import * as Haptics from 'expo-haptics';
+import { MediaMessageDisplay } from './MediaMessageDisplay';
+import { useMessageReactions } from '@/hooks/useMessageReactions';
+import { MessageActionMenu } from './MessageActionMenu';
 
 interface ChatBubbleProps {
   message: Message;
@@ -31,8 +33,13 @@ export function ChatBubble({
   onResend,
   onLongPress,
 }: ChatBubbleProps) {
+  const [showActionMenu, setShowActionMenu] = useState(false);
+  const [messageLayout, setMessageLayout] = useState<LayoutRectangle>();
+  const { reactions, userReaction, toggleReaction } = useMessageReactions(message.id);
+
   const handleLongPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShowActionMenu(true);
     onLongPress?.();
   };
 
@@ -62,15 +69,26 @@ export function ChatBubble({
 
   const renderContent = () => {
     // Extended message interface for optional fields
-    interface ExtendedMessage extends Omit<Message, 'bet_id' | 'media_url'> {
+    interface ExtendedMessage extends Omit<Message, 'bet_id' | 'media_url' | 'media_type'> {
       bet_id?: string | null;
       media_url?: string | null;
+      media_type?: 'photo' | 'video' | null;
     }
 
     const extMessage = message as ExtendedMessage;
 
-    if (message.message_type === 'media' && extMessage.media_url) {
-      return <MediaMessage url={extMessage.media_url} isOwn={isOwn} />;
+    // Check if message is expired
+    const isExpired = message.expires_at && new Date(message.expires_at) < new Date();
+
+    if (message.message_type === 'media' && extMessage.media_url && extMessage.media_type) {
+      return (
+        <MediaMessageDisplay
+          url={extMessage.media_url}
+          type={extMessage.media_type}
+          isOwn={isOwn}
+          isExpired={isExpired || false}
+        />
+      );
     }
     if (message.message_type === 'pick' && extMessage.bet_id) {
       // Cast bet to match ExtendedBet interface
@@ -114,23 +132,23 @@ export function ChatBubble({
   };
 
   return (
-    <Stack
-      flexDirection={isOwn ? 'row-reverse' : 'row'}
-      gap="$2"
-      alignItems="flex-end"
-      maxWidth="75%"
-    >
-      {/* Avatar for other users */}
-      {!isOwn && showAvatar && (
-        <Avatar
-          src={message.sender.avatar_url || undefined}
-          fallback={message.sender.username?.[0]?.toUpperCase() || '?'}
-          size={28}
-        />
-      )}
-      {!isOwn && !showAvatar && <View width={28} />}
+    <>
+      <Stack
+        flexDirection={isOwn ? 'row-reverse' : 'row'}
+        gap="$2"
+        alignItems="flex-end"
+        maxWidth="75%"
+      >
+        {/* Avatar for other users */}
+        {!isOwn && showAvatar && (
+          <Avatar
+            src={message.sender.avatar_url || undefined}
+            fallback={message.sender.username?.[0]?.toUpperCase() || '?'}
+            size={28}
+          />
+        )}
+        {!isOwn && !showAvatar && <View width={28} />}
 
-      <Pressable onLongPress={handleLongPress} disabled={message.isOptimistic}>
         <Stack maxWidth="75%">
           {/* Sender name for group chats */}
           {!isOwn && chatType === 'group' && showSenderName && message.sender.username && (
@@ -157,65 +175,133 @@ export function ChatBubble({
 
           {/* Regular message bubble */}
           {message.message_type !== 'system' && (
-            <View style={bubbleStyle} padding="$3">
-              {/* Message content */}
-              {renderContent()}
+            <Pressable
+              onLongPress={handleLongPress}
+              disabled={message.isOptimistic}
+              onLayout={(e) => setMessageLayout(e.nativeEvent.layout)}
+            >
+              <View style={bubbleStyle} padding="$3">
+                {/* Message content */}
+                {renderContent()}
 
-              {/* Footer with time and status */}
-              <Stack
-                flexDirection="row"
-                marginTop="$1"
-                alignItems="center"
-                gap="$1"
-                justifyContent={isOwn ? 'flex-end' : 'flex-start'}
-              >
-                <Text fontSize="$2" color={timeColor}>
-                  {timestamp}
-                </Text>
+                {/* Footer with time and status */}
+                <Stack
+                  flexDirection="row"
+                  marginTop="$1"
+                  alignItems="center"
+                  gap="$1"
+                  justifyContent={isOwn ? 'flex-end' : 'flex-start'}
+                >
+                  <Text fontSize="$2" color={timeColor}>
+                    {timestamp}
+                  </Text>
 
-                {/* Expiration timer */}
-                {message.expires_at && (
-                  <ExpirationTimer expiresAt={message.expires_at} color={timeColor} />
+                  {/* Expiration timer */}
+                  {message.expires_at && (
+                    <ExpirationTimer expiresAt={message.expires_at} color={timeColor} />
+                  )}
+
+                  {/* Status for own messages */}
+                  {isOwn && (
+                    <MessageStatus status={message.status || 'sent'} color={Colors.white} />
+                  )}
+                </Stack>
+
+                {/* Failed state */}
+                {message.status === 'failed' && (
+                  <Pressable onPress={handleResend}>
+                    <Stack flexDirection="row" marginTop="$2" alignItems="center" gap="$1">
+                      <Text fontSize="$2" color={Colors.error} fontWeight="600">
+                        Failed to send
+                      </Text>
+                      <Text fontSize="$2" color={Colors.error} textDecorationLine="underline">
+                        Tap to retry
+                      </Text>
+                    </Stack>
+                  </Pressable>
                 )}
 
-                {/* Status for own messages */}
-                {isOwn && <MessageStatus status={message.status || 'sent'} color={Colors.white} />}
-              </Stack>
-
-              {/* Failed state */}
-              {message.status === 'failed' && (
-                <Pressable onPress={handleResend}>
-                  <Stack flexDirection="row" marginTop="$2" alignItems="center" gap="$1">
-                    <Text fontSize="$2" color={Colors.error} fontWeight="600">
-                      Failed to send
-                    </Text>
-                    <Text fontSize="$2" color={Colors.error} textDecorationLine="underline">
-                      Tap to retry
-                    </Text>
+                {/* Sending state */}
+                {message.status === 'sending' && (
+                  <Stack
+                    position="absolute"
+                    top={0}
+                    right={0}
+                    bottom={0}
+                    left={0}
+                    backgroundColor={Colors.black + '33'} // 20% opacity
+                    borderRadius={16}
+                    justifyContent="center"
+                    alignItems="center"
+                  >
+                    <ActivityIndicator size="small" color={Colors.white} />
                   </Stack>
-                </Pressable>
-              )}
+                )}
+              </View>
+            </Pressable>
+          )}
 
-              {/* Sending state */}
-              {message.status === 'sending' && (
-                <Stack
-                  position="absolute"
-                  top={0}
-                  right={0}
-                  bottom={0}
-                  left={0}
-                  backgroundColor={Colors.black + '33'} // 20% opacity
-                  borderRadius={16}
-                  justifyContent="center"
-                  alignItems="center"
+          {/* Reactions Display */}
+          {reactions.length > 0 && (
+            <Stack
+              flexDirection="row"
+              flexWrap="wrap"
+              gap="$1"
+              marginTop="$1"
+              paddingHorizontal="$2"
+            >
+              {reactions.slice(0, 3).map((reaction: { emoji: string; count: number }) => (
+                <Pressable
+                  key={reaction.emoji}
+                  onPress={() => toggleReaction(reaction.emoji)}
+                  style={({ pressed }) => [
+                    {
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor:
+                        userReaction === reaction.emoji ? Colors.primary + '20' : Colors.gray[100],
+                      borderRadius: 12,
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      opacity: pressed ? 0.7 : 1,
+                    },
+                  ]}
                 >
-                  <ActivityIndicator size="small" color={Colors.white} />
-                </Stack>
+                  <Text fontSize="$3">{reaction.emoji}</Text>
+                  <Text
+                    fontSize="$2"
+                    color={userReaction === reaction.emoji ? Colors.primary : Colors.text.secondary}
+                    marginLeft="$1"
+                  >
+                    {reaction.count}
+                  </Text>
+                </Pressable>
+              ))}
+              {reactions.length > 3 && (
+                <View
+                  backgroundColor={Colors.gray[100]}
+                  borderRadius={12}
+                  paddingHorizontal={8}
+                  paddingVertical={4}
+                >
+                  <Text fontSize="$2" color={Colors.text.secondary}>
+                    +{reactions.length - 3}
+                  </Text>
+                </View>
               )}
-            </View>
+            </Stack>
           )}
         </Stack>
-      </Pressable>
-    </Stack>
+      </Stack>
+
+      {/* Message Action Menu */}
+      <MessageActionMenu
+        message={message}
+        isVisible={showActionMenu}
+        onClose={() => setShowActionMenu(false)}
+        onReactionSelect={toggleReaction}
+        messagePosition={messageLayout}
+      />
+    </>
   );
 }

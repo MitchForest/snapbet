@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useId } from 'react';
 import { supabase } from '@/services/supabase';
 import { messageService } from '@/services/messaging/messageService';
 import { Message, MessageContent } from '@/types/messaging';
 import { useAuthStore } from '@/stores/authStore';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import { realtimeManager } from '@/services/realtime/realtimeManager';
+import { offlineQueue } from '@/services/realtime/offlineQueue';
+import { getChatChannelName } from '@/utils/realtime/channelHelpers';
 import type { Json } from '@/types/supabase';
 
 // Extended message type with optimistic flag
@@ -27,7 +29,7 @@ export function useMessages({ chatId, pageSize = 50 }: UseMessagesOptions) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const channelRef = useRef<RealtimeChannel | null>(null);
+  const subscriberId = useId();
   const optimisticMessagesRef = useRef<Set<string>>(new Set());
 
   // Fetch initial messages
@@ -128,12 +130,38 @@ export function useMessages({ chatId, pageSize = 50 }: UseMessagesOptions) {
       } catch (error) {
         console.error('Failed to send message:', error);
 
-        // Mark as failed
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === tempId ? ({ ...msg, status: 'failed' } as OptimisticMessage) : msg
-          )
-        );
+        // Check if we should queue the message
+        const isNetworkError =
+          error instanceof Error &&
+          (error.message.includes('Network') || error.message.includes('Failed to fetch'));
+
+        if (isNetworkError) {
+          // Add to offline queue
+          await offlineQueue.addToQueue(
+            chatId,
+            user.id,
+            content,
+            24, // expirationHours
+            'high' // priority for user's own messages
+          );
+
+          // Update UI to show queued status
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === tempId ? ({ ...msg, status: 'sent' } as OptimisticMessage) : msg
+            )
+          );
+
+          // Remove from optimistic set since it's queued
+          optimisticMessagesRef.current.delete(tempId);
+        } else {
+          // Mark as failed for non-network errors
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === tempId ? ({ ...msg, status: 'failed' } as OptimisticMessage) : msg
+            )
+          );
+        }
       }
     },
     [user, chatId]
@@ -166,45 +194,44 @@ export function useMessages({ chatId, pageSize = 50 }: UseMessagesOptions) {
   useEffect(() => {
     if (!chatId || !user) return;
 
-    // Subscribe to new messages
-    channelRef.current = supabase
-      .channel(`chat:${chatId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `chat_id=eq.${chatId}`,
-        },
-        async (payload) => {
-          const newMessage = payload.new as {
-            id: string;
-            sender_id: string;
-            chat_id: string;
-            content: string;
-            created_at: string;
-            expires_at: string;
-            deleted_at: string | null;
-            media_url: string | null;
-            bet_id: string | null;
-            message_type: string | null;
-          };
+    const channelName = getChatChannelName(chatId);
 
-          // Skip if it's from us and already optimistic
-          if (newMessage.sender_id === user.id) {
-            // Check if we have an optimistic version
-            const hasOptimistic = Array.from(optimisticMessagesRef.current).some((tempId) =>
-              messages.some((msg) => msg.id === tempId)
-            );
-            if (hasOptimistic) return;
-          }
+    // Subscribe to new messages using centralized manager
+    realtimeManager.subscribe(channelName, subscriberId, {
+      postgres: {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `chat_id=eq.${chatId}`,
+      },
+      onPostgres: async (payload) => {
+        const newMessage = payload.new as {
+          id: string;
+          sender_id: string;
+          chat_id: string;
+          content: string;
+          created_at: string;
+          expires_at: string;
+          deleted_at: string | null;
+          media_url: string | null;
+          bet_id: string | null;
+          message_type: string | null;
+        };
 
-          // Fetch full message with relations
-          const { data } = await supabase
-            .from('messages')
-            .select(
-              `
+        // Skip if it's from us and already optimistic
+        if (newMessage.sender_id === user.id) {
+          // Check if we have an optimistic version
+          const hasOptimistic = Array.from(optimisticMessagesRef.current).some((tempId) =>
+            messages.some((msg) => msg.id === tempId)
+          );
+          if (hasOptimistic) return;
+        }
+
+        // Fetch full message with relations
+        const { data } = await supabase
+          .from('messages')
+          .select(
+            `
               *,
               sender:users!messages_sender_id_fkey(
                 id,
@@ -216,24 +243,23 @@ export function useMessages({ chatId, pageSize = 50 }: UseMessagesOptions) {
                 game:games(*)
               )
             `
-            )
-            .eq('id', newMessage.id)
-            .single();
+          )
+          .eq('id', newMessage.id)
+          .single();
 
-          if (data) {
-            // Type assertion needed because of extended properties
-            const messageWithExtended = data as unknown as Message;
-            setMessages((prev) => [messageWithExtended, ...prev]);
-          }
+        if (data) {
+          // Type assertion needed because of extended properties
+          const messageWithExtended = data as unknown as Message;
+          setMessages((prev) => [messageWithExtended, ...prev]);
         }
-      )
-      .subscribe();
+      },
+    });
 
     return () => {
-      channelRef.current?.unsubscribe();
+      realtimeManager.unsubscribe(channelName, subscriberId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chatId, user]);
+  }, [chatId, user, subscriberId]);
 
   // Initial load
   useEffect(() => {
