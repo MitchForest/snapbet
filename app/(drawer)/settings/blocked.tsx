@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text } from '@tamagui/core';
-import { FlatList, ActivityIndicator, RefreshControl, Pressable } from 'react-native';
+import { FlatList, ActivityIndicator, RefreshControl, Pressable, StyleSheet } from 'react-native';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Avatar } from '@/components/common/Avatar';
 import { BlockConfirmation } from '@/components/moderation/BlockConfirmation';
@@ -120,10 +120,7 @@ export default function BlockedUsersScreen() {
                       e.stopPropagation();
                       handleUnblockPress(item.blocked_id, item.user?.username || 'this user');
                     }}
-                    style={{
-                      paddingHorizontal: 12,
-                      paddingVertical: 8,
-                    }}
+                    style={styles.unblockButton}
                   >
                     <Text fontSize={14} color="$primary" fontWeight="600">
                       Unblock
@@ -139,7 +136,7 @@ export default function BlockedUsersScreen() {
                 tintColor={Colors.primary}
               />
             }
-            contentContainerStyle={{ paddingBottom: 20 }}
+            contentContainerStyle={styles.listContent}
           />
         </>
       )}
@@ -159,3 +156,13 @@ export default function BlockedUsersScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  unblockButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  listContent: {
+    paddingBottom: 20,
+  },
+});

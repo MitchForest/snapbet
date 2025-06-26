@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { InteractionManager, Image } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { StoryWithType } from '@/types/content';
 import { storyViewService } from '@/services/story/storyViewService';
@@ -46,7 +45,7 @@ export function useStoryViewer(initialStoryId: string): UseStoryViewerResult {
   const { storySummaries } = useStories();
 
   // Parse navigation data
-  const allStoryIds = params.allStoryIds?.split(',') || [];
+  const allStoryIds = useMemo(() => params.allStoryIds?.split(',') || [], [params.allStoryIds]);
 
   // State
   const [currentStoryId, setCurrentStoryId] = useState(initialStoryId);
@@ -102,11 +101,6 @@ export function useStoryViewer(initialStoryId: string): UseStoryViewerResult {
         if (user?.id && story.user_id !== user.id) {
           storyViewService.trackStoryView(storyId, user.id);
         }
-
-        // Preload next story
-        InteractionManager.runAfterInteractions(() => {
-          preloadNextStory();
-        });
       } catch (err) {
         setError(err as Error);
         console.error('Failed to load story:', err);
@@ -116,23 +110,6 @@ export function useStoryViewer(initialStoryId: string): UseStoryViewerResult {
     },
     [user?.id]
   );
-
-  // Preload next story
-  const preloadNextStory = useCallback(() => {
-    const nextIndex = currentGlobalIndex + 1;
-    if (nextIndex < allStoryIds.length) {
-      InteractionManager.runAfterInteractions(async () => {
-        try {
-          const nextStory = await storyViewService.getStory(allStoryIds[nextIndex]);
-          if (nextStory?.media_url) {
-            Image.prefetch(nextStory.media_url);
-          }
-        } catch (err) {
-          console.log('Failed to preload next story:', err);
-        }
-      });
-    }
-  }, [currentGlobalIndex, allStoryIds]);
 
   // Progress timer
   const startProgressTimer = useCallback(() => {
@@ -154,7 +131,8 @@ export function useStoryViewer(initialStoryId: string): UseStoryViewerResult {
         goToNext();
       }
     }, PROGRESS_INTERVAL_MS);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // goToNext is intentionally excluded to avoid circular dependency
 
   // Navigation functions
   const goToNext = useCallback(() => {
@@ -169,7 +147,8 @@ export function useStoryViewer(initialStoryId: string): UseStoryViewerResult {
       // Go to next user
       goToNextUser();
     }
-  }, [currentStoryIndex, currentUserStories]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStoryIndex, currentUserStories]); // goToNextUser excluded to avoid circular dependency
 
   const goToPrevious = useCallback(() => {
     // If we're past 10% progress, restart current story
@@ -191,7 +170,8 @@ export function useStoryViewer(initialStoryId: string): UseStoryViewerResult {
       // Go to previous user's last story
       goToPreviousUser();
     }
-  }, [currentStoryIndex, currentUserStories, progress, startProgressTimer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStoryIndex, currentUserStories, progress, startProgressTimer]); // goToPreviousUser excluded to avoid circular dependency
 
   const goToNextUser = useCallback(() => {
     const nextGlobalIndex = currentGlobalIndex + 1;
@@ -204,7 +184,8 @@ export function useStoryViewer(initialStoryId: string): UseStoryViewerResult {
       // End of all stories
       dismiss();
     }
-  }, [currentGlobalIndex, allStoryIds]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentGlobalIndex, allStoryIds]); // dismiss excluded to avoid circular dependency
 
   const goToPreviousUser = useCallback(() => {
     const prevGlobalIndex = currentGlobalIndex - 1;

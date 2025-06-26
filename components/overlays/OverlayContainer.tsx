@@ -1,12 +1,12 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { PostType } from '@/types/content';
+import { PostType, PendingShareBet } from '@/types/content';
 import { PickOverlay } from './PickOverlay';
 import { OutcomeOverlay } from './OutcomeOverlay';
 
 interface OverlayContainerProps {
   postType: PostType;
-  betData?: unknown; // Will be defined in Epic 5
+  betData?: PendingShareBet;
   children: React.ReactNode;
 }
 
@@ -20,8 +20,8 @@ export function OverlayContainer({ postType, betData, children }: OverlayContain
     <View style={styles.container}>
       {children}
       <View style={styles.overlay} pointerEvents="none">
-        {postType === PostType.PICK && <PickOverlay betData={betData} />}
-        {postType === PostType.OUTCOME && <OutcomeOverlay betData={betData} />}
+        {postType === PostType.PICK && <PickOverlay bet={betData} />}
+        {postType === PostType.OUTCOME && <OutcomeOverlay bet={betData} />}
       </View>
     </View>
   );

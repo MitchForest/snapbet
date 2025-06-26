@@ -24,10 +24,13 @@ import { getEffectById } from '../effects/constants/allEffects';
 import { useMediaPermissions } from '@/hooks/useMediaPermissions';
 import { OpacityColors } from '@/theme';
 import { EmojiEffect } from '@/types/effects';
+import { PendingShareBet } from '@/types/content';
 
 interface CameraScreenProps {
   onCapture: (media: CapturedMedia) => void;
   onClose: () => void;
+  pendingBet?: PendingShareBet | null;
+  suggestedEffects?: string[];
 }
 
 export function CameraScreen({ onCapture, onClose }: CameraScreenProps) {
@@ -293,7 +296,7 @@ const styles = StyleSheet.create({
   },
   effectsOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: OpacityColors.overlay.light,
     zIndex: 4,
   },
   effectSelectorContainer: {
@@ -307,14 +310,14 @@ const styles = StyleSheet.create({
     height: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    backgroundColor: OpacityColors.overlay.dark,
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
   },
   effectsHandleBar: {
     width: 40,
     height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: OpacityColors.overlay.lighter,
     borderRadius: 2,
   },
   permissionText: {

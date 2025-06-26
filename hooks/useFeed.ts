@@ -93,7 +93,8 @@ export function useFeed() {
     };
 
     loadInitialPosts();
-  }, [user?.id]); // Remove cachedPosts and refreshPosts to avoid loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]); // Intentionally exclude cachedPosts and refreshPosts to avoid loops
 
   // Refresh with haptic feedback
   const refetch = useCallback(async () => {

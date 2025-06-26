@@ -8,7 +8,7 @@ import { useStoryReactions } from '@/hooks/useStoryReactions';
 import { StoryProgressBar } from '@/components/story/StoryProgressBar';
 import { StoryControls } from '@/components/story/StoryControls';
 import { StoryViewerGestures } from '@/components/story/StoryViewerGestures';
-import { Colors } from '@/theme';
+import { Colors, OpacityColors } from '@/theme';
 import { reactionService } from '@/services/engagement/reactionService';
 import { toastService } from '@/services/toastService';
 
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    backgroundColor: OpacityColors.overlay.lighter,
   },
   errorContainer: {
     flex: 1,

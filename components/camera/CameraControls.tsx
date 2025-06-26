@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text } from '@tamagui/core';
 import { Pressable, StyleSheet, Animated } from 'react-native';
-import { Colors } from '@/theme';
+import { Colors, OpacityColors } from '@/theme';
 import * as Haptics from 'expo-haptics';
 
 interface CameraControlsProps {
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
   },
   sideButtonActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: OpacityColors.overlay.lighter,
   },
   captureButton: {
     width: 80,

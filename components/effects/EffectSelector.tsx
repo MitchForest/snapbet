@@ -38,6 +38,21 @@ const styles = StyleSheet.create({
     paddingBottom: 40, // Extra padding to ensure bottom effects are visible
     flexGrow: 1,
   },
+  categoryButton: {
+    marginRight: 8,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  effectsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-evenly',
+  },
+  effectButton: {
+    marginBottom: 12,
+    marginHorizontal: 6,
+  },
 });
 
 export function EffectSelector({
@@ -108,7 +123,7 @@ export function EffectSelector({
           <Pressable
             key={category.id}
             onPress={() => handleCategorySelect(category.id)}
-            style={{ marginRight: 8 }}
+            style={styles.categoryButton}
           >
             <View
               paddingHorizontal="$3"
@@ -133,12 +148,12 @@ export function EffectSelector({
       <ScrollView
         showsVerticalScrollIndicator={true}
         contentContainerStyle={styles.effectsContent}
-        style={{ flex: 1 }}
+        style={styles.scrollView}
         bounces={true}
         scrollEventThrottle={16}
         nestedScrollEnabled={true}
       >
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-evenly' }}>
+        <View style={styles.effectsGrid}>
           {effects.map((effect) => {
             const isSelected = effect.id === currentEffectId;
             const isLocked = !effect.isUnlocked;
@@ -147,7 +162,7 @@ export function EffectSelector({
               <Pressable
                 key={effect.id}
                 onPress={() => handleSelectEffect(effect)}
-                style={{ marginBottom: 12, marginHorizontal: 6 }}
+                style={styles.effectButton}
               >
                 <View
                   width={65}

@@ -2,7 +2,7 @@ import { Redirect } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/services/supabase/client';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Colors } from '@/theme';
 
 export default function App() {
@@ -58,14 +58,7 @@ export default function App() {
   if (isLoading || checkingUsername) {
     console.log(`[${new Date().toISOString()}] App index.tsx - Showing loading state`);
     return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: Colors.background,
-        }}
-      >
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
@@ -93,3 +86,12 @@ export default function App() {
   );
   return <Redirect href="/(drawer)/(tabs)" />;
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+  },
+});

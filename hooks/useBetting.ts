@@ -157,7 +157,7 @@ export function useBetHistory(options: BetHistoryOptions = {}) {
   // Initial load
   useEffect(() => {
     fetchBetHistory(true);
-  }, [user, options.status]); // Reset when status filter changes
+  }, [user, options.status, fetchBetHistory]); // Reset when status filter changes
 
   const loadMore = useCallback(async () => {
     if (!hasMore || isLoading) return;

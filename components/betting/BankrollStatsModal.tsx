@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { Colors } from '@/theme';
+import { Colors, OpacityColors } from '@/theme';
 import { useBankrollStats } from '@/hooks/useBankroll';
 import { formatCentsToCurrency, formatTimeUntilReset } from '@/utils/bankroll/calculations';
 import { format } from 'date-fns';
@@ -130,7 +130,7 @@ function StatRow({ label, value, color, bold }: StatRowProps) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: OpacityColors.overlay.light,
     justifyContent: 'flex-end',
   },
   container: {

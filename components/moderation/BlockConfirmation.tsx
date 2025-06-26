@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable } from 'react-native';
-import { Colors } from '@/theme';
+import { Colors, OpacityColors } from '@/theme';
 
 interface BlockConfirmationProps {
   isVisible: boolean;
@@ -74,7 +74,7 @@ export function BlockConfirmation({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: OpacityColors.overlay.light,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,

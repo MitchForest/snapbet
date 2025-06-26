@@ -1,6 +1,7 @@
 import { supabase } from '@/services/supabase/client';
 import { bettingService } from './bettingService';
 import { DeviceEventEmitter } from 'react-native';
+import { Json } from '@/types/supabase-generated';
 
 // Extend the generated type to include weekly_deposit until types are regenerated
 export interface Bankroll {
@@ -311,10 +312,10 @@ class BankrollService {
       const transactions = metadata.transactions as BankrollTransaction[];
       metadata.transactions = [transaction, ...transactions.slice(0, 49)];
 
-      // Update metadata - cast back to unknown for Supabase
+      // Update metadata - cast to Json type for Supabase
       await supabase
         .from('bankrolls')
-        .update({ stats_metadata: metadata as unknown })
+        .update({ stats_metadata: metadata as Json })
         .eq('user_id', userId);
     } catch (error) {
       console.error('Error logging transaction:', error);

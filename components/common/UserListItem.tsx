@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text } from '@tamagui/core';
-import { Pressable, Alert } from 'react-native';
+import { Pressable, Alert, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Avatar } from '@/components/common/Avatar';
 import { MutualFollowBadge } from '@/components/common/MutualFollowBadge';
@@ -109,10 +109,7 @@ export const UserListItem: React.FC<UserListItemProps> = ({
               e.stopPropagation();
               handleRemoveFollower();
             }}
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-            }}
+            style={styles.removeButton}
           >
             <Text fontSize={14} color={Colors.loss} fontWeight="500">
               Remove
@@ -127,3 +124,10 @@ export const UserListItem: React.FC<UserListItemProps> = ({
     </Pressable>
   );
 };
+
+const styles = StyleSheet.create({
+  removeButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+});

@@ -9,7 +9,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Avatar } from '@/components/common/Avatar';
-import { Colors } from '@/theme';
+import { Colors, OpacityColors } from '@/theme';
 import { reactionService } from '@/services/engagement/reactionService';
 import { toastService } from '@/services/toastService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -155,7 +155,7 @@ export function WhoReactedModal({ postId, emoji, isOpen, onClose }: WhoReactedMo
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: OpacityColors.overlay.light,
     justifyContent: 'flex-end',
   },
   container: {

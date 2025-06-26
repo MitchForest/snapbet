@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text } from '@tamagui/core';
 import { FlashList } from '@shopify/flash-list';
-import { RefreshControl } from 'react-native';
+import { RefreshControl, StyleSheet } from 'react-native';
 import { Colors } from '@/theme';
 import { Game } from '@/types/database';
 import { GameCard } from './GameCard';
@@ -106,8 +106,14 @@ export function GamesList({ sport = 'all', onQuickBet }: GamesListProps) {
           colors={[Colors.primary]}
         />
       }
-      contentContainerStyle={{ paddingBottom: 100 }}
+      contentContainerStyle={styles.listContent}
       showsVerticalScrollIndicator={false}
     />
   );
 }
+
+const styles = StyleSheet.create({
+  listContent: {
+    paddingBottom: 100,
+  },
+});

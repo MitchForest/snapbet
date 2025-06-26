@@ -76,7 +76,7 @@
 
 ### Sprint 6.7: Production Jobs as Local Scripts (2 hours)
 **Goal**: Build all production automation jobs as local TypeScript scripts  
-**Status**: NOT STARTED  
+**Status**: NOT STARTED [DEFERRED TO EPIC 7]
 **Key Deliverables**:
 - Job framework with consistent interface
 - Content expiration, bankroll reset, badge calculation
@@ -84,9 +84,9 @@
 - CLI interface for manual execution
 - Demo control capabilities
 
-### Sprint 6.8: Mock Ecosystem & Demo Tools (2.5 hours)
+### Sprint 6.8: Mock Ecosystem & Demo Tools (2.5 hours) 
 **Goal**: Create living mock ecosystem with personality-driven users and demo tools  
-**Status**: NOT STARTED  
+**Status**: NOT STARTED  [DEFERRED TO EPIC 7]
 **Key Deliverables**:
 - 20+ personality-driven mock users
 - Activity generation for all features
@@ -96,7 +96,7 @@
 
 ### Sprint 6.9: Edge Function Migration (1 hour)
 **Goal**: Migrate all local scripts to Supabase Edge Functions with cron schedules  
-**Status**: NOT STARTED  
+**Status**: NOT STARTED  [DEFERRED TO EPIC 7]
 **Key Deliverables**:
 - Edge Function infrastructure
 - Cron job configuration

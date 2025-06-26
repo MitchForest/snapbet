@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text } from '@tamagui/core';
-import { FlatList, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { FlatList, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Avatar } from '@/components/common/Avatar';
 import { useFollowRequests } from '@/hooks/useFollowRequests';
@@ -38,7 +38,7 @@ export default function FollowRequestsScreen() {
       >
         <Pressable
           onPress={() => router.push(`/profile/${item.requester?.username}`)}
-          style={{ flex: 1 }}
+          style={styles.userPressable}
         >
           <View flexDirection="row" alignItems="center" flex={1}>
             <Avatar size={48} src={item.requester?.avatar_url || undefined} />
@@ -137,9 +137,18 @@ export default function FollowRequestsScreen() {
           renderItem={renderRequest}
           keyExtractor={(item) => item.id}
           ListEmptyComponent={renderEmpty}
-          contentContainerStyle={requests.length === 0 ? { flex: 1 } : undefined}
+          contentContainerStyle={requests.length === 0 ? styles.emptyContainer : undefined}
         />
       )}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  userPressable: {
+    flex: 1,
+  },
+  emptyContainer: {
+    flex: 1,
+  },
+});

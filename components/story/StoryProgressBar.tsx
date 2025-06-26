@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
-import { Colors } from '@/theme';
+import { Colors, OpacityColors } from '@/theme';
 
 interface StoryProgressBarProps {
   stories: Array<{ id: string }>;
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: OpacityColors.overlay.lighter,
     borderRadius: 1,
   },
   segmentProgress: {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Text } from '@tamagui/core';
-import { Pressable, ActivityIndicator } from 'react-native';
+import { Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Colors } from '@/theme';
 import { followUser, unfollowUser } from '@/services/api/followUser';
@@ -75,22 +75,27 @@ export function FollowButton({
 
   const buttonSize = getButtonSize();
 
+  const getSizeStyle = () => {
+    switch (size) {
+      case 'large':
+        return styles.buttonLarge;
+      case 'medium':
+        return styles.buttonMedium;
+      case 'small':
+      default:
+        return styles.buttonSmall;
+    }
+  };
+
+  const buttonStyle = [
+    styles.button,
+    getSizeStyle(),
+    isFollowing ? styles.buttonFollowing : styles.buttonNotFollowing,
+    isLoading && styles.buttonLoading,
+  ];
+
   return (
-    <Pressable
-      onPress={handlePress}
-      disabled={isLoading}
-      style={{
-        backgroundColor: isFollowing ? Colors.surface : Colors.primary,
-        borderWidth: isFollowing ? 1 : 0,
-        borderColor: Colors.border.default,
-        height: buttonSize.height,
-        paddingHorizontal: buttonSize.paddingHorizontal,
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-        opacity: isLoading ? 0.8 : 1,
-      }}
-    >
+    <Pressable onPress={handlePress} disabled={isLoading} style={buttonStyle}>
       {isLoading ? (
         <ActivityIndicator
           size="small"
@@ -108,3 +113,35 @@ export function FollowButton({
     </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  button: {
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonSmall: {
+    height: 28,
+    paddingHorizontal: 12,
+  },
+  buttonMedium: {
+    height: 36,
+    paddingHorizontal: 16,
+  },
+  buttonLarge: {
+    height: 44,
+    paddingHorizontal: 20,
+  },
+  buttonFollowing: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border.default,
+  },
+  buttonNotFollowing: {
+    backgroundColor: Colors.primary,
+    borderWidth: 0,
+  },
+  buttonLoading: {
+    opacity: 0.8,
+  },
+});

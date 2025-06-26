@@ -37,6 +37,7 @@ interface MediaPreviewProps {
   onNext: (options: ShareOptions) => void;
   postType?: PostType;
   headerTitle?: string;
+  suggestedCaption?: string;
 }
 
 export function MediaPreview({
@@ -45,12 +46,13 @@ export function MediaPreview({
   onNext,
   postType = PostType.CONTENT,
   headerTitle = 'Create Post',
+  suggestedCaption = '',
 }: MediaPreviewProps) {
   const insets = useSafeAreaInsets();
   const [shareToFeed, setShareToFeed] = useState(true);
   const [shareToStory, setShareToStory] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [caption, setCaption] = useState('');
+  const [caption, setCaption] = useState(suggestedCaption);
 
   // Get the selected effect if any
   const selectedEffect = useMemo(() => {

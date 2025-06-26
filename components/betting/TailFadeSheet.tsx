@@ -1,6 +1,6 @@
-import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
-import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import { BaseSheet } from '@/components/engagement/sheets/BaseSheet';
 import { Bet } from '@/services/betting/types';
 import { Game } from '@/types/database';
 import { PostWithType } from '@/types/content';
@@ -30,7 +30,6 @@ export function TailFadeSheet({
   originalPost,
   originalUser,
 }: TailFadeSheetProps) {
-  const bottomSheetRef = useRef<BottomSheet>(null);
   const { user } = useAuth();
   const { mutate: tailPick, isLoading: isTailing } = useTailPick();
   const { mutate: fadePick, isLoading: isFading } = useFadePick();
@@ -42,38 +41,7 @@ export function TailFadeSheet({
 
   const isLoading = isTailing || isFading;
 
-  // Fetch bankroll when sheet opens
-  useEffect(() => {
-    if (isOpen && user) {
-      fetchUserBankroll();
-    }
-  }, [isOpen, user]);
-
-  // Fetch game details when bet changes
-  useEffect(() => {
-    if (originalBet) {
-      fetchGameDetails();
-    }
-  }, [originalBet]);
-
-  // Set default stake to match original bet
-  useEffect(() => {
-    if (originalBet) {
-      setStake(originalBet.stake);
-      setShowCustomInput(false);
-    }
-  }, [originalBet]);
-
-  // Handle sheet state
-  useEffect(() => {
-    if (isOpen) {
-      bottomSheetRef.current?.expand();
-    } else {
-      bottomSheetRef.current?.close();
-    }
-  }, [isOpen]);
-
-  const fetchUserBankroll = async () => {
+  const fetchUserBankroll = useCallback(async () => {
     if (!user) return;
 
     const { data } = await supabase
@@ -85,9 +53,9 @@ export function TailFadeSheet({
     if (data) {
       setAvailableBankroll(data.balance);
     }
-  };
+  }, [user]);
 
-  const fetchGameDetails = async () => {
+  const fetchGameDetails = useCallback(async () => {
     if (!originalBet) return;
 
     const { data } = await supabase
@@ -99,7 +67,29 @@ export function TailFadeSheet({
     if (data) {
       setGame(data as Game);
     }
-  };
+  }, [originalBet]);
+
+  // Fetch bankroll when sheet opens
+  useEffect(() => {
+    if (isOpen && user) {
+      fetchUserBankroll();
+    }
+  }, [isOpen, user, fetchUserBankroll]);
+
+  // Fetch game details when bet changes
+  useEffect(() => {
+    if (originalBet) {
+      fetchGameDetails();
+    }
+  }, [originalBet, fetchGameDetails]);
+
+  // Set default stake to match original bet
+  useEffect(() => {
+    if (originalBet) {
+      setStake(originalBet.stake);
+      setShowCustomInput(false);
+    }
+  }, [originalBet]);
 
   const quickAmounts = useMemo(() => {
     if (!originalBet) return [];
@@ -132,19 +122,6 @@ export function TailFadeSheet({
     onClose();
   }, [originalBet, originalPost, action, stake, tailPick, fadePick, onClose]);
 
-  const renderBackdrop = useCallback(
-    (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-        pressBehavior="close"
-      />
-    ),
-    []
-  );
-
   if (!originalBet || !originalUser || !action) return null;
 
   const actionColor = action === 'tail' ? Colors.primary : Colors.error;
@@ -155,13 +132,12 @@ export function TailFadeSheet({
       : "You're betting against them. May the best bettor win!";
 
   return (
-    <BottomSheet
-      ref={bottomSheetRef}
-      index={-1}
-      snapPoints={['50%']}
-      enablePanDownToClose
-      backdropComponent={renderBackdrop}
+    <BaseSheet
+      isVisible={isOpen}
       onClose={onClose}
+      height="50%"
+      showDragIndicator={true}
+      enableSwipeToClose={true}
     >
       <View style={styles.container}>
         <Text style={styles.title}>
@@ -271,7 +247,7 @@ export function TailFadeSheet({
           )}
         </Pressable>
       </View>
-    </BottomSheet>
+    </BaseSheet>
   );
 }
 

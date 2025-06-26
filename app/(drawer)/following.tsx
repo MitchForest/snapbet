@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text } from '@tamagui/core';
-import { FlatList, ActivityIndicator, TextInput } from 'react-native';
+import { FlatList, ActivityIndicator, TextInput, StyleSheet } from 'react-native';
 import { UserListItem } from '@/components/common/UserListItem';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useUserList } from '@/hooks/useUserList';
@@ -57,11 +57,7 @@ export default function FollowingScreen() {
               placeholder="Search following..."
               value={searchQuery}
               onChangeText={setSearchQuery}
-              style={{
-                fontSize: 14,
-                color: Colors.text.primary,
-                padding: 0,
-              }}
+              style={styles.searchInput}
               placeholderTextColor={Colors.gray[500]}
             />
           </View>
@@ -91,3 +87,11 @@ export default function FollowingScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  searchInput: {
+    fontSize: 14,
+    color: Colors.text.primary,
+    padding: 0,
+  },
+});

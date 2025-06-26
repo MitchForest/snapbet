@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text } from '@tamagui/core';
-import { Pressable } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 import { Avatar } from '@/components/common/Avatar';
 import { WeeklyBadgeGrid } from '@/components/badges/WeeklyBadgeGrid';
 import { followService } from '@/services/social/followService';
@@ -242,16 +242,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       {/* Action Buttons */}
       <View flexDirection="row" gap="$2">
         {isOwnProfile ? (
-          <Pressable
-            onPress={onEditProfile}
-            style={{
-              flex: 1,
-              backgroundColor: '$surfaceAlt',
-              paddingVertical: 8,
-              borderRadius: 8,
-              alignItems: 'center',
-            }}
-          >
+          <Pressable onPress={onEditProfile} style={styles.editProfileButton}>
             <Text fontSize={14} fontWeight="600" color="$textPrimary">
               Edit Profile
             </Text>
@@ -266,17 +257,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               />
             </View>
             {onBlock && (
-              <Pressable
-                onPress={onBlock}
-                style={{
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: Colors.border.light,
-                  alignItems: 'center',
-                }}
-              >
+              <Pressable onPress={onBlock} style={styles.moreButton}>
                 <Text fontSize={14} fontWeight="600" color="$textSecondary">
                   •••
                 </Text>
@@ -288,3 +269,21 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  editProfileButton: {
+    flex: 1,
+    backgroundColor: Colors.surface,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  moreButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+    alignItems: 'center',
+  },
+});

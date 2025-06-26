@@ -6,7 +6,7 @@ import { Bet } from '@/services/betting/types';
 import { Game } from '@/types/database';
 import { useBetSharing } from '@/hooks/useBetSharing';
 import { PendingShareBet } from '@/types/content';
-import { Colors } from '@/theme';
+import { Colors, OpacityColors } from '@/theme';
 
 interface SharePickButtonProps {
   bet: Bet;
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   ghostButton: {
-    backgroundColor: 'transparent',
+    backgroundColor: OpacityColors.transparent,
     borderWidth: 1,
     borderColor: Colors.border.light,
   },

@@ -1,5 +1,5 @@
 import { useAuthStore } from '@/stores/authStore';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getReferralRewards, calculateWeeklyBankroll } from '@/services/referral/referralService';
 
 interface ReferralRewardsData {
@@ -22,7 +22,7 @@ export function useReferralRewards(): ReferralRewardsData {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchRewards = async () => {
+  const fetchRewards = useCallback(async () => {
     if (!user?.id) {
       setIsLoading(false);
       return;
@@ -43,11 +43,11 @@ export function useReferralRewards(): ReferralRewardsData {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.id]);
 
   useEffect(() => {
     fetchRewards();
-  }, [user?.id]);
+  }, [user?.id, fetchRewards]);
 
   // Calculate weekly bankroll
   const weeklyBankroll = calculateWeeklyBankroll(referralCount);

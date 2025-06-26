@@ -8,7 +8,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { Colors } from '@/theme';
+import { Colors, OpacityColors } from '@/theme';
 import { reportService, ReportWithDetails, ActionTaken } from '@/services/moderation/reportService';
 import { toastService } from '@/services/toastService';
 import { useAuthStore } from '@/stores/authStore';
@@ -191,7 +191,7 @@ export default function ModerationPanelScreen() {
                 tintColor={Colors.primary}
               />
             }
-            contentContainerStyle={{ paddingBottom: 20 }}
+            contentContainerStyle={styles.listContent}
           />
         </>
       )}
@@ -272,9 +272,12 @@ const styles = StyleSheet.create({
   },
   processingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: OpacityColors.overlay.light,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  listContent: {
+    paddingBottom: 20,
   },
 });

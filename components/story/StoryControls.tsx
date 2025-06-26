@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/common/Avatar';
 import { ReactionPicker } from '@/components/engagement/ReactionPicker';
-import { Colors } from '@/theme';
+import { Colors, OpacityColors } from '@/theme';
 import { StoryWithType } from '@/types/content';
 import { formatDistanceToNow } from '@/utils/date';
 import { toastService } from '@/services/toastService';
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   },
   timeAgo: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: OpacityColors.white.high,
   },
   closeButton: {
     width: 32,
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     bottom: 120,
     left: 16,
     right: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: OpacityColors.overlay.medium,
     borderRadius: 8,
     padding: 12,
   },
@@ -172,10 +172,10 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: OpacityColors.overlay.lighter,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: OpacityColors.overlay.lighter,
   },
   replyText: {
     fontSize: 14,
