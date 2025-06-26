@@ -1,4 +1,4 @@
-package com.snapbet.app
+package com.whitemitchell.snapbet
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

@@ -153,14 +153,18 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
   },
 
   checkSession: async () => {
-    console.log('checkSession called');
+    console.log(`[${new Date().toISOString()}] authStore.checkSession - called`);
     set({ isLoading: true });
 
     try {
       const session = await authService.getSession();
       const user = await authService.getUser();
 
-      console.log('checkSession - session:', !!session, 'user:', !!user);
+      console.log(`[${new Date().toISOString()}] authStore.checkSession - results:`, {
+        hasSession: !!session,
+        hasUser: !!user,
+        userId: user?.id,
+      });
 
       set({
         session,
@@ -176,7 +180,7 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
         set({ weeklyBadgeCount: badgeCount });
       }
     } catch (error) {
-      console.error('checkSession error:', error);
+      console.error(`[${new Date().toISOString()}] authStore.checkSession - error:`, error);
       set({
         session: null,
         user: null,
@@ -189,6 +193,11 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
   },
 
   setSession: (session: Session | null) => {
+    console.log(`[${new Date().toISOString()}] authStore.setSession - called with:`, {
+      hasSession: !!session,
+      userId: session?.user?.id,
+    });
+    
     set({
       session,
       user: session?.user || null,

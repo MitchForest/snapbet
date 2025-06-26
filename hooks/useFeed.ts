@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { PostWithType } from '@/types/content';
 import { supabase } from '@/services/supabase';
-import { useAuth } from './useAuth';
+import { useAuthStore } from '@/stores/authStore';
 import { feedService, FeedCursor } from '@/services/feed/feedService';
 import { useFeedPagination } from './useFeedPagination';
 import { getFollowingIds } from '@/services/api/followUser';
@@ -9,7 +9,7 @@ import * as Haptics from 'expo-haptics';
 import { eventEmitter, FeedEvents } from '@/utils/eventEmitter';
 
 export function useFeed() {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [refreshing, setRefreshing] = useState(false);

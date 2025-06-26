@@ -15,7 +15,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Check for existing session on mount
   useEffect(() => {
-    console.log('AuthProvider mounted, checking initial session...');
+    console.log(`[${new Date().toISOString()}] AuthProvider - mounted, checking initial session...`);
     checkSession();
   }, [checkSession]);
 
@@ -24,11 +24,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state change:', event);
-      console.log('Session in auth state change:', !!session, session?.user?.email);
+      console.log(`[${new Date().toISOString()}] AuthProvider - Auth state change:`, event);
+      console.log(`[${new Date().toISOString()}] AuthProvider - Session in auth state change:`, !!session, session?.user?.email);
 
       // Use setTimeout to defer async operations and avoid deadlocks
       setTimeout(() => {
+        console.log(`[${new Date().toISOString()}] AuthProvider - Setting session from auth state change`);
         setSession(session);
       }, 0);
     });

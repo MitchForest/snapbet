@@ -1,4 +1,4 @@
-package com.snapbet.app
+package com.whitemitchell.snapbet
 
 import android.app.Application
 import android.content.res.Configuration

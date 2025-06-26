@@ -20,7 +20,7 @@ export default function SettingsScreen() {
   const handleLogout = async () => {
     try {
       await signOut();
-      router.replace('/');
+      router.replace('/(auth)/welcome');
     } catch (error) {
       console.error('Error signing out:', error);
       toastService.showError('Failed to sign out');

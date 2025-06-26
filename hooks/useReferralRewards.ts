@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from './useAuth';
+import { useAuthStore } from '@/stores/authStore';
+import { useState, useEffect, useCallback } from 'react';
 import { getReferralRewards, calculateWeeklyBankroll } from '@/services/referral/referralService';
+import { supabase } from '@/services/supabase/client';
 
 interface ReferralRewardsData {
   referralCount: number;
@@ -15,7 +16,7 @@ interface ReferralRewardsData {
 }
 
 export function useReferralRewards(): ReferralRewardsData {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const [referralCount, setReferralCount] = useState(0);
   const [weeklyBonus, setWeeklyBonus] = useState(0);
   const [nextResetDate, setNextResetDate] = useState<Date | null>(null);

@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/services/supabase/client';
 import { blockService, BlockedUser } from '@/services/moderation/blockService';
+import { useAuthStore } from '@/stores/authStore';
 import { eventEmitter, ModerationEvents } from '@/utils/eventEmitter';
 import { toastService } from '@/services/toastService';
-import { useAuth } from './useAuth';
 
 interface UseBlockedUsersResult {
   blockedUsers: BlockedUser[];
@@ -16,7 +17,7 @@ interface UseBlockedUsersResult {
 }
 
 export function useBlockedUsers(): UseBlockedUsersResult {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
   const [blockedUserIds, setBlockedUserIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);

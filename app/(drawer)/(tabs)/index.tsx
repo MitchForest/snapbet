@@ -9,12 +9,12 @@ import { EmptyFeed } from '@/components/feed/EmptyFeed';
 import { FeedSkeleton } from '@/components/feed/FeedSkeleton';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Colors } from '@/theme';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/stores/authStore';
 
 const ESTIMATED_POST_HEIGHT = 500; // Approximate height for PostCard
 
 function HomeScreenContent() {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const { posts, isLoading, isLoadingMore, refreshing, refetch, loadMore, hasMore } = useFeed();
 
   const renderPost = useCallback(

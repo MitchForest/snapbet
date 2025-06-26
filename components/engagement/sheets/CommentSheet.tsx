@@ -15,7 +15,7 @@ import { CommentItem } from '../display/CommentItem';
 import { Colors } from '@/theme';
 import { useComments } from '@/hooks/useComments';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/stores/authStore';
 
 interface CommentSheetProps {
   postId: string;
@@ -25,7 +25,7 @@ interface CommentSheetProps {
 
 export function CommentSheet({ postId, isVisible, onClose }: CommentSheetProps) {
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const [comment, setComment] = useState('');
   const inputRef = useRef<TextInput>(null);
 

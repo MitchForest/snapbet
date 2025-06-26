@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { StoryWithType } from '@/types/content';
 import { supabase } from '@/services/supabase';
-import { useAuth } from './useAuth';
+import { useAuthStore } from '@/stores/authStore';
 import { getFollowingIds } from '@/services/api/followUser';
 import { eventEmitter, FeedEvents } from '@/utils/eventEmitter';
 
@@ -15,7 +15,7 @@ interface StorySummary {
 }
 
 export function useStories() {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const [storySummaries, setStorySummaries] = useState<StorySummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);

@@ -11,7 +11,7 @@ import { ReactionPicker } from '@/components/engagement/ReactionPicker';
 import { CommentSheet } from '@/components/engagement/sheets/CommentSheet';
 import { ReportModal } from '@/components/moderation/ReportModal';
 import { useEngagement } from '@/hooks/useEngagement';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/stores/authStore';
 import { toastService } from '@/services/toastService';
 
 interface PostCardProps {
@@ -33,7 +33,7 @@ function PostTypeIndicator({ type }: { type: PostType }) {
 }
 
 export function PostCard({ post, onPress }: PostCardProps) {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const timeUntilExpiration = getTimeUntilExpiration(post.expires_at);
   const [showComments, setShowComments] = useState(false);
   const [showReactions, setShowReactions] = useState(false);

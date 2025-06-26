@@ -4,7 +4,7 @@ import { InteractionManager, Image } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { StoryWithType } from '@/types/content';
 import { storyViewService } from '@/services/story/storyViewService';
-import { useAuth } from './useAuth';
+import { useAuthStore } from '@/stores/authStore';
 import { useStories } from './useStories';
 
 interface UseStoryViewerResult {
@@ -42,7 +42,7 @@ const PROGRESS_INTERVAL_MS = 50; // Update progress every 50ms
 export function useStoryViewer(initialStoryId: string): UseStoryViewerResult {
   const router = useRouter();
   const params = useLocalSearchParams<{ allStoryIds?: string; startIndex?: string }>();
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const { storySummaries } = useStories();
 
   // Parse navigation data

@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Logo } from '@/components/common/Logo';
 import { OAuthButton } from '@/components/auth/OAuthButton';
 import { LoadingOverlay } from '@/components/auth/LoadingOverlay';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/stores/authStore';
 import { getAuthErrorMessage } from '@/utils/auth/errorMessages';
 import {
   validateReferralCode,
@@ -16,7 +16,7 @@ import { Colors } from '@/theme';
 
 export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
-  const { signIn, error, clearError, isLoading } = useAuth();
+  const { signIn, error, clearError, isLoading } = useAuthStore();
   const [loadingProvider, setLoadingProvider] = useState<OAuthProvider | null>(null);
   const [showReferralInput, setShowReferralInput] = useState(false);
   const [referralCode, setReferralCode] = useState('');

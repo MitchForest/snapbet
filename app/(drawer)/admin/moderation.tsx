@@ -11,7 +11,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Colors } from '@/theme';
 import { reportService, ReportWithDetails, ActionTaken } from '@/services/moderation/reportService';
 import { toastService } from '@/services/toastService';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/stores/authStore';
 import { router } from 'expo-router';
 
 // Admin check utility
@@ -21,7 +21,7 @@ const isAdmin = (userId: string): boolean => {
 };
 
 export default function ModerationPanelScreen() {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const [reports, setReports] = useState<ReportWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

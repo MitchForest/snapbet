@@ -5,7 +5,7 @@ import { MediaPreview, ShareOptions } from '@/components/camera/MediaPreview';
 import { CapturedMedia } from '@/hooks/useCamera';
 import { uploadWithRetry, getMediaPath } from '@/services/media/upload';
 import { generateFileName } from '@/utils/media/helpers';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/stores/authStore';
 import { Alert } from 'react-native';
 import { PostType } from '@/types/content';
 import { createPost } from '@/services/content/postService';
@@ -13,7 +13,7 @@ import { createStory } from '@/services/content/storyService';
 
 export default function CameraModal() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const { postType = PostType.CONTENT, betId } = useLocalSearchParams<{
     postType?: PostType;
     betId?: string;

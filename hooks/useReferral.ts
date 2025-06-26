@@ -1,5 +1,5 @@
+import { useAuthStore } from '@/stores/authStore';
 import { useState, useEffect } from 'react';
-import { useAuth } from './useAuth';
 import {
   getOrCreateReferralCode,
   getReferralStats,
@@ -26,7 +26,7 @@ interface ReferralData {
 }
 
 export function useReferral(): ReferralData {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const [code, setCode] = useState<string | null>(null);
   const [stats, setStats] = useState({
     totalReferrals: 0,
