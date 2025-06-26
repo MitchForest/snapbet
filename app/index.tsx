@@ -22,14 +22,27 @@ export default function App() {
     const checkUsername = async () => {
       if (isAuthenticated && user && !isLoading) {
         setCheckingUsername(true);
-        console.log(`[${new Date().toISOString()}] App index.tsx - Checking username for user:`, user.id);
-        const { data, error } = await supabase.from('users').select('username').eq('id', user.id).single();
-        
+        console.log(
+          `[${new Date().toISOString()}] App index.tsx - Checking username for user:`,
+          user.id
+        );
+        const { data, error } = await supabase
+          .from('users')
+          .select('username')
+          .eq('id', user.id)
+          .single();
+
         if (error) {
-          console.error(`[${new Date().toISOString()}] App index.tsx - Error checking username:`, error);
+          console.error(
+            `[${new Date().toISOString()}] App index.tsx - Error checking username:`,
+            error
+          );
           setHasUsername(false);
         } else {
-          console.log(`[${new Date().toISOString()}] App index.tsx - Username check result:`, data?.username);
+          console.log(
+            `[${new Date().toISOString()}] App index.tsx - Username check result:`,
+            data?.username
+          );
           setHasUsername(!!data?.username);
         }
         setCheckingUsername(false);
@@ -60,17 +73,23 @@ export default function App() {
 
   // If not authenticated, go to welcome screen
   if (!isAuthenticated) {
-    console.log(`[${new Date().toISOString()}] App index.tsx - Not authenticated, redirecting to welcome`);
+    console.log(
+      `[${new Date().toISOString()}] App index.tsx - Not authenticated, redirecting to welcome`
+    );
     return <Redirect href="/(auth)/welcome" />;
   }
 
   // If authenticated but no username, go to onboarding
   if (!hasUsername) {
-    console.log(`[${new Date().toISOString()}] App index.tsx - No username, redirecting to onboarding`);
+    console.log(
+      `[${new Date().toISOString()}] App index.tsx - No username, redirecting to onboarding`
+    );
     return <Redirect href="/(auth)/onboarding/username" />;
   }
 
   // Otherwise, go to main app
-  console.log(`[${new Date().toISOString()}] App index.tsx - Authenticated with username, redirecting to main app`);
+  console.log(
+    `[${new Date().toISOString()}] App index.tsx - Authenticated with username, redirecting to main app`
+  );
   return <Redirect href="/(drawer)/(tabs)" />;
 }

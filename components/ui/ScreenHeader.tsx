@@ -46,7 +46,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({ title, onBack, right
           </Text>
         </Pressable>
 
-        <View flex={1} alignItems="center" marginRight={rightAction ? 0 : 44}>
+        <View flex={1} alignItems="center">
           <Text fontSize={18} fontWeight="600" color={Colors.text.primary} numberOfLines={1}>
             {title}
           </Text>

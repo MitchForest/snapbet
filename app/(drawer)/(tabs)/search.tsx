@@ -1,9 +1,7 @@
 import React from 'react';
 import { View, ScrollView, StyleSheet, Text, KeyboardAvoidingView, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Colors } from '@/theme';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SearchBar } from '@/components/search/SearchBar';
 import { UserSearchCard } from '@/components/search/UserSearchCard';
 import { DiscoverySection } from '@/components/search/DiscoverySection';
@@ -149,13 +147,11 @@ function SearchScreenContent() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.container}>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScreenHeader title="Search" />
-
         <SearchBar
           value={query}
           onChangeText={setQuery}
@@ -172,7 +168,7 @@ function SearchScreenContent() {
           {query.length > 0 ? renderSearchResults() : renderDiscoverySections()}
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 

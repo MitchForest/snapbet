@@ -7,11 +7,13 @@ export function useSession() {
 
   useEffect(() => {
     // Don't check session on mount - AuthProvider already does this
-    
+
     // Refresh session when app comes to foreground
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active') {
-        console.log(`[${new Date().toISOString()}] useSession - App became active, refreshing session`);
+        console.log(
+          `[${new Date().toISOString()}] useSession - App became active, refreshing session`
+        );
         refreshSession();
       }
     };

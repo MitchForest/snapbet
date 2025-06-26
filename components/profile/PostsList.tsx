@@ -3,7 +3,7 @@ import { View, Text } from '@tamagui/core';
 import { FlatList, ActivityIndicator, StyleSheet } from 'react-native';
 import { PostCard } from '@/components/content/PostCard';
 import { PostWithType } from '@/types/content';
-import { getAllPosts } from '@/services/content/postService';
+import { supabase } from '@/services/supabase/client';
 import { Colors } from '@/theme';
 
 interface PostsListProps {
@@ -22,15 +22,36 @@ export const PostsList: React.FC<PostsListProps> = ({ userId, canView = true }) 
     } else {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, canView]);
 
   const loadPosts = async () => {
     try {
       setLoading(true);
       setError(null);
-      // TODO: Add filtering by userId when needed
-      const fetchedPosts = await getAllPosts(20);
-      setPosts(fetchedPosts);
+
+      if (!userId) {
+        setPosts([]);
+        return;
+      }
+
+      // Fetch posts for specific user
+      const { data, error } = await supabase
+        .from('posts')
+        .select(
+          `
+          *,
+          user:users(id, username, avatar_url)
+        `
+        )
+        .eq('user_id', userId)
+        .is('deleted_at', null)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      setPosts((data || []) as PostWithType[]);
     } catch (err) {
       console.error('Failed to load posts:', err);
       setError('Failed to load posts');
@@ -95,5 +116,6 @@ export const PostsList: React.FC<PostsListProps> = ({ userId, canView = true }) 
 const styles = StyleSheet.create({
   listContent: {
     paddingVertical: 8,
+    paddingBottom: 100, // Extra padding to account for tab bar
   },
 });

@@ -10,6 +10,8 @@ interface CameraControlsProps {
   onCapture: () => void;
   onGallery: () => void;
   onModeChange: (mode: 'photo' | 'video') => void;
+  onEffectsToggle?: () => void;
+  effectsOpen?: boolean;
 }
 
 export function CameraControls({
@@ -18,6 +20,8 @@ export function CameraControls({
   onCapture,
   onGallery,
   onModeChange,
+  onEffectsToggle,
+  effectsOpen = false,
 }: CameraControlsProps) {
   const scaleValue = React.useRef(new Animated.Value(1)).current;
 
@@ -114,8 +118,20 @@ export function CameraControls({
           </Pressable>
         </Animated.View>
 
-        {/* Placeholder for symmetry */}
-        <View style={styles.sideButton} />
+        {/* Effects Toggle Button */}
+        {onEffectsToggle ? (
+          <Pressable 
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onEffectsToggle();
+            }} 
+            style={[styles.sideButton, effectsOpen && styles.sideButtonActive]}
+          >
+            <Text fontSize={28}>✨</Text>
+          </Pressable>
+        ) : (
+          <View style={styles.sideButton} />
+        )}
       </View>
     </View>
   );
@@ -136,6 +152,10 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 22,
+  },
+  sideButtonActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   captureButton: {
     width: 80,

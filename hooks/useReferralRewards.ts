@@ -1,7 +1,6 @@
 import { useAuthStore } from '@/stores/authStore';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { getReferralRewards, calculateWeeklyBankroll } from '@/services/referral/referralService';
-import { supabase } from '@/services/supabase/client';
 
 interface ReferralRewardsData {
   referralCount: number;

@@ -197,7 +197,7 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
       hasSession: !!session,
       userId: session?.user?.id,
     });
-    
+
     set({
       session,
       user: session?.user || null,

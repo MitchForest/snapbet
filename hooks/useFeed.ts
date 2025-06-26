@@ -14,10 +14,22 @@ export function useFeed() {
   const [error, setError] = useState<Error | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const loadCountRef = useRef(0);
+
+  console.log(`[${new Date().toISOString()}] useFeed - RENDER`, {
+    userId: user?.id,
+    isLoading,
+    refreshing,
+    loadCount: loadCountRef.current,
+  });
 
   // Fetch function for pagination hook
   const fetchPosts = useCallback(
     async (cursor?: FeedCursor) => {
+      console.log(`[${new Date().toISOString()}] useFeed - fetchPosts called`, {
+        cursor,
+        userId: user?.id,
+      });
       if (!user?.id) {
         return { posts: [], nextCursor: null, hasMore: false };
       }
@@ -44,8 +56,17 @@ export function useFeed() {
 
   // Initial load
   useEffect(() => {
+    loadCountRef.current++;
+    console.log(`[${new Date().toISOString()}] useFeed - Initial load effect triggered`, {
+      loadCount: loadCountRef.current,
+      userId: user?.id,
+      hasCachedPosts: !!cachedPosts,
+      cachedPostsLength: cachedPosts?.length,
+    });
+
     const loadInitialPosts = async () => {
       if (!user?.id) {
+        console.log(`[${new Date().toISOString()}] useFeed - No user, skipping load`);
         setIsLoading(false);
         return;
       }
@@ -56,10 +77,15 @@ export function useFeed() {
 
         // If we don't have cached posts, fetch fresh
         if (!cachedPosts || cachedPosts.length === 0) {
+          console.log(`[${new Date().toISOString()}] useFeed - No cached posts, fetching fresh`);
           await refreshPosts();
+        } else {
+          console.log(`[${new Date().toISOString()}] useFeed - Using cached posts`, {
+            count: cachedPosts.length,
+          });
         }
       } catch (err) {
-        console.error('Error loading initial posts:', err);
+        console.error(`[${new Date().toISOString()}] useFeed - Error loading initial posts:`, err);
         setError(err as Error);
       } finally {
         setIsLoading(false);
@@ -67,10 +93,11 @@ export function useFeed() {
     };
 
     loadInitialPosts();
-  }, [user?.id, cachedPosts, refreshPosts]); // Don't include refreshPosts to avoid loops
+  }, [user?.id]); // Remove cachedPosts and refreshPosts to avoid loops
 
   // Refresh with haptic feedback
   const refetch = useCallback(async () => {
+    console.log(`[${new Date().toISOString()}] useFeed - refetch called`);
     setRefreshing(true);
 
     // Haptic feedback for pull-to-refresh

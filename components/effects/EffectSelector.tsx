@@ -24,14 +24,16 @@ const CATEGORIES: { id: EffectCategory | 'all'; label: string; emoji: string }[]
 
 const styles = StyleSheet.create({
   categoryScroll: {
-    maxHeight: 50,
+    maxHeight: 60,
   },
   categoryContent: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 12,
   },
   effectsContent: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 24, // Extra padding to ensure bottom effects are visible
   },
 });
 
@@ -70,19 +72,20 @@ export function EffectSelector({
 
   return (
     <Stack
-      height={200}
-      backgroundColor={Colors.surface}
+      height={320}
+      backgroundColor="rgba(0, 0, 0, 0.9)"
       borderTopLeftRadius="$4"
       borderTopRightRadius="$4"
+      paddingBottom="$2"
     >
       {/* Badge Count Display */}
       <View
         paddingHorizontal="$4"
-        paddingVertical="$2"
+        paddingVertical="$3"
         borderBottomWidth={1}
-        borderBottomColor={Colors.border.light}
+        borderBottomColor="rgba(255, 255, 255, 0.1)"
       >
-        <Text fontSize="$2" color={Colors.text.secondary}>
+        <Text fontSize="$3" color="rgba(255, 255, 255, 0.8)" textAlign="center">
           {weeklyBadgeCount === 0
             ? 'Unlock effects by earning weekly badges'
             : `${weeklyBadgeCount} badge${weeklyBadgeCount === 1 ? '' : 's'} earned this week`}
@@ -104,12 +107,14 @@ export function EffectSelector({
                 paddingVertical="$2"
                 borderRadius="$3"
                 backgroundColor={
-                  selectedCategory === category.id ? Colors.primary : Colors.gray[100]
+                  selectedCategory === category.id ? Colors.primary : 'rgba(255, 255, 255, 0.1)'
                 }
               >
                 <Text
-                  fontSize="$2"
-                  color={selectedCategory === category.id ? Colors.white : Colors.text.primary}
+                  fontSize="$3"
+                  color={
+                    selectedCategory === category.id ? Colors.white : 'rgba(255, 255, 255, 0.8)'
+                  }
                 >
                   {category.emoji} {category.label}
                 </Text>
@@ -123,8 +128,9 @@ export function EffectSelector({
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.effectsContent}
+        style={{ flex: 1 }}
       >
-        <Stack flexDirection="row" flexWrap="wrap" gap="$2">
+        <Stack flexDirection="row" flexWrap="wrap" gap="$2" justifyContent="space-evenly">
           {effects.map((effect) => {
             const isSelected = effect.id === currentEffectId;
             const isLocked = !effect.isUnlocked;
@@ -132,17 +138,17 @@ export function EffectSelector({
             return (
               <Pressable key={effect.id} onPress={() => handleSelectEffect(effect)}>
                 <View
-                  width={60}
-                  height={60}
+                  width={65}
+                  height={65}
                   borderRadius="$3"
-                  backgroundColor={isSelected ? Colors.primary : Colors.gray[100]}
+                  backgroundColor={isSelected ? Colors.primary : 'rgba(255, 255, 255, 0.1)'}
                   borderWidth={isSelected ? 2 : 1}
-                  borderColor={isSelected ? Colors.primary : Colors.border.light}
+                  borderColor={isSelected ? Colors.primary : 'rgba(255, 255, 255, 0.2)'}
                   alignItems="center"
                   justifyContent="center"
                   position="relative"
                 >
-                  <Text fontSize={24}>{effect.preview}</Text>
+                  <Text fontSize={26}>{effect.preview}</Text>
 
                   {/* Lock Icon for locked effects */}
                   {isLocked && (

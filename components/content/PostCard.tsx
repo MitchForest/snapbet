@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Image, Pressable, StyleSheet, TouchableOpacity } from 'react-native';
+import { router } from 'expo-router';
 import { Colors, OpacityColors } from '@/theme';
 import { PostWithType, PostType, POST_TYPE_CONFIGS } from '@/types/content';
 import { getTimeUntilExpiration } from '@/utils/content/postTypeHelpers';
@@ -75,7 +76,14 @@ export function PostCard({ post, onPress }: PostCardProps) {
       <Pressable onPress={onPress} style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.userInfo}>
+          <Pressable
+            style={styles.userInfo}
+            onPress={() => {
+              if (post.user?.username) {
+                router.push(`/profile/${post.user.username}`);
+              }
+            }}
+          >
             <Avatar
               size={40}
               src={post.user?.avatar_url || undefined}
@@ -85,7 +93,7 @@ export function PostCard({ post, onPress }: PostCardProps) {
               <Text style={styles.username}>@{post.user?.username || 'unknown'}</Text>
               <Text style={styles.timestamp}>{timeUntilExpiration}</Text>
             </View>
-          </View>
+          </Pressable>
           <View style={styles.headerRight}>
             <PostTypeIndicator type={post.post_type} />
             {!isOwnPost && (
@@ -311,7 +319,7 @@ const styles = StyleSheet.create({
   },
   media: {
     width: '100%',
-    aspectRatio: 4 / 5,
+    aspectRatio: 1,
   },
   videoContainer: {
     position: 'relative',

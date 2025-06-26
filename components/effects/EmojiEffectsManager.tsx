@@ -63,7 +63,10 @@ export function EmojiEffectsManager({
 
   // Map physics types to their respective components
   const PHYSICS_COMPONENT_MAP: Record<string, PhysicsType[]> = {
-    BaseParticle: ['float', 'floatUp', 'fall', 'explode', 'launch'],
+    BaseParticle: [
+      'float', 'floatUp', 'fall', 'explode', 'launch',
+      'gentleFloat', 'slideDown', 'lookAround', 'riseUp'
+    ],
     AnimatedParticle: [
       'bounce',
       'spinAway',
@@ -75,7 +78,7 @@ export function EmojiEffectsManager({
       'rotate',
       'fadeIn',
       'slideIn',
-      'explodeOut', // Add explodeOut here
+      'explodeOut',
     ],
     ExpressiveParticle: [
       'crashDown',
@@ -85,6 +88,7 @@ export function EmojiEffectsManager({
       'angerBurst',
       'popIn',
       'formF',
+      'formLetter',
       'sportsBounce',
       'chaosCircle',
       'temperatureFlux',

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text } from '@tamagui/core';
-import { RefreshControl, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { TouchableOpacity, StyleSheet } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/services/supabase/client';
@@ -15,6 +15,7 @@ import { useFollowState } from '@/hooks/useFollowState';
 import { useBlockedUsers } from '@/hooks/useBlockedUsers';
 import { privacyService } from '@/services/privacy/privacyService';
 import { Colors } from '@/theme';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 
 function ProfileScreenContent() {
   const { username } = useLocalSearchParams<{ username: string }>();
@@ -51,12 +52,13 @@ function ProfileScreenContent() {
   const [badges, setBadges] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'posts' | 'bets'>('posts');
-  const [refreshing, setRefreshing] = useState(false);
+
   const [canViewContent, setCanViewContent] = useState(false);
   const [privacySettings, setPrivacySettings] = useState<PrivacySettings | null>(null);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+  const [currentUsername, setCurrentUsername] = useState<string | null>(null);
 
-  const isOwnProfile = currentUser?.user_metadata?.username === username;
+  const isOwnProfile = currentUsername === username;
 
   // Use block functionality
   const { blockUser, unblockUser, isBlocked } = useBlockedUsers();
@@ -74,6 +76,19 @@ function ProfileScreenContent() {
 
   const fetchProfileData = async () => {
     try {
+      // First, get current user's username from database
+      if (currentUser?.id) {
+        const { data: currentUserData } = await supabase
+          .from('users')
+          .select('username')
+          .eq('id', currentUser.id)
+          .single();
+
+        if (currentUserData?.username) {
+          setCurrentUsername(currentUserData.username);
+        }
+      }
+
       // Get user data with privacy columns
       const { data: userData, error: userError } = await supabase
         .from('users')
@@ -135,7 +150,6 @@ function ProfileScreenContent() {
       console.error('Error fetching profile:', error);
     } finally {
       setIsLoading(false);
-      setRefreshing(false);
     }
   };
 
@@ -164,22 +178,25 @@ function ProfileScreenContent() {
     }
   };
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchProfileData();
-  };
-
   if (isLoading) {
-    return <ProfileSkeleton />;
+    return (
+      <>
+        <ScreenHeader title="Profile" />
+        <ProfileSkeleton />
+      </>
+    );
   }
 
   if (!profileUser) {
     return (
-      <View flex={1} justifyContent="center" alignItems="center" backgroundColor="$background">
-        <Text fontSize={18} color="$textSecondary">
-          Profile not found
-        </Text>
-      </View>
+      <>
+        <ScreenHeader title="Profile" />
+        <View flex={1} justifyContent="center" alignItems="center" backgroundColor="$background">
+          <Text fontSize={18} color="$textSecondary">
+            Profile not found
+          </Text>
+        </View>
+      </>
     );
   }
 
@@ -187,6 +204,7 @@ function ProfileScreenContent() {
   if (isUserBlocked) {
     return (
       <View flex={1} backgroundColor="$background">
+        <ScreenHeader title={`@${profileUser.username}`} />
         <ProfileHeader
           user={profileUser}
           stats={null}
@@ -197,6 +215,7 @@ function ProfileScreenContent() {
           privacySettings={null}
           onFollow={() => {}}
           onEditProfile={() => {}}
+          onBlock={handleBlockPress}
         />
 
         <View flex={1} alignItems="center" justifyContent="center" paddingTop="$10">
@@ -227,6 +246,7 @@ function ProfileScreenContent() {
   if (profileUser.is_private && !canViewContent && !isOwnProfile) {
     return (
       <View flex={1} backgroundColor="$background">
+        <ScreenHeader title={`@${profileUser.username}`} />
         <ProfileHeader
           user={profileUser}
           stats={null}
@@ -237,6 +257,7 @@ function ProfileScreenContent() {
           privacySettings={privacySettings}
           onFollow={handleFollow}
           onEditProfile={() => router.push('/settings/profile')}
+          onBlock={handleBlockPress}
         />
 
         <View flex={1} alignItems="center" justifyContent="center" paddingTop="$10">
@@ -250,26 +271,14 @@ function ProfileScreenContent() {
             Follow this account to see their posts, stats, and betting history
           </Text>
         </View>
-
-        {/* Block option for private accounts */}
-        {!isOwnProfile && (
-          <View style={styles.blockContainer}>
-            <TouchableOpacity onPress={handleBlockPress}>
-              <Text style={styles.blockText}>Block @{profileUser.username}</Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </View>
     );
   }
 
   return (
     <View flex={1} backgroundColor="$background">
-      <ScrollView
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10b981" />
-        }
-      >
+      <ScreenHeader title={`@${profileUser.username}`} />
+      <View flex={1}>
         <ProfileHeader
           user={profileUser}
           stats={userStats}
@@ -280,25 +289,19 @@ function ProfileScreenContent() {
           privacySettings={privacySettings}
           onFollow={handleFollow}
           onEditProfile={() => router.push('/settings/profile')}
+          onBlock={isOwnProfile ? undefined : handleBlockPress}
         />
 
         <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
-        {activeTab === 'posts' ? (
-          <PostsList userId={profileUser.id} canView={canViewContent || isOwnProfile} />
-        ) : (
-          <BetsList userId={profileUser.id} canView={canViewContent || isOwnProfile} />
-        )}
-
-        {/* Block option */}
-        {!isOwnProfile && (
-          <View style={styles.blockContainer}>
-            <TouchableOpacity onPress={handleBlockPress}>
-              <Text style={styles.blockText}>Block @{profileUser.username}</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </ScrollView>
+        <View flex={1}>
+          {activeTab === 'posts' ? (
+            <PostsList userId={profileUser.id} canView={canViewContent || isOwnProfile} />
+          ) : (
+            <BetsList userId={profileUser.id} canView={canViewContent || isOwnProfile} />
+          )}
+        </View>
+      </View>
 
       {/* Block Confirmation */}
       <BlockConfirmation
@@ -321,18 +324,6 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  blockContainer: {
-    alignItems: 'center',
-    paddingVertical: 20,
-    borderTopWidth: 1,
-    borderTopColor: Colors.gray[200],
-    marginTop: 20,
-  },
-  blockText: {
-    fontSize: 14,
-    color: Colors.error,
-    fontWeight: '600',
-  },
   unblockButton: {
     paddingHorizontal: 24,
     paddingVertical: 10,

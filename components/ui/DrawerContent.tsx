@@ -60,6 +60,7 @@ export const DrawerContent: React.FC<DrawerContentComponentProps> = ({ navigatio
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [followRequestCount, setFollowRequestCount] = useState(0);
+  const [username, setUsername] = useState<string>('');
 
   useEffect(() => {
     if (!user?.id) return;
@@ -67,6 +68,17 @@ export const DrawerContent: React.FC<DrawerContentComponentProps> = ({ navigatio
     // Fetch user stats and counts
     const fetchUserData = async () => {
       try {
+        // Get user profile with username
+        const { data: profile } = await supabase
+          .from('users')
+          .select('username')
+          .eq('id', user.id)
+          .single();
+
+        if (profile?.username) {
+          setUsername(profile.username);
+        }
+
         // Get bankroll stats
         const { data: bankroll } = await supabase
           .from('bankrolls')
@@ -164,8 +176,6 @@ export const DrawerContent: React.FC<DrawerContentComponentProps> = ({ navigatio
     ? ((userStats.win_count / (userStats.win_count + userStats.loss_count)) * 100).toFixed(1)
     : '0.0';
 
-  const username = user?.user_metadata?.username || 'user';
-
   return (
     <View flex={1} backgroundColor="$background">
       <ScrollView>
@@ -201,6 +211,8 @@ export const DrawerContent: React.FC<DrawerContentComponentProps> = ({ navigatio
               icon="👤"
               label="View Profile"
               onPress={() => {
+                console.log('Navigating to profile with username:', username);
+                console.log('Current user:', user);
                 navigation.navigate('profile/[username]', { username });
                 navigation.closeDrawer();
               }}

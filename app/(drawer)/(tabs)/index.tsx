@@ -11,11 +11,18 @@ import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Colors } from '@/theme';
 import { useAuthStore } from '@/stores/authStore';
 
-const ESTIMATED_POST_HEIGHT = 500; // Approximate height for PostCard
+const ESTIMATED_POST_HEIGHT = 600; // Updated for square media + header + engagement
 
 function HomeScreenContent() {
   const { user } = useAuthStore();
   const { posts, isLoading, isLoadingMore, refreshing, refetch, loadMore, hasMore } = useFeed();
+
+  console.log(`[${new Date().toISOString()}] HomeScreenContent - RENDER`, {
+    userId: user?.id,
+    isLoading,
+    postsLength: posts.length,
+    refreshing,
+  });
 
   const renderPost = useCallback(
     ({ item }: { item: PostWithType }) => <MemoizedPostCard post={item} />,
@@ -49,6 +56,7 @@ function HomeScreenContent() {
 
   // Show skeleton while initial loading
   if (isLoading && posts.length === 0) {
+    console.log(`[${new Date().toISOString()}] HomeScreenContent - Showing skeleton`);
     return (
       <View style={styles.container}>
         <StoriesBar />
@@ -57,6 +65,7 @@ function HomeScreenContent() {
     );
   }
 
+  console.log(`[${new Date().toISOString()}] HomeScreenContent - Rendering FlashList`);
   return (
     <View style={styles.container}>
       <FlashList
@@ -74,12 +83,14 @@ function HomeScreenContent() {
         estimatedItemSize={ESTIMATED_POST_HEIGHT}
         drawDistance={1000}
         removeClippedSubviews={true}
+        contentContainerStyle={styles.listContent}
       />
     </View>
   );
 }
 
 export default function HomeScreen() {
+  console.log(`[${new Date().toISOString()}] HomeScreen - RENDER`);
   return (
     <ErrorBoundary level="tab">
       <HomeScreenContent />
@@ -91,6 +102,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  listContent: {
+    paddingBottom: 100, // Extra padding for tab bar
   },
   footerLoader: {
     paddingVertical: 20,

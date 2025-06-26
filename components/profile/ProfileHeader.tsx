@@ -6,6 +6,7 @@ import { WeeklyBadgeGrid } from '@/components/badges/WeeklyBadgeGrid';
 import { followService } from '@/services/social/followService';
 import { FollowRequestButton } from './FollowRequestButton';
 import { useReferralRewards } from '@/hooks/useReferralRewards';
+import { Colors } from '@/theme';
 
 interface ProfileUser {
   id: string;
@@ -41,6 +42,7 @@ interface ProfileHeaderProps {
   privacySettings?: PrivacySettings | null;
   onFollow?: () => void;
   onEditProfile?: () => void;
+  onBlock?: () => void;
 }
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -53,6 +55,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   privacySettings,
   onFollow,
   onEditProfile,
+  onBlock,
 }) => {
   // Calculate stats
   const winRate = stats
@@ -254,13 +257,32 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </Text>
           </Pressable>
         ) : (
-          <View flex={1}>
-            <FollowRequestButton
-              targetUserId={user.id}
-              isPrivate={isPrivate}
-              onFollowChange={onFollow}
-            />
-          </View>
+          <>
+            <View flex={1}>
+              <FollowRequestButton
+                targetUserId={user.id}
+                isPrivate={isPrivate}
+                onFollowChange={onFollow}
+              />
+            </View>
+            {onBlock && (
+              <Pressable
+                onPress={onBlock}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: Colors.border.light,
+                  alignItems: 'center',
+                }}
+              >
+                <Text fontSize={14} fontWeight="600" color="$textSecondary">
+                  •••
+                </Text>
+              </Pressable>
+            )}
+          </>
         )}
       </View>
     </View>

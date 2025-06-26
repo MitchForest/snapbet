@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/services/supabase/client';
-import { blockService, BlockedUser } from '@/services/moderation/blockService';
 import { useAuthStore } from '@/stores/authStore';
+import { blockService, BlockedUser } from '@/services/moderation/blockService';
 import { eventEmitter, ModerationEvents } from '@/utils/eventEmitter';
 import { toastService } from '@/services/toastService';
 

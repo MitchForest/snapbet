@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, TouchableOpacity, StyleSheet, Text, Alert, ActivityIndicator } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Text, Alert, ActivityIndicator, Animated, Pressable } from 'react-native';
 import { CameraView } from 'expo-camera';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useCamera, CapturedMedia } from '@/hooks/useCamera';
@@ -40,6 +40,8 @@ export function CameraScreen({ onCapture, onClose }: CameraScreenProps) {
   const viewShotRef = useRef<ViewShot>(null);
   const [selectedEffectId, setSelectedEffectId] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [effectsPanelOpen, setEffectsPanelOpen] = useState(false);
+  const effectsPanelAnimation = useRef(new Animated.Value(0)).current;
 
   // Get the selected effect
   const selectedEffect = selectedEffectId ? getEffectById(selectedEffectId) : null;
@@ -55,6 +57,15 @@ export function CameraScreen({ onCapture, onClose }: CameraScreenProps) {
       onCapture({ ...capturedMedia, effectId: selectedEffectId });
     }
   }, [capturedMedia, selectedEffectId, onCapture]);
+
+  // Animate effects panel
+  React.useEffect(() => {
+    Animated.timing(effectsPanelAnimation, {
+      toValue: effectsPanelOpen ? 1 : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [effectsPanelOpen, effectsPanelAnimation]);
 
   const handleCapture = async () => {
     if (isCapturing || isPreviewMode) return;
@@ -92,6 +103,10 @@ export function CameraScreen({ onCapture, onClose }: CameraScreenProps) {
 
   const handleRequestPermissions = async () => {
     await requestAllPermissions();
+  };
+
+  const toggleEffectsPanel = () => {
+    setEffectsPanelOpen(!effectsPanelOpen);
   };
 
   if (permissions.camera === null) {
@@ -149,6 +164,9 @@ export function CameraScreen({ onCapture, onClose }: CameraScreenProps) {
         <TouchableOpacity onPress={onClose} style={styles.headerButton}>
           <MaterialIcons name="close" size={28} color={OpacityColors.white.full} />
         </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Camera</Text>
+        </View>
         <TouchableOpacity onPress={toggleTorch} style={styles.headerButton}>
           <MaterialIcons
             name={enableTorch ? 'flash-on' : 'flash-off'}
@@ -158,6 +176,33 @@ export function CameraScreen({ onCapture, onClose }: CameraScreenProps) {
         </TouchableOpacity>
       </View>
 
+      {/* Effect Selector - bottom sheet */}
+      {effectsPanelOpen && (
+        <Pressable 
+          style={styles.effectsOverlay}
+          onPress={() => setEffectsPanelOpen(false)}
+        />
+      )}
+      
+      <Animated.View 
+        style={[
+          styles.effectSelectorContainer,
+          {
+            transform: [{
+              translateY: effectsPanelAnimation.interpolate({
+                inputRange: [0, 1],
+                outputRange: [350, 0], // Slide up from bottom
+              })
+            }]
+          }
+        ]}
+      >
+        <View style={styles.effectsHandle}>
+          <View style={styles.effectsHandleBar} />
+        </View>
+        <EffectSelector onSelectEffect={setSelectedEffectId} currentEffectId={selectedEffectId} />
+      </Animated.View>
+
       {/* Camera Controls */}
       <CameraControls
         mode={mode}
@@ -165,10 +210,9 @@ export function CameraScreen({ onCapture, onClose }: CameraScreenProps) {
         onCapture={handleCapture}
         onGallery={pickFromGallery}
         onModeChange={setMode}
+        onEffectsToggle={toggleEffectsPanel}
+        effectsOpen={effectsPanelOpen}
       />
-
-      {/* Effect Selector */}
-      <EffectSelector onSelectEffect={setSelectedEffectId} currentEffectId={selectedEffectId} />
 
       {/* Capturing Indicator */}
       {isCapturing && (
@@ -192,6 +236,7 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     zIndex: 10,
   },
@@ -202,6 +247,41 @@ const styles = StyleSheet.create({
     backgroundColor: OpacityColors.overlay.light,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    color: OpacityColors.white.full,
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  effectsOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    zIndex: 4,
+  },
+  effectSelectorContainer: {
+    position: 'absolute',
+    bottom: 0, // Start from bottom
+    left: 0,
+    right: 0,
+    zIndex: 5,
+  },
+  effectsHandle: {
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  effectsHandleBar: {
+    width: 40,
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 2,
   },
   permissionText: {
     textAlign: 'center',
