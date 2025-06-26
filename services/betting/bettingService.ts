@@ -171,12 +171,12 @@ class BettingService {
         };
       }
 
-      const { data: bet, error: betError } = await supabase
+      const { data: bet, error: betError } = (await supabase
         .from('bets')
         .select('*, game:games(*)')
         .eq('id', betId)
         .eq('user_id', user.id)
-        .single() as { data: BetWithGameData | null; error: Error | null };
+        .single()) as { data: BetWithGameData | null; error: Error | null };
 
       if (betError || !bet) {
         throw new BettingError('Bet not found', 'VALIDATION_ERROR');
@@ -213,11 +213,11 @@ class BettingService {
 
   // TODO: Replace with bankrollService.canPlaceBet() when Sprint 05.05 is complete
   private async checkBankrollSufficient(userId: string, amount: number): Promise<boolean> {
-    const { data: bankroll, error } = await supabase
+    const { data: bankroll, error } = (await supabase
       .from('bankrolls')
       .select('balance')
       .eq('user_id', userId)
-      .single() as { data: { balance: number } | null; error: Error | null };
+      .single()) as { data: { balance: number } | null; error: Error | null };
 
     if (error || !bankroll) {
       console.error('Error checking bankroll:', error);
@@ -227,7 +227,7 @@ class BettingService {
     return bankroll.balance >= amount;
   }
 
-  private validateBet(input: BetInput, game: any): ValidationResult {
+  private validateBet(input: BetInput, game: Game): ValidationResult {
     // Check minimum bet ($5 = 500 cents)
     if (input.stake < 500) {
       return { isValid: false, error: 'Minimum bet is $5' };
@@ -294,25 +294,25 @@ class BettingService {
   }
 
   private prepareBetDetails(input: BetInput, _game: Game): Json {
-    const details: Record<string, unknown> = {};
+    const details: Record<string, Json> = {};
 
     switch (input.betType) {
       case 'spread':
-        details.team = input.selection.team;
-        details.line = input.selection.line;
+        details.team = input.selection.team || null;
+        details.line = input.selection.line ?? null;
         break;
 
       case 'total':
-        details.total_type = input.selection.totalType;
-        details.line = input.selection.line;
+        details.total_type = input.selection.totalType || null;
+        details.line = input.selection.line ?? null;
         break;
 
       case 'moneyline':
-        details.team = input.selection.team;
+        details.team = input.selection.team || null;
         break;
     }
 
-    return details as Json;
+    return details;
   }
 
   // Public utility method for payout calculation

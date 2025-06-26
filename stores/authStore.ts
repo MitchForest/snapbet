@@ -5,6 +5,8 @@ import { OAuthProvider, CustomAuthError } from '@/services/auth/types';
 import { supabase } from '@/services/supabase/client';
 import { getPendingReferralCode, trackReferral } from '@/services/referral/referralService';
 import { getUserBadgeCount } from '@/services/badges/badgeService';
+import { authErrorMessages } from '@/utils/auth/errors';
+import { toastService } from '@/services/toastService';
 
 interface AuthState {
   user: User | null;
@@ -19,7 +21,6 @@ interface AuthState {
   signIn: (provider: OAuthProvider) => Promise<void>;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
-  checkSession: () => Promise<void>;
   setSession: (session: Session | null) => void;
   clearError: () => void;
   updateUsername: (username: string) => Promise<{ error: Error | null }>;
@@ -53,8 +54,11 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
       const response = await authService.signInWithOAuth(provider);
 
       if (response.error) {
+        const customError = response.error as CustomAuthError;
+        const message = authErrorMessages[customError.customCode] || authErrorMessages.UNKNOWN;
+        toastService.show({ message, type: 'error' });
         set({
-          error: response.error as CustomAuthError,
+          error: customError,
           isLoading: false,
         });
         return;
@@ -91,6 +95,8 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
         set({ isLoading: false });
       }
     } catch {
+      const message = authErrorMessages.UNKNOWN;
+      toastService.show({ message, type: 'error' });
       set({
         error: {
           message: 'Failed to initiate sign in',
@@ -116,6 +122,8 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
         weeklyBadgeCount: 0,
       });
     } catch {
+      const message = authErrorMessages.UNKNOWN;
+      toastService.show({ message, type: 'error' });
       set({
         error: {
           message: 'Failed to sign out',
@@ -149,46 +157,6 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
       console.error('Failed to refresh session:', error);
       // Don't set error state for refresh failures
       // Let the session expire naturally
-    }
-  },
-
-  checkSession: async () => {
-    console.log(`[${new Date().toISOString()}] authStore.checkSession - called`);
-    set({ isLoading: true });
-
-    try {
-      const session = await authService.getSession();
-      const user = await authService.getUser();
-
-      console.log(`[${new Date().toISOString()}] authStore.checkSession - results:`, {
-        hasSession: !!session,
-        hasUser: !!user,
-        userId: user?.id,
-      });
-
-      set({
-        session,
-        user,
-        isAuthenticated: !!session && !!user,
-        isLoading: false,
-        error: null,
-      });
-
-      // Load badge count if user exists
-      if (user) {
-        const badgeCount = await getUserBadgeCount(user.id);
-        set({ weeklyBadgeCount: badgeCount });
-      }
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] authStore.checkSession - error:`, error);
-      set({
-        session: null,
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: null, // Don't show error for initial check
-        weeklyBadgeCount: 0,
-      });
     }
   },
 

@@ -3,6 +3,7 @@ import { bettingService } from '@/services/betting/bettingService';
 import { BetInput, BetWithGame, BetHistoryOptions, BettingError } from '@/services/betting/types';
 import { useAuthStore } from '@/stores/authStore';
 import * as Haptics from 'expo-haptics';
+import { toastService } from '@/services/toastService';
 
 /**
  * Hook for placing bets
@@ -31,6 +32,11 @@ export function usePlaceBet() {
 
       // Error haptic
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+
+      toastService.show({
+        message: errorMessage,
+        type: 'error',
+      });
 
       throw err;
     } finally {
@@ -196,6 +202,11 @@ export function useCancelBet() {
       // Error haptic
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
 
+      toastService.show({
+        message: errorMessage,
+        type: 'error',
+      });
+
       throw err;
     } finally {
       setIsCanceling(false);
@@ -251,3 +262,68 @@ export function useAvailableBankroll() {
 
 // Import supabase for temporary bankroll fetch
 import { supabase } from '@/services/supabase/client';
+
+export function useBetting() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const placeBet = async (betInput: BetInput) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await bettingService.placeBet(betInput);
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to place bet';
+      setError(errorMessage);
+      toastService.show({
+        message: errorMessage,
+        type: 'error',
+      });
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getActiveBets = async (userId: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const bets = await bettingService.getActiveBets(userId);
+      return bets;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch active bets';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getBetHistory = async (userId: string, options?: BetHistoryOptions) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const history = await bettingService.getBetHistory(userId, options);
+      return history;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch bet history';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    placeBet,
+    getActiveBets,
+    getBetHistory,
+    loading,
+    error,
+  };
+}

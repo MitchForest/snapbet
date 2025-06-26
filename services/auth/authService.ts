@@ -1,6 +1,5 @@
 import { makeRedirectUri } from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
-import * as Linking from 'expo-linking';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
 import { sessionManager } from './sessionManager';
@@ -33,89 +32,18 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 });
 
 class AuthService {
-  private redirectUrl: string;
-
   constructor() {
-    // Use Expo's auth proxy for Expo Go
-    this.redirectUrl = makeRedirectUri({
-      scheme: 'snapbet',
-    });
-
-    console.log('Auth redirect URL:', this.redirectUrl);
-
     // Set up refresh callback
     sessionManager.onRefreshNeeded = () => {
       this.refreshSession().catch(console.error);
     };
-
-    // Listen for URL changes (OAuth redirects)
-    // This handles Supabase's non-standard URL format with # instead of ?
-    Linking.addEventListener('url', async (event) => {
-      console.log('=== LINKING EVENT RECEIVED ===');
-      console.log('Raw URL:', event.url);
-
-      // Only process URLs that look like OAuth callbacks
-      if (!event.url.includes('access_token') && !event.url.includes('#')) {
-        console.log('URL does not contain OAuth tokens, ignoring');
-        return;
-      }
-
-      // Parse Supabase URL (converts # to ?)
-      const parseSupabaseUrl = (url: string) => {
-        let parsedUrl = url;
-        if (url.includes('#')) {
-          parsedUrl = url.replace('#', '?');
-        }
-        return parsedUrl;
-      };
-
-      const transformedUrl = parseSupabaseUrl(event.url);
-      const parsedUrl = Linking.parse(transformedUrl);
-
-      console.log('Parsed URL:', {
-        scheme: parsedUrl.scheme,
-        hostname: parsedUrl.hostname,
-        path: parsedUrl.path,
-        queryParams: parsedUrl.queryParams ? Object.keys(parsedUrl.queryParams) : [],
-      });
-
-      // Check if we have tokens
-      const accessToken = parsedUrl.queryParams?.access_token as string;
-      const refreshToken = parsedUrl.queryParams?.refresh_token as string;
-
-      if (accessToken && refreshToken) {
-        console.log('✅ Found tokens in URL, setting session...');
-
-        try {
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-
-          if (error) {
-            console.error('❌ Error setting session:', error);
-          } else {
-            console.log('✅ Session set successfully!');
-            if (data.session) {
-              await sessionManager.saveSession(data.session);
-              console.log('✅ Session saved to secure storage');
-            }
-          }
-        } catch (err) {
-          console.error('❌ Exception while setting session:', err);
-        }
-      } else {
-        console.log('⚠️ No tokens found in URL');
-        console.log('Available params:', parsedUrl.queryParams);
-      }
-    });
   }
 
   async signInWithOAuth(provider: OAuthProvider): Promise<AuthResponse> {
     try {
-      // Get the redirect URL for Expo
       const redirectTo = makeRedirectUri({
         scheme: 'snapbet',
+        path: 'auth/callback',
       });
 
       console.log('OAuth redirect URL:', redirectTo);
@@ -125,8 +53,6 @@ class AuthService {
         options: {
           redirectTo,
           skipBrowserRedirect: true,
-          scopes:
-            provider === 'google' ? 'https://www.googleapis.com/auth/userinfo.email' : undefined,
         },
       });
 
@@ -135,168 +61,69 @@ class AuthService {
         return this.handleAuthError(error);
       }
 
-      if (data?.url) {
-        console.log('Opening OAuth URL in browser...');
-        console.log('OAuth URL:', data.url.substring(0, 100) + '...');
-
-        // Use openAuthSessionAsync for development builds
-        const result = await Promise.race([
-          WebBrowser.openAuthSessionAsync(data.url, redirectTo, {
-            showInRecents: true,
-          }),
-          new Promise<{ type: 'timeout' }>(
-            (resolve) => setTimeout(() => resolve({ type: 'timeout' }), 60000) // 60 second timeout for Google 2FA
-          ),
-        ]);
-
-        console.log('WebBrowser result:', result);
-
-        if (result.type === 'timeout') {
-          console.log('OAuth timeout, checking for session anyway...');
-          // Still check if we got a session
-          const { data: sessionData } = await supabase.auth.getSession();
-
-          if (sessionData.session) {
-            console.log('✅ Found session despite timeout!');
-            await sessionManager.saveSession(sessionData.session);
-
-            return {
-              user: sessionData.session.user,
-              session: sessionData.session,
-              error: null,
-            };
-          }
-
-          return {
-            user: null,
-            session: null,
-            error: {
-              message: 'Authentication timeout. Please try again.',
-              status: 408,
-              customCode: 'UNKNOWN',
-            },
-          };
-        }
-
-        if (result.type === 'success') {
-          console.log('OAuth success, checking for session...');
-
-          // Check if there's an error in the URL
-          if (result.url && result.url.includes('error=')) {
-            const errorMatch = result.url.match(/error_description=([^&]+)/);
-            const errorDescription = errorMatch
-              ? decodeURIComponent(errorMatch[1].replace(/\+/g, ' '))
-              : 'OAuth provider error';
-
-            console.error('OAuth error in callback:', errorDescription);
-
-            // Check for specific Google OAuth errors
-            if (errorDescription.includes('Error getting user email from external provider')) {
-              return {
-                user: null,
-                session: null,
-                error: {
-                  message:
-                    'Google authentication failed. Please ensure you have allowed email access permissions.',
-                  status: 400,
-                  customCode: 'PROVIDER_ERROR',
-                },
-              };
-            }
-
-            return {
-              user: null,
-              session: null,
-              error: {
-                message: errorDescription,
-                status: 400,
-                customCode: 'PROVIDER_ERROR',
-              },
-            };
-          }
-
-          // Give Supabase a moment to process the OAuth callback
-          await new Promise((resolve) => setTimeout(resolve, 500));
-
-          // Check if we got a session with retries
-          let sessionData = null;
-          let retries = 0;
-          const maxRetries = 3;
-
-          while (retries < maxRetries) {
-            const { data } = await supabase.auth.getSession();
-            if (data.session) {
-              sessionData = data;
-              break;
-            }
-            retries++;
-            if (retries < maxRetries) {
-              console.log(`No session found, retrying... (${retries}/${maxRetries})`);
-              await new Promise((resolve) => setTimeout(resolve, 1000));
-            }
-          }
-
-          if (sessionData?.session) {
-            console.log('✅ Found session after OAuth flow!');
-            await sessionManager.saveSession(sessionData.session);
-
-            return {
-              user: sessionData.session.user,
-              session: sessionData.session,
-              error: null,
-            };
-          } else {
-            console.log('No session found after OAuth success');
-
-            // Try to parse the URL manually as a fallback
-            if (result.url) {
-              const parseSupabaseUrl = (url: string) => {
-                let parsedUrl = url;
-                if (url.includes('#')) {
-                  parsedUrl = url.replace('#', '?');
-                }
-                return parsedUrl;
-              };
-
-              const transformedUrl = parseSupabaseUrl(result.url);
-              const parsedUrl = Linking.parse(transformedUrl);
-
-              const accessToken = parsedUrl.queryParams?.access_token as string;
-              const refreshToken = parsedUrl.queryParams?.refresh_token as string;
-
-              if (accessToken && refreshToken) {
-                console.log('Found tokens in URL, setting session manually...');
-                const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-                  access_token: accessToken,
-                  refresh_token: refreshToken,
-                });
-
-                if (!sessionError && sessionData.session) {
-                  await sessionManager.saveSession(sessionData.session);
-                  return {
-                    user: sessionData.session.user,
-                    session: sessionData.session,
-                    error: null,
-                  };
-                }
-              }
-            }
-          }
-        } else if (result.type === 'cancel') {
-          return {
-            user: null,
-            session: null,
-            error: {
-              message: 'Sign in cancelled',
-              status: 0,
-              customCode: 'USER_CANCELLED',
-            },
-          };
-        }
-
+      if (!data.url) {
         return {
           user: null,
           session: null,
+          error: {
+            message: 'Could not get OAuth URL',
+            status: 500,
+            customCode: 'UNKNOWN',
+          },
+        };
+      }
+
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo, {
+        showInRecents: true,
+      });
+
+      if (result.type === 'cancel' || result.type === 'dismiss') {
+        return {
+          user: null,
+          session: null,
+          error: {
+            message: 'Sign in cancelled',
+            status: 0,
+            customCode: 'USER_CANCELLED',
+          },
+        };
+      }
+
+      if (result.type === 'success') {
+        const { url } = result;
+        // Supabase sends the session info in the URL fragment
+        const params = new URLSearchParams(url.split('#')[1]);
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+
+        if (!accessToken || !refreshToken) {
+          return {
+            user: null,
+            session: null,
+            error: {
+              message: 'Invalid session info in redirect URL',
+              status: 400,
+              customCode: 'PROVIDER_ERROR',
+            },
+          };
+        }
+
+        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+
+        if (sessionError) {
+          return this.handleAuthError(sessionError);
+        }
+
+        if (sessionData.session) {
+          await sessionManager.saveSession(sessionData.session);
+        }
+
+        return {
+          user: sessionData.user,
+          session: sessionData.session,
           error: null,
         };
       }

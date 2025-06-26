@@ -166,14 +166,12 @@ export function PostCard({ post, onPress }: PostCardProps) {
             />
 
             {/* Tail/Fade Buttons for Pick Posts */}
-            {post.post_type === PostType.PICK && (
-              <TailFadeButtons
-                postId={post.id}
-                tailCount={engagement.animatedCounts.tail}
-                fadeCount={engagement.animatedCounts.fade}
-                userAction={engagement.userAction}
-                isExpired={isExpired}
-              />
+            {post.post_type === PostType.PICK && post.bet_id && (
+              <View style={styles.tailFadeContainer}>
+                <Text style={styles.tailFadeHint}>
+                  Tail/Fade functionality will be available when bet data is loaded
+                </Text>
+              </View>
             )}
 
             {/* Reaction Picker */}
@@ -368,5 +366,14 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     fontSize: 14,
     lineHeight: 20,
+  },
+  tailFadeContainer: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  tailFadeHint: {
+    color: Colors.text.secondary,
+    fontSize: 14,
+    fontStyle: 'italic',
   },
 });

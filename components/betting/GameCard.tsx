@@ -5,7 +5,6 @@ import { Colors } from '@/theme';
 import { Game } from '@/types/database';
 import { SportBadge } from './SportBadge';
 import { Storage, StorageKeys } from '@/services/storage/storageService';
-import { toastService } from '@/services/toastService';
 import * as Haptics from 'expo-haptics';
 import { getTeamById } from '@/data/teams';
 
@@ -43,13 +42,7 @@ export const GameCard = memo(
       // Haptic feedback
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      // Show toast
-      toastService.show({
-        message: 'Bet placement coming soon! 🎯',
-        type: 'info',
-        duration: 2000,
-      });
-
+      // Call the onQuickBet handler
       onQuickBet(game);
     };
 
