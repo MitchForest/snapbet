@@ -55,7 +55,8 @@ async function testConnection() {
 
   const { data: hotBetData, error: hotBetError } = await supabase
     .from('bets')
-    .select(`
+    .select(
+      `
       id,
       user_id,
       status,
@@ -69,7 +70,8 @@ async function testConnection() {
         favorite_team,
         created_at
       )
-    `)
+    `
+    )
     .gte('settled_at', weekStart.toISOString())
     .in('status', ['won', 'lost'])
     .not('settled_at', 'is', null)
@@ -85,4 +87,4 @@ async function testConnection() {
   }
 }
 
-testConnection().catch(console.error); 
+testConnection().catch(console.error);

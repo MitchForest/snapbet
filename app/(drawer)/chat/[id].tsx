@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
+  ViewToken,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -92,7 +93,7 @@ export default function ChatScreen() {
   const { messages, sendMessage, resendMessage, loadMore, hasMore, isLoading, isLoadingMore } =
     useMessages({ chatId });
   const { typingUsers, setTyping } = useTypingIndicator({ chatId });
-  const { observeMessage } = useReadReceipts({
+  const { handleVisibleMessagesChange } = useReadReceipts({
     chatId,
     onMessagesRead: () => {
       // Could update UI to show read status
@@ -117,6 +118,25 @@ export default function ChatScreen() {
     }
   }, [isGroupChat, chatId, router]);
 
+  // Handle visible items change for read receipts
+  const onViewableItemsChanged = useCallback(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const visibleMessageIds = viewableItems
+        .filter((item) => item.isViewable && item.item)
+        .map((item) => item.item.id);
+      
+      if (visibleMessageIds.length > 0) {
+        handleVisibleMessagesChange(visibleMessageIds, messages);
+      }
+    },
+    [handleVisibleMessagesChange, messages]
+  );
+
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 50,
+    minimumViewTime: 500,
+  }).current;
+
   // Render message item
   const renderMessage = useCallback(
     ({ item, index }: { item: Message; index: number }) => {
@@ -129,11 +149,6 @@ export default function ChatScreen() {
           key={item.id}
           data-message-id={item.id}
           data-sender-id={item.sender_id}
-          ref={(el) => {
-            if (el && !isOwn && !isGroupChat) {
-              observeMessage(item.id, el as unknown as HTMLElement);
-            }
-          }}
         >
           <ChatBubble
             message={item}
@@ -149,7 +164,7 @@ export default function ChatScreen() {
         </View>
       );
     },
-    [user?.id, messages, observeMessage, resendMessage, isGroupChat]
+    [user?.id, messages, resendMessage, isGroupChat]
   );
 
   // Scroll to bottom when new messages arrive
@@ -239,6 +254,8 @@ export default function ChatScreen() {
               }
             }}
             onEndReachedThreshold={0.5}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
             ListEmptyComponent={
               isLoading ? (
                 <View paddingVertical="$8" alignItems="center">

@@ -86,7 +86,7 @@ export function useDiscovery() {
   );
 
   const loadHotBettors = useCallback(async () => {
-    const cacheKey = CacheUtils.getCacheKey('discovery', 'hot');
+    const cacheKey = CacheUtils.getCacheKey('discovery', 'hot-v2');
     const cached = Storage.general.get<{ data: UserWithStats[]; timestamp: number }>(cacheKey);
 
     console.log('[useDiscovery] loadHotBettors called');
@@ -260,7 +260,7 @@ export function useDiscovery() {
 
   const refreshHot = useCallback(async () => {
     // Clear cache to force fresh data
-    const cacheKey = CacheUtils.getCacheKey('discovery', 'hot');
+    const cacheKey = CacheUtils.getCacheKey('discovery', 'hot-v2');
     Storage.general.delete(cacheKey);
     console.log('[useDiscovery] Cleared hot bettors cache, forcing refresh');
 

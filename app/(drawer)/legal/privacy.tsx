@@ -23,19 +23,16 @@ export default function PrivacyPolicyScreen() {
               Information You Provide:
             </Text>
             <Text fontSize={14} color="$textPrimary" lineHeight={20} marginBottom="$2">
-              • Account information (username, email, display name){'\n'}
-              • Profile information (bio, avatar, favorite team){'\n'}
-              • Content you create (posts, comments, picks){'\n'}
-              • Communications with other users
+              • Account information (username, email, display name){'\n'}• Profile information (bio,
+              avatar, favorite team){'\n'}• Content you create (posts, comments, picks){'\n'}•
+              Communications with other users
             </Text>
             <Text fontSize={16} fontWeight="500" color="$textPrimary" marginBottom="$1">
               Information We Collect Automatically:
             </Text>
             <Text fontSize={14} color="$textPrimary" lineHeight={20}>
-              • Device information (type, OS version){'\n'}
-              • Usage data (features used, time spent){'\n'}
-              • Performance data (crashes, errors){'\n'}
-              • IP address and general location
+              • Device information (type, OS version){'\n'}• Usage data (features used, time spent)
+              {'\n'}• Performance data (crashes, errors){'\n'}• IP address and general location
             </Text>
           </View>
 
@@ -44,14 +41,10 @@ export default function PrivacyPolicyScreen() {
               2. How We Use Your Information
             </Text>
             <Text fontSize={14} color="$textPrimary" lineHeight={20}>
-              We use your information to:{'\n'}
-              • Provide and maintain the App{'\n'}
-              • Personalize your experience{'\n'}
-              • Enable social features{'\n'}
-              • Send notifications (with your permission){'\n'}
-              • Improve our services{'\n'}
-              • Ensure safety and security{'\n'}
-              • Comply with legal obligations
+              We use your information to:{'\n'}• Provide and maintain the App{'\n'}• Personalize
+              your experience{'\n'}• Enable social features{'\n'}• Send notifications (with your
+              permission){'\n'}• Improve our services{'\n'}• Ensure safety and security{'\n'}•
+              Comply with legal obligations
             </Text>
           </View>
 
@@ -63,11 +56,9 @@ export default function PrivacyPolicyScreen() {
               We do not sell your personal information. We may share your information:
             </Text>
             <Text fontSize={14} color="$textPrimary" lineHeight={20}>
-              • With other users (based on your privacy settings){'\n'}
-              • With service providers who help us operate the App{'\n'}
-              • To comply with legal requirements{'\n'}
-              • To protect rights and safety{'\n'}
-              • With your consent
+              • With other users (based on your privacy settings){'\n'}• With service providers who
+              help us operate the App{'\n'}• To comply with legal requirements{'\n'}• To protect
+              rights and safety{'\n'}• With your consent
             </Text>
           </View>
 
@@ -76,10 +67,9 @@ export default function PrivacyPolicyScreen() {
               4. Data Storage and Security
             </Text>
             <Text fontSize={14} color="$textPrimary" lineHeight={20}>
-              • We use industry-standard security measures{'\n'}
-              • Data is encrypted in transit and at rest{'\n'}
-              • We regularly review our security practices{'\n'}
-              • No method is 100% secure, but we strive to protect your data
+              • We use industry-standard security measures{'\n'}• Data is encrypted in transit and
+              at rest{'\n'}• We regularly review our security practices{'\n'}• No method is 100%
+              secure, but we strive to protect your data
             </Text>
           </View>
 
@@ -88,17 +78,15 @@ export default function PrivacyPolicyScreen() {
               5. Your Privacy Controls
             </Text>
             <Text fontSize={14} color="$textPrimary" lineHeight={20}>
-              You can control your privacy through:{'\n'}
-              • Privacy settings (private account, stats visibility){'\n'}
-              • Notification preferences{'\n'}
-              • Blocking and reporting features{'\n'}
-              • Account deletion
+              You can control your privacy through:{'\n'}• Privacy settings (private account, stats
+              visibility){'\n'}• Notification preferences{'\n'}• Blocking and reporting features
+              {'\n'}• Account deletion
             </Text>
           </View>
 
           <View marginBottom="$4">
             <Text fontSize={18} fontWeight="600" color="$textPrimary" marginBottom="$2">
-              6. Children's Privacy
+              6. Children&apos;s Privacy
             </Text>
             <Text fontSize={14} color="$textPrimary" lineHeight={20}>
               SnapBet is not intended for users under 21 years of age. We do not knowingly collect
@@ -112,10 +100,9 @@ export default function PrivacyPolicyScreen() {
               7. Data Retention
             </Text>
             <Text fontSize={14} color="$textPrimary" lineHeight={20}>
-              • We retain your information while your account is active{'\n'}
-              • Some information may be retained after account deletion{'\n'}
-              • We delete or anonymize data when no longer needed{'\n'}
-              • Legal requirements may require longer retention
+              • We retain your information while your account is active{'\n'}• Some information may
+              be retained after account deletion{'\n'}• We delete or anonymize data when no longer
+              needed{'\n'}• Legal requirements may require longer retention
             </Text>
           </View>
 
@@ -124,12 +111,9 @@ export default function PrivacyPolicyScreen() {
               8. Your Rights
             </Text>
             <Text fontSize={14} color="$textPrimary" lineHeight={20}>
-              Depending on your location, you may have rights to:{'\n'}
-              • Access your personal information{'\n'}
-              • Correct inaccurate information{'\n'}
-              • Delete your information{'\n'}
-              • Export your data{'\n'}
-              • Opt-out of certain uses
+              Depending on your location, you may have rights to:{'\n'}• Access your personal
+              information{'\n'}• Correct inaccurate information{'\n'}• Delete your information{'\n'}
+              • Export your data{'\n'}• Opt-out of certain uses
             </Text>
           </View>
 
@@ -138,10 +122,8 @@ export default function PrivacyPolicyScreen() {
               9. Third-Party Services
             </Text>
             <Text fontSize={14} color="$textPrimary" lineHeight={20}>
-              We use third-party services for:{'\n'}
-              • Analytics (to understand usage){'\n'}
-              • Cloud storage (Supabase){'\n'}
-              • Push notifications{'\n\n'}
+              We use third-party services for:{'\n'}• Analytics (to understand usage){'\n'}• Cloud
+              storage (Supabase){'\n'}• Push notifications{'\n\n'}
               These services have their own privacy policies.
             </Text>
           </View>
@@ -162,8 +144,8 @@ export default function PrivacyPolicyScreen() {
             </Text>
             <Text fontSize={14} color="$textPrimary" lineHeight={20}>
               We may update this Privacy Policy from time to time. We will notify you of material
-              changes by posting the new Privacy Policy on this page and updating the "Last Updated"
-              date.
+              changes by posting the new Privacy Policy on this page and updating the &quot;Last
+              Updated&quot; date.
             </Text>
           </View>
 
@@ -185,4 +167,4 @@ export default function PrivacyPolicyScreen() {
       </ScrollView>
     </View>
   );
-} 
+}

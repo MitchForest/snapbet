@@ -1,5 +1,5 @@
 import React from 'react';
-import { Stack, Text, View } from '@tamagui/core';
+import { Stack, Text } from '@tamagui/core';
 import { Colors } from '@/theme';
 import { Bet } from '@/services/betting/types';
 import { Game } from '@/types/database';
@@ -66,12 +66,7 @@ export function BetOutcomeOverlay({ bet }: BetOutcomeOverlayProps) {
       </Stack>
 
       {/* Profit/Loss Amount */}
-      <Text
-        color={resultColor}
-        fontSize="$8"
-        fontWeight="bold"
-        marginBottom="$2"
-      >
+      <Text color={resultColor} fontSize="$8" fontWeight="bold" marginBottom="$2">
         {resultAmount > 0 ? '+' : resultAmount === 0 ? '' : ''}$
         {(Math.abs(resultAmount) / 100).toFixed(2)}
       </Text>

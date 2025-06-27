@@ -108,7 +108,7 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="📧"
             label="Contact Support"
-            onPress={() => toastService.showComingSoon('Contact Support')}
+            onPress={() => router.push('/settings/support')}
             showArrow
           />
         </View>

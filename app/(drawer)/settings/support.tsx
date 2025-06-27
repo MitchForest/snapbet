@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text } from '@tamagui/core';
-import { ScrollView, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity } from 'react-native';
+import {
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  TextInput,
+  TouchableOpacity,
+} from 'react-native';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Colors } from '@/theme';
 import { toastService } from '@/services/toastService';
@@ -84,7 +90,7 @@ export default function ContactSupportScreen() {
               </Text>
 
               <Text fontSize={14} color="$textSecondary" marginBottom="$4">
-                Fill out the form below and we'll get back to you within 24 hours.
+                Fill out the form below and we&apos;ll get back to you within 24 hours.
               </Text>
 
               {/* Subject Input */}
@@ -101,11 +107,11 @@ export default function ContactSupportScreen() {
                     height: 44,
                     paddingHorizontal: 16,
                     borderRadius: 8,
-                    color: Colors.text,
+                    color: Colors.text.primary,
                     borderWidth: 1,
-                    borderColor: Colors.border,
+                    borderColor: Colors.border.default,
                   }}
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={Colors.text.tertiary}
                 />
               </View>
 
@@ -125,12 +131,12 @@ export default function ContactSupportScreen() {
                     minHeight: 120,
                     padding: 16,
                     borderRadius: 8,
-                    color: Colors.text,
+                    color: Colors.text.primary,
                     borderWidth: 1,
-                    borderColor: Colors.border,
+                    borderColor: Colors.border.default,
                     textAlignVertical: 'top',
                   }}
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={Colors.text.tertiary}
                 />
               </View>
 
@@ -145,12 +151,9 @@ export default function ContactSupportScreen() {
                   Common Issues
                 </Text>
                 <Text fontSize={12} color="$textSecondary" lineHeight={18}>
-                  • Account access problems{'\n'}
-                  • Betting or pick issues{'\n'}
-                  • Technical difficulties{'\n'}
-                  • Report inappropriate content{'\n'}
-                  • Feature requests{'\n'}
-                  • General feedback
+                  • Account access problems{'\n'}• Betting or pick issues{'\n'}• Technical
+                  difficulties{'\n'}• Report inappropriate content{'\n'}• Feature requests{'\n'}•
+                  General feedback
                 </Text>
               </View>
 
@@ -177,4 +180,4 @@ export default function ContactSupportScreen() {
       </KeyboardAvoidingView>
     </View>
   );
-} 
+}

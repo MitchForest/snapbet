@@ -1,5 +1,5 @@
 import React from 'react';
-import { Stack, Text, View } from '@tamagui/core';
+import { Stack, Text } from '@tamagui/core';
 import { Colors } from '@/theme';
 import { Bet } from '@/services/betting/types';
 import { Game } from '@/types/database';
@@ -54,13 +54,13 @@ export function BetPickOverlay({ bet }: BetPickOverlayProps) {
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    
+
     const hours = date.getHours();
     const minutes = date.getMinutes();
     const ampm = hours >= 12 ? 'PM' : 'AM';
     const displayHours = hours % 12 || 12;
     const time = `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
-    
+
     // Check if game is today, tomorrow, or later
     if (date.toDateString() === today.toDateString()) {
       return `Today ${time}`;
@@ -85,7 +85,12 @@ export function BetPickOverlay({ bet }: BetPickOverlayProps) {
       </Text>
 
       {/* Odds, Stake & Potential Win */}
-      <Stack flexDirection="row" justifyContent="space-between" alignItems="center" marginBottom="$1">
+      <Stack
+        flexDirection="row"
+        justifyContent="space-between"
+        alignItems="center"
+        marginBottom="$1"
+      >
         <Text color={Colors.gray[300]} fontSize="$3">
           {formatOdds(bet.odds)} • ${(bet.stake / 100).toFixed(2)}
         </Text>

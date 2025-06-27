@@ -41,16 +41,17 @@ This sprint focuses on completing essential features that are currently showing 
 - Verified database functions exist and are working
 - Badge display is now functional (badges need to be earned through actual gameplay)
 
-### 2. Terms of Service & Privacy Policy Pages ⬜
+### 2. Terms of Service & Privacy Policy Pages ✅
 
 #### Implementation Steps
-1. **Create page files**
+1. **Create page files** ✅
    - `app/(drawer)/legal/terms.tsx`
    - `app/(drawer)/legal/privacy.tsx`
+   - `app/(drawer)/legal/_layout.tsx`
 
-2. **Page content**
-   - Use standard boilerplate text for sports betting app
-   - Include sections on:
+2. **Page content** ✅
+   - Used standard boilerplate text for sports betting app
+   - Included sections on:
      - User responsibilities
      - Age requirements (21+)
      - Prohibited activities
@@ -58,25 +59,39 @@ This sprint focuses on completing essential features that are currently showing 
      - Account termination
      - Dispute resolution
 
-3. **Update navigation**
-   - Update settings page to navigate to new pages instead of showing "Coming Soon"
+3. **Update navigation** ✅
+   - Updated settings page to navigate to new pages instead of showing "Coming Soon"
 
-### 3. Contact Support Page ⬜
+#### What Was Done
+- Created comprehensive Terms of Service page with 12 sections
+- Created detailed Privacy Policy page with GDPR-compliant sections
+- Fixed all React escape character warnings
+- Updated settings navigation to link to legal pages
+
+### 3. Contact Support Page ✅
 
 #### Implementation Steps
-1. **Create contact page**
-   - `app/(drawer)/support/contact.tsx`
+1. **Create contact page** ✅
+   - `app/(drawer)/settings/support.tsx`
 
-2. **Include placeholder information**
+2. **Include placeholder information** ✅
    - Support email: support@snapbet.com
    - Phone: 1-800-SNAPBET (1-800-762-7238)
-   - Hours: Monday-Friday 9AM-5PM EST
-   - FAQ section with common questions
+   - Hours: Monday-Friday 9AM-6PM EST, Saturday-Sunday 10AM-4PM EST
+   - Common issues section instead of FAQ
 
-3. **Add contact methods**
-   - Email button (opens mail client)
-   - Phone button (opens dialer)
-   - In-app feedback form (stores in database)
+3. **Add contact methods** ✅
+   - Contact information display
+   - In-app feedback form with subject and message fields
+   - Simulated submission with success toast
+
+#### What Was Done
+- Created contact support page with professional layout
+- Added fake contact information (email, phone, hours)
+- Built functional contact form with validation
+- Added common issues section for user guidance
+- Fixed TypeScript issues with form inputs
+- Updated settings navigation to link to support page
 
 ### 4. Post Edit/Delete Functionality ⬜
 

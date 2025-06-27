@@ -9,11 +9,10 @@ interface UseReadReceiptsOptions {
 
 export function useReadReceipts({ chatId: _chatId, onMessagesRead }: UseReadReceiptsOptions) {
   const user = useAuthStore((state) => state.user);
-  const observerRef = useRef<IntersectionObserver | null>(null);
-  const messageElementsRef = useRef<Map<string, HTMLElement>>(new Map());
   const readMessagesRef = useRef<Set<string>>(new Set());
   const pendingReadsRef = useRef<Set<string>>(new Set());
   const batchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const visibleMessagesRef = useRef<Set<string>>(new Set());
 
   // Batch read receipts to reduce DB writes
   const processPendingReads = useCallback(async () => {
@@ -49,85 +48,67 @@ export function useReadReceipts({ chatId: _chatId, onMessagesRead }: UseReadRece
     }, 2000);
   }, [processPendingReads]);
 
-  // Observe message visibility
-  const observeMessage = useCallback(
-    (messageId: string, element: HTMLElement) => {
-      if (!user || !observerRef.current) return;
+  // Handle visible messages change
+  const handleVisibleMessagesChange = useCallback(
+    (visibleMessageIds: string[], allMessages: Array<{ id: string; sender_id: string }>) => {
+      if (!user) return;
 
-      // Store element reference
-      messageElementsRef.current.set(messageId, element);
+      visibleMessageIds.forEach((messageId) => {
+        // Skip if already processed
+        if (readMessagesRef.current.has(messageId) || pendingReadsRef.current.has(messageId)) {
+          return;
+        }
 
-      // Start observing
-      observerRef.current.observe(element);
+        // Find the message to check sender
+        const message = allMessages.find((m) => m.id === messageId);
+        if (!message || message.sender_id === user.id) return;
+
+        // Add to pending reads
+        pendingReadsRef.current.add(messageId);
+      });
+
+      if (pendingReadsRef.current.size > 0) {
+        scheduleReadUpdate();
+      }
+
+      // Update visible messages set
+      visibleMessagesRef.current.clear();
+      visibleMessageIds.forEach((id) => visibleMessagesRef.current.add(id));
     },
-    [user]
+    [user, scheduleReadUpdate]
+  );
+
+  // For React Native, we'll use a simpler approach
+  // The parent component will call this when messages become visible
+  const observeMessage = useCallback(
+    (messageId: string, element: unknown) => {
+      // In React Native, we don't need to observe DOM elements
+      // This is kept for API compatibility but does nothing
+    },
+    []
   );
 
   // Unobserve message
   const unobserveMessage = useCallback((messageId: string) => {
-    const element = messageElementsRef.current.get(messageId);
-    if (element && observerRef.current) {
-      observerRef.current.unobserve(element);
-      messageElementsRef.current.delete(messageId);
-    }
+    // In React Native, we don't need to unobserve DOM elements
+    // This is kept for API compatibility but does nothing
   }, []);
 
-  // Set up intersection observer
+  // Cleanup on unmount
   useEffect(() => {
-    if (!user) return;
-
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const messageId = entry.target.getAttribute('data-message-id');
-            if (!messageId) return;
-
-            // Check if already read or pending
-            if (readMessagesRef.current.has(messageId) || pendingReadsRef.current.has(messageId)) {
-              return;
-            }
-
-            // Check if it's from another user
-            const senderId = entry.target.getAttribute('data-sender-id');
-            if (senderId === user.id) return;
-
-            // Add to pending reads
-            pendingReadsRef.current.add(messageId);
-            scheduleReadUpdate();
-          }
-        });
-      },
-      {
-        root: null,
-        rootMargin: '0px',
-        threshold: 0.5, // Message is 50% visible
-      }
-    );
-
     return () => {
-      // Store refs in variables to avoid stale closure warnings
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      const messageElements = messageElementsRef.current;
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      const readMessages = readMessagesRef.current;
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      const pendingReads = pendingReadsRef.current;
-
-      const observer = observerRef.current;
-      if (observer) observer.disconnect();
-      messageElements.clear();
-      readMessages.clear();
-      pendingReads.clear();
       if (batchTimerRef.current) {
         clearTimeout(batchTimerRef.current);
       }
+      // Process any pending reads before unmounting
+      processPendingReads();
     };
-  }, [user, scheduleReadUpdate, processPendingReads]);
+  }, [processPendingReads]);
 
   return {
     observeMessage,
     unobserveMessage,
+    handleVisibleMessagesChange,
     markAsRead: (messageId: string) => {
       if (!readMessagesRef.current.has(messageId)) {
         pendingReadsRef.current.add(messageId);

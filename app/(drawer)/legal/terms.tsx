@@ -20,8 +20,8 @@ export default function TermsOfServiceScreen() {
               1. Acceptance of Terms
             </Text>
             <Text fontSize={14} color="$textPrimary" lineHeight={20}>
-              By accessing and using SnapBet ("the App"), you agree to be bound by these Terms of
-              Service. If you do not agree to these terms, please do not use the App.
+              By accessing and using SnapBet (&quot;the App&quot;), you agree to be bound by these
+              Terms of Service. If you do not agree to these terms, please do not use the App.
             </Text>
           </View>
 
@@ -45,10 +45,10 @@ export default function TermsOfServiceScreen() {
               3. Account Registration
             </Text>
             <Text fontSize={14} color="$textPrimary" lineHeight={20}>
-              • You must provide accurate and complete information when creating an account{'\n'}
-              • You are responsible for maintaining the confidentiality of your account{'\n'}
-              • You are responsible for all activities that occur under your account{'\n'}
-              • You must notify us immediately of any unauthorized use of your account
+              • You must provide accurate and complete information when creating an account{'\n'}•
+              You are responsible for maintaining the confidentiality of your account{'\n'}• You are
+              responsible for all activities that occur under your account{'\n'}• You must notify us
+              immediately of any unauthorized use of your account
             </Text>
           </View>
 
@@ -60,10 +60,8 @@ export default function TermsOfServiceScreen() {
               SnapBet uses virtual currency for entertainment purposes only. This virtual currency:
             </Text>
             <Text fontSize={14} color="$textPrimary" lineHeight={20}>
-              • Has no real-world monetary value{'\n'}
-              • Cannot be exchanged for real money{'\n'}
-              • Cannot be transferred between users{'\n'}
-              • Is reset weekly to maintain fair play
+              • Has no real-world monetary value{'\n'}• Cannot be exchanged for real money{'\n'}•
+              Cannot be transferred between users{'\n'}• Is reset weekly to maintain fair play
             </Text>
           </View>
 
@@ -72,13 +70,10 @@ export default function TermsOfServiceScreen() {
               5. User Conduct
             </Text>
             <Text fontSize={14} color="$textPrimary" lineHeight={20}>
-              You agree not to:{'\n'}
-              • Use the App for any illegal purposes{'\n'}
-              • Harass, abuse, or harm other users{'\n'}
-              • Post inappropriate, offensive, or misleading content{'\n'}
-              • Attempt to manipulate or exploit the App{'\n'}
-              • Create multiple accounts{'\n'}
-              • Share your account with others
+              You agree not to:{'\n'}• Use the App for any illegal purposes{'\n'}• Harass, abuse, or
+              harm other users{'\n'}• Post inappropriate, offensive, or misleading content{'\n'}•
+              Attempt to manipulate or exploit the App{'\n'}• Create multiple accounts{'\n'}• Share
+              your account with others
             </Text>
           </View>
 
@@ -87,11 +82,9 @@ export default function TermsOfServiceScreen() {
               6. Content Guidelines
             </Text>
             <Text fontSize={14} color="$textPrimary" lineHeight={20}>
-              • You retain ownership of content you post{'\n'}
-              • You grant SnapBet a license to use your content{'\n'}
-              • You are responsible for your content{'\n'}
-              • We may remove content that violates our guidelines{'\n'}
-              • Content must not infringe on others' rights
+              • You retain ownership of content you post{'\n'}• You grant SnapBet a license to use
+              your content{'\n'}• You are responsible for your content{'\n'}• We may remove content
+              that violates our guidelines{'\n'}• Content must not infringe on others&apos; rights
             </Text>
           </View>
 
@@ -110,11 +103,10 @@ export default function TermsOfServiceScreen() {
               8. Disclaimers
             </Text>
             <Text fontSize={14} color="$textPrimary" lineHeight={20}>
-              • SnapBet is for entertainment purposes only{'\n'}
-              • We do not facilitate real money gambling{'\n'}
-              • We do not guarantee the accuracy of sports data{'\n'}
-              • The App is provided "as is" without warranties{'\n'}
-              • We are not responsible for user-generated content
+              • SnapBet is for entertainment purposes only{'\n'}• We do not facilitate real money
+              gambling{'\n'}• We do not guarantee the accuracy of sports data{'\n'}• The App is
+              provided &quot;as is&quot; without warranties{'\n'}• We are not responsible for
+              user-generated content
             </Text>
           </View>
 
@@ -145,7 +137,8 @@ export default function TermsOfServiceScreen() {
             </Text>
             <Text fontSize={14} color="$textPrimary" lineHeight={20}>
               We may update these Terms of Service from time to time. We will notify you of any
-              changes by posting the new Terms on this page and updating the "Last Updated" date.
+              changes by posting the new Terms on this page and updating the &quot;Last
+              Updated&quot; date.
             </Text>
           </View>
 
@@ -163,4 +156,4 @@ export default function TermsOfServiceScreen() {
       </ScrollView>
     </View>
   );
-} 
+}
