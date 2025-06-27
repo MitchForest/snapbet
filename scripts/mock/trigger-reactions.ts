@@ -5,14 +5,14 @@
  * This simulates the community responding to your posts/bets
  */
 
-import { supabase } from '@/services/supabase/client';
+import { supabase } from '../supabase-client';
 import {
   messageTemplates,
   getRandomTemplate,
   fillTemplate,
   getPersonalityFromBehavior,
 } from './templates';
-import type { Database } from '@/types/supabase-generated';
+import type { Database } from '../../types/supabase';
 
 type Tables = Database['public']['Tables'];
 type MockUser = Tables['users']['Row'] & { is_mock: true };
@@ -177,10 +177,36 @@ async function triggerReactions() {
   console.log('🎯 Triggering community reactions to your activity...\n');
 
   try {
-    // Get current user
-    const userId = process.argv.find((arg) => arg.startsWith('--user-id='))?.split('=')[1];
+    // Get current user (prefer username, fallback to user-id)
+    let userId: string | null = null;
+
+    const usernameArg = process.argv.find((arg) => arg.startsWith('--username='));
+    if (usernameArg) {
+      const username = usernameArg.split('=')[1];
+      console.log(`🔍 Looking up user by username: ${username}`);
+
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('id')
+        .eq('username', username)
+        .single();
+
+      if (error || !user) {
+        console.error(`❌ User with username "${username}" not found`);
+        process.exit(1);
+      }
+
+      userId = user.id;
+      console.log(`✅ Found user: ${username}`);
+    } else {
+      // Fallback to user-id
+      userId = process.argv.find((arg) => arg.startsWith('--user-id='))?.split('=')[1] || null;
+    }
+
     if (!userId) {
-      console.error('❌ Please provide user ID: --user-id=YOUR_USER_ID');
+      console.error(
+        '❌ Please provide username: --username=YOUR_USERNAME (or --user-id=YOUR_USER_ID)'
+      );
       process.exit(1);
     }
 

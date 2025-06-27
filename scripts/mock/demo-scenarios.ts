@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { supabase } from '@/services/supabase/client';
+import { supabase } from '../supabase-client';
 import { clearRecentActivity } from './activity-generator';
 import {
   messageTemplates,
@@ -11,7 +11,7 @@ import {
   getPersonalityFromBehavior,
   mockMediaUrls,
 } from './templates';
-import type { Database } from '@/types/supabase-generated';
+import type { Database } from '../../types/supabase';
 
 type Tables = Database['public']['Tables'];
 type MockUser = Tables['users']['Row'] & { is_mock: true };

@@ -16,6 +16,8 @@ interface OptimisticMessage extends Omit<Message, 'bet_id' | 'media_url' | 'mess
   media_url: string | null;
   message_type: string | null;
   metadata: Json;
+  report_count: number | null;
+  is_blocked: boolean | null;
 }
 
 interface UseMessagesOptions {
@@ -94,9 +96,12 @@ export function useMessages({ chatId, pageSize = 50 }: UseMessagesOptions) {
         isOptimistic: true,
         // Extended properties
         media_url: content.mediaUrl || null,
+        media_type: content.mediaUrl ? 'photo' : null, // Assuming photos for now, can be enhanced later
         bet_id: content.betId || null,
         message_type: content.mediaUrl ? 'media' : content.betId ? 'pick' : 'text',
         metadata: null,
+        report_count: null,
+        is_blocked: null,
       };
 
       // Add to optimistic set

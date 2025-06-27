@@ -86,8 +86,8 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
             if (pendingCode) {
               await trackReferral(pendingCode, response.user!.id);
             }
-          } catch (error) {
-            console.error('Error processing referral:', error);
+          } catch {
+            // Silently ignore referral errors during auth
           }
         }, 0);
       } else {
@@ -188,8 +188,8 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
           if (pendingCode) {
             await trackReferral(pendingCode, session.user.id);
           }
-        } catch (error) {
-          console.error('Error processing referral:', error);
+        } catch {
+          // Silently ignore referral errors during auth
           // Don't fail the auth flow for referral errors
         }
       }, 0);

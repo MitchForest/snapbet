@@ -4,7 +4,7 @@ import { MMKV } from 'react-native-mmkv';
 // that is injected by React Native's JSI environment. This prevents type errors.
 declare const global: { nativeCallSyncHook: unknown };
 
-// --- Lazy-loaded and debugger-safe MMKV instances ---
+// --- Lazy-loaded MMKV instances ---
 
 let feedStorageInstance: MMKV | null = null;
 let settingsStorageInstance: MMKV | null = null;
@@ -13,45 +13,25 @@ let gamesStorageInstance: MMKV | null = null;
 let authStorageInstance: MMKV | null = null;
 let appStorageInstance: MMKV | null = null;
 
-// In-memory fallback for remote debugging environments where JSI is not available.
-const createInMemoryStorage = (): MMKV => {
-  const memoryStore = new Map<string, string | number | boolean>();
-  console.warn(
-    'MMKV is not available in the remote debugger. Using in-memory storage. Data will not be persisted.'
-  );
-  return {
-    clearAll: () => memoryStore.clear(),
-    delete: (key: string) => memoryStore.delete(key),
-    set: (key: string, value: string | number | boolean) => {
-      memoryStore.set(key, value);
-    },
-    getString: (key: string) => memoryStore.get(key) as string | undefined,
-    getNumber: (key: string) => memoryStore.get(key) as number | undefined,
-    getBoolean: (key: string) => memoryStore.get(key) as boolean | undefined,
-    getAllKeys: () => Array.from(memoryStore.keys()),
-    contains: (key: string) => memoryStore.has(key),
-    recrypt: () => {
-      console.warn('MMKV.recrypt is not available in in-memory storage.');
-    },
-  } as unknown as MMKV;
-};
-
 const getStorageInstance = (id: string): MMKV => {
   // Check if running in a remote debugger (where JSI is not available)
   if (__DEV__ && typeof global.nativeCallSyncHook === 'undefined') {
-    return createInMemoryStorage();
+    throw new Error(
+      'MMKV cannot be used with Chrome Debugger or other remote debugging tools.\n\n' +
+        'Please use one of these alternatives:\n' +
+        '1. Flipper for debugging\n' +
+        '2. React Native Debugger\n' +
+        '3. Console logs\n' +
+        '4. On-device debugging\n\n' +
+        'Remote debugging disables synchronous native module access which MMKV requires.'
+    );
   }
-  try {
-    return new MMKV({
-      id: `snapbet-${id}`,
-      // TODO: Replace with a secure keychain/keystore solution for production
-      encryptionKey: 'snapbet-super-secret-key',
-    });
-  } catch (e) {
-    console.error(`Failed to create MMKV instance for ID: ${id}`, e);
-    // Fallback to in-memory storage on any initialization error
-    return createInMemoryStorage();
-  }
+
+  return new MMKV({
+    id: `snapbet-${id}`,
+    // TODO: Replace with a secure keychain/keystore solution for production
+    encryptionKey: 'snapbet-super-secret-key',
+  });
 };
 
 // Lazy getters that initialize storage on first use
@@ -183,42 +163,40 @@ export const Storage = {
   },
 };
 
-// Create storage instances
-const authStorage = getAuthStorage();
-const appStorage = getAppStorage();
-
 // --- Storage Service (Public API) ---
 const storageService = {
   // Auth storage methods
-  getAccessToken: () => authStorage.getString('access_token'),
-  setAccessToken: (token: string) => authStorage.set('access_token', token),
-  clearAccessToken: () => authStorage.delete('access_token'),
+  getAccessToken: () => getAuthStorage().getString('access_token'),
+  setAccessToken: (token: string) => getAuthStorage().set('access_token', token),
+  clearAccessToken: () => getAuthStorage().delete('access_token'),
 
-  getRefreshToken: () => authStorage.getString('refresh_token'),
-  setRefreshToken: (token: string) => authStorage.set('refresh_token', token),
-  clearRefreshToken: () => authStorage.delete('refresh_token'),
+  getRefreshToken: () => getAuthStorage().getString('refresh_token'),
+  setRefreshToken: (token: string) => getAuthStorage().set('refresh_token', token),
+  clearRefreshToken: () => getAuthStorage().delete('refresh_token'),
 
   // User storage methods
   getUser: () => {
-    const userString = authStorage.getString('user');
+    const userString = getAuthStorage().getString('user');
     return userString ? JSON.parse(userString) : null;
   },
-  setUser: (user: unknown) => authStorage.set('user', JSON.stringify(user)),
-  clearUser: () => authStorage.delete('user'),
+  setUser: (user: unknown) => getAuthStorage().set('user', JSON.stringify(user)),
+  clearUser: () => getAuthStorage().delete('user'),
 
   // Clear all auth data
   clearAuth: () => {
+    const authStorage = getAuthStorage();
     authStorage.delete('access_token');
     authStorage.delete('refresh_token');
     authStorage.delete('user');
   },
 
   // App storage methods
-  getOnboardingComplete: () => appStorage.getBoolean('onboarding_complete') ?? false,
-  setOnboardingComplete: (complete: boolean) => appStorage.set('onboarding_complete', complete),
+  getOnboardingComplete: () => getAppStorage().getBoolean('onboarding_complete') ?? false,
+  setOnboardingComplete: (complete: boolean) =>
+    getAppStorage().set('onboarding_complete', complete),
 
-  getLastViewedNotification: () => appStorage.getString('last_viewed_notification'),
-  setLastViewedNotification: (id: string) => appStorage.set('last_viewed_notification', id),
+  getLastViewedNotification: () => getAppStorage().getString('last_viewed_notification'),
+  setLastViewedNotification: (id: string) => getAppStorage().set('last_viewed_notification', id),
 
   // Media storage paths
   getPostMediaPath: (userId: string, filename: string) => `posts/${userId}/${filename}`,
@@ -229,7 +207,9 @@ const storageService = {
   getUserAvatarPath: (userId: string, filename: string) => `avatars/${userId}/${filename}`,
 
   // Generic storage wrapper (for backward compatibility)
-  storage: createStorageWrapper(appStorage),
+  get storage() {
+    return createStorageWrapper(getAppStorage());
+  },
 };
 
 export { storageService };

@@ -49,8 +49,6 @@ export interface Message extends DbMessage {
   bet?: DbBet & { game: Game };
   status?: MessageStatus;
   isOptimistic?: boolean;
-  is_blocked?: boolean;
-  report_count?: number;
 }
 
 // Message with sender info

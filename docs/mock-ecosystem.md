@@ -204,12 +204,24 @@ bun run scripts/seed-mock-users.ts
 
 ### User Not Added to Chats
 ```bash
-# Run with explicit user ID
+# Run with explicit username (preferred)
+bun run demo:setup --username=YOUR_USERNAME
+
+# Or with user ID for backwards compatibility
 bun run demo:setup --user-id=YOUR_SUPABASE_USER_ID
 ```
 
-### React Native Errors
-The scripts may show React Native errors when run directly. Use the npm/bun scripts in package.json instead of running files directly.
+### Environment Variables Required
+The mock scripts require both environment variables in your `.env` file:
+```
+EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
+SUPABASE_SERVICE_KEY=your_service_key_here
+```
+
+The service key is needed for admin operations to create content across all mock users.
+
+### Scripts Architecture
+The mock scripts use a separate Node.js-compatible Supabase client (`scripts/supabase-client.ts`) that avoids React Native dependencies. This allows them to run in the Node.js environment via bun without import errors.
 
 ## Best Practices
 

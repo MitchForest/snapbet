@@ -323,14 +323,52 @@ export function getPersonalityFromBehavior(mockPersonalityId: string): string {
   return mapping[mockPersonalityId] || 'degen'; // Default to degen for fun
 }
 
-// Media URLs for mock posts (using placeholder images)
+// Media URLs for mock posts (using GIFs and images)
 export const mockMediaUrls = {
+  // Sports celebration GIFs
+  celebration: [
+    'https://media.giphy.com/media/i1ET8AoIhL1O65w3aI/giphy.gif', // NFL Ja'Marr Chase celebration
+    'https://media.giphy.com/media/xUPGck7rzlAftbFZza/giphy.gif', // NBA Warriors celebration
+    'https://media.giphy.com/media/111ebonMs90YLu/giphy.gif', // Thumbs up celebration
+    'https://media.giphy.com/media/3o7TKF1fSIs1R19B8k/giphy.gif', // General celebration
+  ],
+
+  // Positive reaction GIFs
+  positive: [
+    'https://media.giphy.com/media/kd9BlRovbPOykLBMqX/giphy.gif', // Leonardo DiCaprio pointing
+    'https://media.giphy.com/media/l46CqxtAEdguUgC2I/giphy.gif', // LeBron James photobomb
+    'https://media.giphy.com/media/FY8c5SKwiNf1EtZKGs/giphy.gif', // Happy dog
+    'https://media.giphy.com/media/l2JehQ2GitHGdVG9y/giphy.gif', // Excited reaction
+  ],
+
+  // Frustration/disappointment GIFs
+  frustration: [
+    'https://media.giphy.com/media/xT0GqI5uUiCa3PufTi/giphy.gif', // Zach frustration
+    'https://media.giphy.com/media/12XMGIWtrHBl5e/giphy.gif', // Disappointed
+    'https://media.giphy.com/media/p3P8lFeNeemwcPY00B/giphy.gif', // That 70s Show reaction
+    'https://media.giphy.com/media/3o7TKwmnDgQb5jemjK/giphy.gif', // Nervous
+  ],
+
+  // Thinking/analyzing GIFs
+  thinking: [
+    'https://media.giphy.com/media/Lopx9eUi34rbq/giphy.gif', // Token thinking
+    'https://media.giphy.com/media/29JMqheuymy5mB2eTY/giphy.gif', // Reaction/thinking
+    'https://media.giphy.com/media/xSM46ernAUN3y/giphy.gif', // Stoner sees/analyzing
+  ],
+
+  // Wild/crazy GIFs
+  wild: [
+    'https://media.giphy.com/media/rsf33kKU6WdA4/giphy.gif', // Jungle/wild
+  ],
+
+  // General reaction (keeping original for backwards compatibility)
   reaction: [
     'https://media.giphy.com/media/3o7TKF1fSIs1R19B8k/giphy.gif', // celebration
     'https://media.giphy.com/media/l2JehQ2GitHGdVG9y/giphy.gif', // excited
     'https://media.giphy.com/media/12XMGIWtrHBl5e/giphy.gif', // disappointed
     'https://media.giphy.com/media/3o7TKwmnDgQb5jemjK/giphy.gif', // nervous
   ],
+
   meme: [
     'https://i.imgflip.com/1bij.jpg', // betting meme placeholder
     'https://i.imgflip.com/1bhk.jpg', // sports meme placeholder

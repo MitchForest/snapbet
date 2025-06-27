@@ -1,4 +1,4 @@
-import { supabase } from '@/services/supabase/client';
+import { supabase } from '../supabase-client';
 import {
   messageTemplates,
   postTemplates,
@@ -7,7 +7,7 @@ import {
   getPersonalityFromBehavior,
   mockMediaUrls,
 } from './templates';
-import type { Database } from '@/types/supabase-generated';
+import type { Database } from '../../types/supabase';
 
 type Tables = Database['public']['Tables'];
 type MockUser = Tables['users']['Row'] & { is_mock: true };
@@ -121,8 +121,39 @@ function pickActivityType(
   return 'comment';
 }
 
+// Get GIF based on personality and context
+function getPersonalityGif(
+  personality: string,
+  context: 'celebration' | 'frustration' | 'thinking' | 'general'
+): string {
+  switch (personality) {
+    case 'sharp-bettor':
+      return context === 'thinking'
+        ? mockMediaUrls.thinking[Math.floor(Math.random() * mockMediaUrls.thinking.length)]
+        : mockMediaUrls.positive[Math.floor(Math.random() * mockMediaUrls.positive.length)];
+
+    case 'degen':
+      if (context === 'celebration') {
+        return mockMediaUrls.wild[0]; // Use the jungle/wild GIF for degens
+      } else if (context === 'general') {
+        return mockMediaUrls.reaction[Math.floor(Math.random() * mockMediaUrls.reaction.length)];
+      } else {
+        return mockMediaUrls[context][Math.floor(Math.random() * mockMediaUrls[context].length)];
+      }
+
+    case 'contrarian':
+      return mockMediaUrls.thinking[Math.floor(Math.random() * mockMediaUrls.thinking.length)];
+
+    default:
+      if (context === 'general') {
+        return mockMediaUrls.reaction[Math.floor(Math.random() * mockMediaUrls.reaction.length)];
+      }
+      return mockMediaUrls[context][Math.floor(Math.random() * mockMediaUrls[context].length)];
+  }
+}
+
 // Create a mock post
-async function createMockPost(user: MockUser, _personality: string) {
+async function createMockPost(user: MockUser, personality: string) {
   // Check if user has recent unsettled bets
   const { data: recentBets } = await supabase
     .from('bets')
@@ -169,11 +200,18 @@ async function createMockPost(user: MockUser, _personality: string) {
       team: 'Lakers',
       profit: '+$250',
     });
+
+    // Use appropriate GIF based on win/loss and personality
+    if (isWin) {
+      mediaUrl = getPersonalityGif(personality, 'celebration');
+    } else {
+      mediaUrl = getPersonalityGif(personality, 'frustration');
+    }
   } else {
-    // Reaction post
+    // Reaction post - use personality-appropriate GIFs
     const templates = postTemplates['reaction'].exciting;
     caption = getRandomTemplate(templates);
-    mediaUrl = mockMediaUrls.reaction[Math.floor(Math.random() * mockMediaUrls.reaction.length)];
+    mediaUrl = getPersonalityGif(personality, 'general');
   }
 
   // Create the post

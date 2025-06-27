@@ -1,5 +1,5 @@
 import NetInfo from '@react-native-community/netinfo';
-import { MMKV } from 'react-native-mmkv';
+import { Storage } from '@/services/storage/storageService';
 import { messageService } from '@/services/messaging/messageService';
 import { MessageContent } from '@/types/messaging';
 import { useRealtimeStore } from '@/stores/realtimeStore';
@@ -32,16 +32,10 @@ interface StoredQueue {
 class OfflineQueue {
   private queue: QueuedMessage[] = [];
   private processing = false;
-  private storage: MMKV;
   private netInfoUnsubscribe: (() => void) | null = null;
   private isConnected = true;
 
   constructor() {
-    this.storage = new MMKV({
-      id: 'offline-queue-storage',
-      encryptionKey: undefined, // Add encryption in production
-    });
-
     this.loadQueue();
     this.setupNetworkListener();
     this.cleanupExpiredMessages();
@@ -52,9 +46,8 @@ class OfflineQueue {
    */
   private loadQueue() {
     try {
-      const stored = this.storage.getString(QUEUE_KEY);
-      if (stored) {
-        const parsed: StoredQueue = JSON.parse(stored);
+      const parsed = Storage.general.get<StoredQueue>(QUEUE_KEY);
+      if (parsed) {
         // Convert date strings back to Date objects
         this.queue = parsed.messages.map((msg) => ({
           ...msg,
@@ -81,7 +74,7 @@ class OfflineQueue {
         messages: this.queue,
         version: 1,
       };
-      this.storage.set(QUEUE_KEY, JSON.stringify(toStore));
+      Storage.general.set(QUEUE_KEY, toStore);
 
       // Update store with queue count
       useRealtimeStore.getState().setQueuedCount(this.queue.length);
@@ -306,5 +299,23 @@ class OfflineQueue {
   }
 }
 
-// Export singleton instance
-export const offlineQueue = new OfflineQueue();
+// Export singleton instance with lazy initialization
+let offlineQueueInstance: OfflineQueue | null = null;
+
+export const getOfflineQueue = (): OfflineQueue => {
+  if (!offlineQueueInstance) {
+    offlineQueueInstance = new OfflineQueue();
+  }
+  return offlineQueueInstance;
+};
+
+// For backward compatibility, export a getter that returns the singleton
+export const offlineQueue = {
+  addToQueue: (...args: Parameters<OfflineQueue['addToQueue']>) =>
+    getOfflineQueue().addToQueue(...args),
+  processQueue: () => getOfflineQueue().processQueue(),
+  getQueueStatus: () => getOfflineQueue().getQueueStatus(),
+  clearQueue: () => getOfflineQueue().clearQueue(),
+  removeFromQueue: (messageId: string) => getOfflineQueue().removeFromQueue(messageId),
+  cleanup: () => getOfflineQueue().cleanup(),
+};

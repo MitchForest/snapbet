@@ -1,33 +1,63 @@
-import { useEffect } from 'react';
-import { useRouter, useRootNavigationState } from 'expo-router';
+import { useEffect, useState, useRef } from 'react';
+import { useRouter, useRootNavigationState, useSegments } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
+import { supabase } from '@/services/supabase/client';
 
 export function useAuthRedirector() {
   const router = useRouter();
+  const segments = useSegments();
   const navigationState = useRootNavigationState();
   const { isAuthenticated, isLoading, user } = useAuthStore();
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
-    if (!navigationState?.key || isLoading) return;
+    if (!navigationState?.key || isLoading || checkingUsername) return;
 
     const checkOnboarding = async () => {
-      if (isAuthenticated && user) {
-        // Assuming a user object has a 'username' property after onboarding
-        const needsOnboarding = !user.user_metadata?.username;
+      const inAuthGroup = segments[0] === '(auth)';
+      const inDrawerGroup = segments[0] === '(drawer)';
 
-        if (needsOnboarding) {
+      if (isAuthenticated && user) {
+        setCheckingUsername(true);
+
+        // Check if user has a username in the users table
+        const { data, error } = await supabase
+          .from('users')
+          .select('username')
+          .eq('id', user.id)
+          .single();
+
+        setCheckingUsername(false);
+
+        const hasUsername = !error && !!data?.username;
+
+        if (!hasUsername && !inAuthGroup) {
           console.log('User needs onboarding - redirecting...');
+          hasRedirected.current = true;
           router.replace('/(auth)/onboarding/username');
-        } else {
-          console.log('User is authenticated and onboarded - redirecting to app...');
-          router.replace('/(drawer)');
+        } else if (hasUsername && !inDrawerGroup) {
+          console.log(
+            `User is authenticated and has username: ${data.username} - redirecting to app...`
+          );
+          hasRedirected.current = true;
+          router.replace('/(drawer)/(tabs)');
         }
-      } else {
+      } else if (!isAuthenticated && !inAuthGroup) {
         console.log('User is not authenticated - redirecting to login...');
+        hasRedirected.current = true;
         router.replace('/(auth)/welcome');
       }
     };
 
-    checkOnboarding();
-  }, [isAuthenticated, isLoading, user, navigationState?.key, router]);
+    // Only check if we haven't already redirected
+    if (!hasRedirected.current) {
+      checkOnboarding();
+    }
+  }, [isAuthenticated, isLoading, user, navigationState?.key, router, checkingUsername, segments]);
+
+  // Reset the redirect flag when auth state changes
+  useEffect(() => {
+    hasRedirected.current = false;
+  }, [isAuthenticated]);
 }

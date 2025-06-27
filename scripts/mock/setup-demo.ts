@@ -5,13 +5,34 @@
  * Including adding the current user to demo chats
  */
 
-import { supabase } from '@/services/supabase/client';
+import { supabase } from '../supabase-client';
 import { prepareDemo } from './demo-scenarios';
 import { generateHourlyActivity } from './activity-generator';
 
 // Get current user ID from environment or command line
 async function getCurrentUserId(): Promise<string | null> {
-  // Try to get from command line first
+  // Try to get username from command line first (preferred)
+  const usernameArg = process.argv.find((arg) => arg.startsWith('--username='));
+  if (usernameArg) {
+    const username = usernameArg.split('=')[1];
+    console.log(`🔍 Looking up user by username: ${username}`);
+
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', username)
+      .single();
+
+    if (error || !user) {
+      console.error(`❌ User with username "${username}" not found`);
+      return null;
+    }
+
+    console.log(`✅ Found user: ${username}`);
+    return user.id;
+  }
+
+  // Fallback to user-id for backwards compatibility
   const userIdArg = process.argv.find((arg) => arg.startsWith('--user-id='));
   if (userIdArg) {
     return userIdArg.split('=')[1];
@@ -95,7 +116,7 @@ async function setupDemo() {
       await addUserToChats(userId);
     } else {
       console.log(
-        '\n⚠️  Could not determine current user. Run with --user-id=YOUR_USER_ID to join chats.'
+        '\n⚠️  Could not determine current user. Run with --username=YOUR_USERNAME to join chats.'
       );
     }
 

@@ -14,7 +14,22 @@ export class SessionManager {
         'Saving session with expiry:',
         new Date(session.expires_at! * 1000).toISOString()
       );
-      await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session));
+
+      // Store only essential session data to avoid SecureStore size limit
+      const essentialSession = {
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+        expires_at: session.expires_at,
+        expires_in: session.expires_in,
+        token_type: session.token_type,
+        user: {
+          id: session.user.id,
+          email: session.user.email,
+          // Don't store large metadata to avoid size limit
+        },
+      };
+
+      await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(essentialSession));
       this.scheduleRefresh(session.expires_at || 0);
     } catch (error) {
       console.error('Failed to save session:', error);

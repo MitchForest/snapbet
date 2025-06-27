@@ -283,12 +283,19 @@ export async function storePendingReferralCode(code: string): Promise<void> {
  */
 export async function getPendingReferralCode(): Promise<string | null> {
   try {
+    // Check if we're in a context where MMKV can be used
+    // This will fail silently if MMKV isn't available (e.g., remote debugging)
     const code = Storage.general.get<string>(REFERRAL_CODE_KEY);
     if (code) {
       Storage.general.delete(REFERRAL_CODE_KEY);
     }
     return code;
   } catch (error) {
+    // Silently ignore MMKV errors during debugging
+    // The referral code feature will be skipped but auth will continue
+    if (error instanceof Error && error.message.includes('MMKV')) {
+      return null;
+    }
     console.error('Error getting pending referral code:', error);
     return null;
   }

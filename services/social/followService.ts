@@ -42,14 +42,14 @@ class FollowService {
   private subscriptions = new Map<string, RealtimeChannel>();
   private changeCallbacks = new Map<string, Set<FollowChangeCallback>>();
   private countCallbacks = new Map<string, Set<CountChangeCallback>>();
+  private cacheLoaded = false;
 
   // Cache configuration
   private readonly FOLLOW_STATE_TTL = 5 * 60 * 1000; // 5 minutes
   private readonly MUTUAL_FOLLOW_TTL = 60 * 1000; // 1 minute
 
   private constructor() {
-    // Load cached states from storage on init
-    this.loadCachedStates();
+    // Don't load cache here - do it lazily on first use
   }
 
   static getInstance(): FollowService {
@@ -57,6 +57,13 @@ class FollowService {
       this.instance = new FollowService();
     }
     return this.instance;
+  }
+
+  private async ensureCacheLoaded() {
+    if (!this.cacheLoaded) {
+      await this.loadCachedStates();
+      this.cacheLoaded = true;
+    }
   }
 
   private async loadCachedStates() {
@@ -82,6 +89,8 @@ class FollowService {
   }
 
   async getFollowState(targetUserId: string, currentUserId?: string): Promise<FollowState> {
+    await this.ensureCacheLoaded();
+
     const userId = currentUserId || (await this.getCurrentUserId());
     if (!userId) {
       return { isFollowing: false, isPending: false, isMutual: false, lastChecked: Date.now() };
@@ -136,6 +145,8 @@ class FollowService {
     currentlyFollowing: boolean,
     targetUserIsPrivate: boolean // Argument instead of service call
   ): Promise<{ success: boolean; error?: string; isPending?: boolean }> {
+    await this.ensureCacheLoaded();
+
     try {
       const userId = await this.getCurrentUserId();
       if (!userId) {

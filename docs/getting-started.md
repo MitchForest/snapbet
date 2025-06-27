@@ -116,6 +116,11 @@ For full functionality including native features:
 # Create a development build
 bun run build:dev
 
+# ios simulator build
+eas build --profile development-simulator --platform ios
+# Then: Install and run it
+eas build:run -p ios --latest
+
 # iOS development build
 eas build --platform ios --profile development
 
@@ -128,11 +133,11 @@ eas build --platform android --profile development
 ### 6.1 Quick Setup - Everything at Once
 
 ```bash
-# Get your Supabase user ID first
-# Go to Supabase Dashboard → Authentication → Users → Copy your ID
+# Run complete demo setup with your username
+bun run demo:setup --username=YOUR_USERNAME
 
-# Run complete demo setup
-bun run demo:setup --user-id=YOUR_SUPABASE_USER_ID
+# Or if you prefer using your Supabase UUID:
+# bun run demo:setup --user-id=YOUR_SUPABASE_USER_ID
 ```
 
 This command will:
@@ -148,7 +153,7 @@ This command will:
 
 2. **Trigger community reactions:**
 ```bash
-bun run demo:reactions --user-id=YOUR_SUPABASE_USER_ID
+bun run demo:reactions --username=YOUR_USERNAME
 ```
 
 This will generate:
@@ -243,8 +248,8 @@ bun run scripts/seed-mock-users.ts
 
 #### 5. **Can't see demo chats**
 ```bash
-# Make sure to use your actual Supabase user ID
-bun run demo:setup --user-id=YOUR_SUPABASE_USER_ID
+# Make sure to use your actual username
+bun run demo:setup --username=YOUR_USERNAME
 ```
 
 ## Project Structure

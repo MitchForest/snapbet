@@ -129,20 +129,7 @@ export default function DrawerLayout() {
           title: 'Blocked Users',
         }}
       />
-      <Drawer.Screen
-        name="story/_layout"
-        options={{
-          drawerItemStyle: { display: 'none' },
-          title: 'Story',
-        }}
-      />
-      <Drawer.Screen
-        name="story/[id]"
-        options={{
-          drawerItemStyle: { display: 'none' },
-          title: 'Story',
-        }}
-      />
+      {/* Story screens are handled by the story/_layout.tsx file */}
 
       {/* Admin screens - conditionally rendered */}
       {showAdminOptions && (

@@ -19,10 +19,10 @@ export class PrivacyService {
   private static instance: PrivacyService;
   private privacyCache = new Map<string, { settings: PrivacySettings; timestamp: number }>();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  private cacheLoaded = false;
 
   private constructor() {
-    // Load cached privacy settings from storage
-    this.loadCachedSettings();
+    // Don't load cache here - do it lazily on first use
   }
 
   static getInstance(): PrivacyService {
@@ -30,6 +30,13 @@ export class PrivacyService {
       this.instance = new PrivacyService();
     }
     return this.instance;
+  }
+
+  private async ensureCacheLoaded() {
+    if (!this.cacheLoaded) {
+      await this.loadCachedSettings();
+      this.cacheLoaded = true;
+    }
   }
 
   private async loadCachedSettings() {
@@ -56,6 +63,8 @@ export class PrivacyService {
   }
 
   async getPrivacySettings(userId: string): Promise<PrivacySettings> {
+    await this.ensureCacheLoaded();
+
     // Check cache first
     const cached = this.privacyCache.get(userId);
     if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
@@ -103,6 +112,8 @@ export class PrivacyService {
     userId: string,
     settings: Partial<PrivacySettings>
   ): Promise<{ success: boolean; error?: string }> {
+    await this.ensureCacheLoaded();
+
     try {
       // Cast settings to bypass type checking until types are regenerated
       const updateData = settings as {

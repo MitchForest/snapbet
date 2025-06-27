@@ -1,7 +1,6 @@
-import { MMKV } from 'react-native-mmkv';
+import { Storage } from '@/services/storage/storageService';
 import { PendingShareBet } from '@/types/content';
 
-const storage = new MMKV({ id: 'betting' });
 const PENDING_BET_KEY = 'pendingShareBet';
 const EXPIRY_DURATION = 5 * 60 * 1000; // 5 minutes
 
@@ -11,38 +10,30 @@ export function useBetSharing() {
       ...bet,
       storedAt: Date.now(),
     };
-    storage.set(PENDING_BET_KEY, JSON.stringify(data));
+    Storage.general.set(PENDING_BET_KEY, data);
   };
 
   const retrieveAndClearBet = (): PendingShareBet | null => {
-    const dataStr = storage.getString(PENDING_BET_KEY);
-    if (!dataStr) return null;
+    const data = Storage.general.get<{ storedAt: number } & PendingShareBet>(PENDING_BET_KEY);
+    if (!data) return null;
 
-    try {
-      const data = JSON.parse(dataStr);
-
-      // Check if data has expired
-      if (data.storedAt && Date.now() - data.storedAt > EXPIRY_DURATION) {
-        storage.delete(PENDING_BET_KEY);
-        return null;
-      }
-
-      // Clear after reading
-      storage.delete(PENDING_BET_KEY);
-
-      // Remove storedAt before returning
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { storedAt: _, ...bet } = data;
-      return bet;
-    } catch (error) {
-      console.error('Error parsing bet data:', error);
-      storage.delete(PENDING_BET_KEY);
+    // Check if data has expired
+    if (data.storedAt && Date.now() - data.storedAt > EXPIRY_DURATION) {
+      Storage.general.delete(PENDING_BET_KEY);
       return null;
     }
+
+    // Clear after reading
+    Storage.general.delete(PENDING_BET_KEY);
+
+    // Remove storedAt before returning
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { storedAt: _, ...bet } = data;
+    return bet;
   };
 
   const clearPendingBet = () => {
-    storage.delete(PENDING_BET_KEY);
+    Storage.general.delete(PENDING_BET_KEY);
   };
 
   return {
