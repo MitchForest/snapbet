@@ -14,6 +14,13 @@ interface BetPickOverlayProps {
   userAction?: 'tail' | 'fade';
 }
 
+interface BetDetails {
+  team?: string;
+  line?: number;
+  spread?: number;
+  total_type?: 'over' | 'under';
+}
+
 export function BetPickOverlay({ bet, onTail, onFade, userAction }: BetPickOverlayProps) {
   const game = bet.game;
 
@@ -48,18 +55,23 @@ export function BetPickOverlay({ bet, onTail, onFade, userAction }: BetPickOverl
   };
 
   const formatBetSelection = () => {
-    const details = bet.bet_details as any;
-    
+    const details = bet.bet_details as BetDetails;
+
     if (!details) return '';
-    
+
     switch (bet.bet_type) {
-      case 'spread':
-        if (!details.team || details.line === undefined) return '';
-        const spread = details.line > 0 ? `+${details.line}` : details.line;
+      case 'spread': {
+        if (!details.team) return '';
+        // Handle both 'line' and 'spread' fields for backwards compatibility
+        const spreadValue = details.line ?? details.spread;
+        if (spreadValue === undefined) return details.team;
+        const spread = spreadValue > 0 ? `+${spreadValue}` : spreadValue;
         return `${details.team} ${spread}`;
-      case 'total':
+      }
+      case 'total': {
         if (!details.total_type || details.line === undefined) return '';
         return `${details.total_type === 'over' ? 'Over' : 'Under'} ${details.line}`;
+      }
       case 'moneyline':
         return details.team || '';
       default:
@@ -96,13 +108,13 @@ export function BetPickOverlay({ bet, onTail, onFade, userAction }: BetPickOverl
 
       {/* Action Buttons or Status */}
       {userAction ? (
-        <View style={[
-          styles.statusBadge,
-          userAction === 'tail' ? styles.tailedBadge : styles.fadedBadge
-        ]}>
-          <Text style={styles.statusText}>
-            {userAction === 'tail' ? 'TAILED!' : 'FADED!'}
-          </Text>
+        <View
+          style={[
+            styles.statusBadge,
+            userAction === 'tail' ? styles.tailedBadge : styles.fadedBadge,
+          ]}
+        >
+          <Text style={styles.statusText}>{userAction === 'tail' ? 'TAILED!' : 'FADED!'}</Text>
         </View>
       ) : onTail && onFade ? (
         <View style={styles.buttonContainer}>

@@ -24,11 +24,6 @@ export function validateBet(
     return { isValid: false, error: 'Insufficient funds' };
   }
 
-  // Check game hasn't started
-  if (new Date(game.commence_time) < new Date()) {
-    return { isValid: false, error: 'Game has already started' };
-  }
-
   // Validate odds exist for bet type
   const oddsData = getOddsData(game.odds_data);
   const gameOdds = oddsData?.bookmakers?.[0]?.markets;

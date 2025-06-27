@@ -45,8 +45,8 @@ async function generateRecentPosts(count: number = 5) {
           user_id: user.id,
           game_id: '401234567', // Mock game ID
           bet_type: 'spread' as const,
-          bet_details: { team: 'Lakers', spread: -5.5 },
-          stake: 100,
+          bet_details: { team: 'Lakers', line: -5.5 },
+          stake: 2000, // $20
           odds: -110,
           potential_win: 90.91,
           status: 'pending' as const,
@@ -59,10 +59,9 @@ async function generateRecentPosts(count: number = 5) {
         const template = getRandomTemplate(postTemplates['pick-share'].confident);
         const caption = fillTemplate(template, {
           team: 'Lakers',
-          spread: '-5.5',
+          line: '-5.5',
           odds: '-110',
           type: 'spread',
-          line: '-5.5',
         });
 
         await supabase.from('posts').insert({
@@ -231,7 +230,7 @@ async function generateBettingRush(sport: 'NFL' | 'NBA', userCount: number = 10)
       bet_type: ['spread', 'total', 'moneyline'][i % 3] as Database['public']['Enums']['bet_type'],
       bet_details: {
         team: ['Chiefs', 'Bills', 'Cowboys', 'Eagles'][i % 4],
-        spread: [-3.5, -7, +3.5, +7][i % 4],
+        line: [-3.5, -7, +3.5, +7][i % 4],
       },
       stake: [50, 100, 200][i % 3],
       odds: [-110, -105, -115][i % 3],
@@ -260,11 +259,10 @@ async function generatePickPosts(count: number = 5) {
 
     const template = getRandomTemplate(postTemplates['pick-share'].normal);
     const caption = fillTemplate(template, {
-      team: (bet.bet_details as { team?: string; spread?: number }).team || 'Lakers',
-      spread: `${((bet.bet_details as { spread?: number }).spread || 0) > 0 ? '+' : ''}${(bet.bet_details as { spread?: number }).spread || 0}`,
+      team: (bet.bet_details as { team?: string; line?: number }).team || 'Lakers',
+      line: `${((bet.bet_details as { line?: number }).line || 0) > 0 ? '+' : ''}${(bet.bet_details as { line?: number }).line || 0}`,
       odds: `${bet.odds > 0 ? '+' : ''}${bet.odds}`,
       type: bet.bet_type,
-      line: (bet.bet_details as { spread?: number }).spread?.toString() || '-5.5',
       confidence: 'medium',
     });
 

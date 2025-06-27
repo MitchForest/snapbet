@@ -21,6 +21,7 @@ export function BetOutcomeOverlay({ bet }: BetOutcomeOverlayProps) {
   const betDetails = bet.bet_details as {
     team?: string;
     line?: number;
+    spread?: number;
     total_type?: 'over' | 'under';
   };
 
@@ -28,7 +29,8 @@ export function BetOutcomeOverlay({ bet }: BetOutcomeOverlayProps) {
   const formatBetSelection = () => {
     switch (bet.bet_type) {
       case 'spread': {
-        const line = betDetails.line || 0;
+        // Handle both 'line' and 'spread' fields for backwards compatibility
+        const line = betDetails.line ?? betDetails.spread ?? 0;
         const lineStr = line !== 0 ? ` ${line > 0 ? '+' : ''}${line}` : '';
         return `${betDetails.team}${lineStr}`;
       }

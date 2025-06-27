@@ -165,9 +165,9 @@ export function PostCard({ post, onPress }: PostCardProps) {
               {/* Bet Overlays */}
               {post.post_type === PostType.PICK && post.bet && (
                 <View style={styles.overlayContainer}>
-                  <BetPickOverlay 
-                    bet={post.bet} 
-                    onTail={handleTail} 
+                  <BetPickOverlay
+                    bet={post.bet}
+                    onTail={handleTail}
                     onFade={handleFade}
                     userAction={userAction?.action_type}
                   />

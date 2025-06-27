@@ -129,6 +129,30 @@ async function getUpcomingGames(): Promise<Game[]> {
   return games;
 }
 
+// Helper function to generate proper bet details based on bet type
+function generateBetDetails(betType: 'spread' | 'moneyline' | 'total', game: Game) {
+  switch (betType) {
+    case 'spread':
+      const spreadLine = (Math.random() * 10 - 5).toFixed(1); // Random spread between -5 and +5
+      return {
+        team: Math.random() > 0.5 ? game.home_team : game.away_team,
+        line: parseFloat(spreadLine),
+      };
+    
+    case 'moneyline':
+      return {
+        team: Math.random() > 0.5 ? game.home_team : game.away_team,
+      };
+    
+    case 'total':
+      const totalLine = Math.floor(200 + Math.random() * 40); // Random total between 200-240 for NBA
+      return {
+        total_type: Math.random() > 0.5 ? 'over' : 'under',
+        line: totalLine,
+      };
+  }
+}
+
 // Create follow relationships
 async function createFollowRelationships(userId: string, mockUsers: MockUser[]) {
   console.log('👥 Creating follow relationships...');
@@ -267,15 +291,17 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
       const settledAt = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
       const createdAt = new Date(settledAt.getTime() - 2 * 60 * 60 * 1000); // Created 2 hours before settled
 
+      const betType = ['spread', 'moneyline', 'total'][Math.floor(Math.random() * 3)] as
+        | 'spread'
+        | 'moneyline'
+        | 'total';
+
       bets.push({
         id: betId,
         user_id: hotUser.id,
         game_id: game.id,
-        bet_type: ['spread', 'moneyline', 'total'][Math.floor(Math.random() * 3)] as
-          | 'spread'
-          | 'moneyline'
-          | 'total',
-        bet_details: { team: game.home_team },
+        bet_type: betType,
+        bet_details: generateBetDetails(betType, game),
         stake: 2000,
         odds: -110,
         potential_win: 1818,
@@ -311,12 +337,14 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
       const settledAt = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
       const createdAt = new Date(settledAt.getTime() - 3 * 60 * 60 * 1000);
 
+      const betType = ['spread', 'moneyline'][Math.floor(Math.random() * 2)] as 'spread' | 'moneyline';
+
       bets.push({
         id: betId,
         user_id: hotUser.id,
         game_id: game.id,
-        bet_type: ['spread', 'moneyline'][Math.floor(Math.random() * 2)] as 'spread' | 'moneyline',
-        bet_details: { team: game.home_team },
+        bet_type: betType,
+        bet_details: generateBetDetails(betType, game),
         stake: 1500,
         odds: -110,
         potential_win: 1364,
@@ -348,7 +376,7 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
         user_id: fadeGod.id,
         game_id: game.id,
         bet_type: 'moneyline' as const,
-        bet_details: { team: game.away_team },
+        bet_details: generateBetDetails('moneyline', game),
         stake: 3000,
         odds: -110,
         potential_win: 2727,
@@ -390,7 +418,7 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
         user_id: star.id,
         game_id: game.id,
         bet_type: 'moneyline' as const,
-        bet_details: { team: isWin ? game.home_team : game.away_team },
+        bet_details: generateBetDetails('moneyline', game),
         stake: 1500,
         odds: -110,
         potential_win: 1364,
@@ -460,10 +488,7 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
         user_id: user.id,
         game_id: game.id,
         bet_type: betType as 'spread' | 'moneyline',
-        bet_details: {
-          team: team,
-          ...(spread && { spread: parseFloat(spread) }),
-        },
+        bet_details: generateBetDetails(betType, game),
         stake: Math.floor(Math.random() * 5000) + 1000,
         odds: -110,
         potential_win: 909,
@@ -523,16 +548,16 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
   }
 
   // Create pick actions for trending picks (tails and fades)
-  const pickPosts = posts.filter(p => p.post_type === 'pick').slice(0, 10); // Top 10 pick posts
-  
+  const pickPosts = posts.filter((p) => p.post_type === 'pick').slice(0, 10); // Top 10 pick posts
+
   for (const pickPost of pickPosts) {
     // Create 2-5 tail/fade actions per pick
     const actionCount = Math.floor(Math.random() * 4) + 2;
     const tailingUsers = mockUsers
-      .filter(u => u.id !== pickPost.user_id)
+      .filter((u) => u.id !== pickPost.user_id)
       .sort(() => Math.random() - 0.5)
       .slice(0, actionCount);
-    
+
     for (const tailer of tailingUsers) {
       // 70% chance to tail, 30% to fade
       const isTail = Math.random() > 0.3;
@@ -547,7 +572,10 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
   // Insert pick actions AFTER posts are created
   if (pickActions.length > 0) {
     console.log(`  📊 Attempting to create ${pickActions.length} pick actions...`);
-    const { data: pickData, error: pickError } = await supabase.from('pick_actions').insert(pickActions).select();
+    const { data: pickData, error: pickError } = await supabase
+      .from('pick_actions')
+      .insert(pickActions)
+      .select();
     if (pickError) {
       console.error('❌ Error creating pick actions:', pickError);
       console.error('Sample pick action:', JSON.stringify(pickActions[0], null, 2));
@@ -659,7 +687,7 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
       created_at: new Date(new Date(bet.settled_at!).getTime() + 10 * 60 * 1000).toISOString(), // 10 mins after settlement
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       media_type: 'photo',
-      media_url: isWin 
+      media_url: isWin
         ? mockMediaUrls.celebration[Math.floor(Math.random() * mockMediaUrls.celebration.length)]
         : mockMediaUrls.frustration[Math.floor(Math.random() * mockMediaUrls.frustration.length)],
       post_type: 'outcome',
@@ -725,7 +753,7 @@ async function createGroupChats(userId: string, mockUsers: MockUser[]) {
 
     if (existingChats && existingChats.length > 1) {
       // Keep only the first one, delete the rest
-      const chatsToDelete = existingChats.slice(1).map(c => c.id);
+      const chatsToDelete = existingChats.slice(1).map((c) => c.id);
       await supabase.from('chats').delete().in('id', chatsToDelete);
     }
   }
@@ -759,23 +787,23 @@ async function createGroupChats(userId: string, mockUsers: MockUser[]) {
     const memberCount = Math.floor(Math.random() * 8) + 8; // 8-15 members
     const selectedMockUsers = mockUsers.slice(0, memberCount);
     const allMemberIds = [userId, ...selectedMockUsers.map((u) => u.id)];
-    
+
     // Add all members in a single batch to avoid system messages
-    const membersToInsert = allMemberIds.map(memberId => ({
+    const membersToInsert = allMemberIds.map((memberId) => ({
       chat_id: chat.id,
       user_id: memberId,
       role: (memberId === mockUsers[0].id ? 'admin' : 'member') as 'admin' | 'member',
     }));
 
-    await supabase.from('chat_members').upsert(membersToInsert, { 
+    await supabase.from('chat_members').upsert(membersToInsert, {
       onConflict: 'chat_id,user_id',
-      ignoreDuplicates: true 
+      ignoreDuplicates: true,
     });
 
     // Add recent messages AFTER all members are added
     const messageCount = Math.floor(Math.random() * 15) + 10;
     const messages = [];
-    
+
     // Start messages 30 minutes after chat creation to ensure system messages appear first
     const chatCreatedAt = chat.created_at || new Date().toISOString();
     const firstMessageTime = new Date(chatCreatedAt).getTime() + 30 * 60 * 1000; // 30 minutes after chat creation
@@ -827,17 +855,17 @@ async function createDirectChats(userId: string, mockUsers: MockUser[]) {
       .from('chat_members')
       .select('chat_id')
       .eq('user_id', partner.id);
-    
+
     let existingDM = null;
     if (partnerChats && partnerChats.length > 0) {
       // Now check if user is also in any of those chats
-      const partnerChatIds = partnerChats.map(c => c.chat_id);
+      const partnerChatIds = partnerChats.map((c) => c.chat_id);
       const { data: userInSameChat } = await supabase
         .from('chat_members')
         .select('chat_id')
         .eq('user_id', userId)
         .in('chat_id', partnerChatIds);
-      
+
       if (userInSameChat && userInSameChat.length > 0) {
         // Check if it's a DM chat
         const { data: dmChat } = await supabase
@@ -846,7 +874,7 @@ async function createDirectChats(userId: string, mockUsers: MockUser[]) {
           .eq('id', userInSameChat[0].chat_id)
           .eq('chat_type', 'dm')
           .single();
-        
+
         if (dmChat) {
           existingDM = [{ chat_id: dmChat.id }];
         }
@@ -854,7 +882,7 @@ async function createDirectChats(userId: string, mockUsers: MockUser[]) {
     }
 
     let chatId;
-    
+
     if (!existingDM || existingDM.length === 0) {
       // Create new DM chat
       const { data: newChat, error } = await supabase
@@ -870,7 +898,7 @@ async function createDirectChats(userId: string, mockUsers: MockUser[]) {
         console.error('Error creating DM chat:', error);
         continue;
       }
-      
+
       chatId = newChat.id;
 
       // Add BOTH members at the same time - this is critical for DMs
@@ -892,16 +920,16 @@ async function createDirectChats(userId: string, mockUsers: MockUser[]) {
     // Add some messages with varied conversation flow
     const messageCount = Math.floor(Math.random() * 8) + 3;
     const messages = [];
-    
+
     // Create a more natural conversation flow
     let lastSender = Math.random() > 0.5 ? partner.id : userId;
-    
+
     for (let i = 0; i < messageCount; i++) {
       // 70% chance to continue with same sender (more natural conversation flow)
       if (Math.random() > 0.7) {
         lastSender = lastSender === partner.id ? userId : partner.id;
       }
-      
+
       const isFromPartner = lastSender === partner.id;
       const personality = getPersonalityFromBehavior(partner.mock_personality_id);
       const templates =

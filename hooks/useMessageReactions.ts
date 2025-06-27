@@ -5,13 +5,28 @@ import { toastService } from '@/services/toastService';
 import { useAuthStore } from '@/stores/authStore';
 import * as Haptics from 'expo-haptics';
 
+// Helper to check if a string is a valid UUID
+const isValidUUID = (id: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+};
+
 export function useMessageReactions(messageId: string) {
   const user = useAuthStore((state) => state.user);
   const [reactions, setReactions] = useState<MessageReaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Skip reactions for temporary messages
+  const isTemporaryMessage = messageId.startsWith('temp_') || !isValidUUID(messageId);
+
   // Fetch reactions for the message
   const fetchReactions = useCallback(async () => {
+    // Skip if temporary message
+    if (isTemporaryMessage) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('message_reactions')
@@ -55,12 +70,12 @@ export function useMessageReactions(messageId: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [messageId]);
+  }, [messageId, isTemporaryMessage]);
 
   // Add a reaction
   const addReaction = useCallback(
     async (emoji: string) => {
-      if (!user) return;
+      if (!user || isTemporaryMessage) return;
 
       try {
         const { error } = await supabase.from('message_reactions').insert({
@@ -103,13 +118,13 @@ export function useMessageReactions(messageId: string) {
         toastService.showError('Failed to add reaction');
       }
     },
-    [messageId, user, fetchReactions]
+    [messageId, user, fetchReactions, isTemporaryMessage]
   );
 
   // Remove a reaction
   const removeReaction = useCallback(
     async (emoji: string) => {
-      if (!user) return;
+      if (!user || isTemporaryMessage) return;
 
       try {
         const { error } = await supabase
@@ -131,13 +146,13 @@ export function useMessageReactions(messageId: string) {
         toastService.showError('Failed to remove reaction');
       }
     },
-    [messageId, user, fetchReactions]
+    [messageId, user, fetchReactions, isTemporaryMessage]
   );
 
   // Toggle reaction (add if not exists, remove if exists)
   const toggleReaction = useCallback(
     async (emoji: string) => {
-      if (!user) return;
+      if (!user || isTemporaryMessage) return;
 
       const existingReaction = reactions.find((r) => r.user_id === user.id && r.emoji === emoji);
 
@@ -147,7 +162,7 @@ export function useMessageReactions(messageId: string) {
         await addReaction(emoji);
       }
     },
-    [user, reactions, addReaction, removeReaction]
+    [user, reactions, addReaction, removeReaction, isTemporaryMessage]
   );
 
   // Get user's current reaction
@@ -183,8 +198,10 @@ export function useMessageReactions(messageId: string) {
 
   // Initial load
   useEffect(() => {
-    fetchReactions();
-  }, [fetchReactions]);
+    if (!isTemporaryMessage) {
+      fetchReactions();
+    }
+  }, [fetchReactions, isTemporaryMessage]);
 
   return {
     reactions: reactionSummary,

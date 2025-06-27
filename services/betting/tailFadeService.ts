@@ -44,12 +44,6 @@ class TailFadeService {
         throw new BettingError('Original bet not found', 'VALIDATION_ERROR');
       }
 
-      // Validate game hasn't started
-      const game = originalBet.game as unknown as Game;
-      if (new Date(game.commence_time) <= new Date()) {
-        throw new BettingError('Game has already started', 'GAME_STARTED');
-      }
-
       // Place matching bet
       const betInput: BetInput = {
         gameId: originalBet.game_id,
@@ -129,11 +123,8 @@ class TailFadeService {
         throw new BettingError('Original bet not found', 'VALIDATION_ERROR');
       }
 
-      // Validate game hasn't started
+      // Get game for calculating opposite bet
       const game = originalBet.game as unknown as Game;
-      if (new Date(game.commence_time) <= new Date()) {
-        throw new BettingError('Game has already started', 'GAME_STARTED');
-      }
 
       // Calculate opposite bet
       const oppositeDetails = calculateFadeBet(originalBet as Bet, game);

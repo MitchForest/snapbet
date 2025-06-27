@@ -316,13 +316,12 @@ function validateBetSlip(state: Partial<BetSlipState>): {
     return { isValid: false, error: 'No selection made' };
   }
 
-  if (!state.stake || state.stake < 500) {
-    return { isValid: false, error: 'Minimum bet is $5' };
-  }
+  const stake = state.stake || 0;
 
-  // Check game hasn't started
-  if (new Date(state.game.commence_time) < new Date()) {
-    return { isValid: false, error: 'Game has already started' };
+  // Check minimum bet
+  if (stake < 500) {
+    // $5 minimum
+    return { isValid: false, error: 'Minimum bet is $5' };
   }
 
   // Validate selection based on bet type

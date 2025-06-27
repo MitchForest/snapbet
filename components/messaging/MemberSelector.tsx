@@ -118,6 +118,7 @@ export const MemberSelector: React.FC<MemberSelectorProps> = ({
   // Toggle user selection
   const toggleUser = useCallback(
     (userId: string) => {
+      console.log('Toggle user:', userId, 'Current selected:', selectedUsers);
       if (selectedUsers.includes(userId)) {
         onSelect(selectedUsers.filter((id) => id !== userId));
       } else if (selectedUsers.length < maxMembers) {
@@ -150,7 +151,11 @@ export const MemberSelector: React.FC<MemberSelectorProps> = ({
                 isDisabled && styles.checkboxDisabled,
               ]}
             >
-              {isSelected && <Text style={styles.checkmark}>✓</Text>}
+              {isSelected && (
+                <Text style={styles.checkmark} allowFontScaling={false}>
+                  ✓
+                </Text>
+              )}
             </View>
             <Avatar
               src={item.avatar_url || undefined}

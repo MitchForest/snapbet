@@ -229,10 +229,10 @@ class BettingService {
       return { isValid: false, error: 'Minimum bet is $5' };
     }
 
-    // Check game hasn't started
-    if (new Date(game.commence_time) < new Date()) {
-      return { isValid: false, error: 'Game has already started' };
-    }
+    // Allow live betting - remove game started check
+    // if (new Date(game.commence_time) < new Date()) {
+    //   return { isValid: false, error: 'Game has already started' };
+    // }
 
     // Validate odds exist for bet type
     const oddsData = getOddsData(game.odds_data);

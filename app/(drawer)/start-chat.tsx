@@ -69,21 +69,24 @@ export default function StartChatScreen() {
   }, [searchQuery, currentUser, blockedUserIds]);
 
   // Start chat with user
-  const handleStartChat = async (user: User) => {
-    if (isCreating) return;
+  const handleStartChat = useCallback(
+    async (user: User) => {
+      if (isCreating) return;
 
-    setIsCreating(true);
-    try {
-      const chatId = await chatService.getOrCreateDMChat(currentUser?.id || '', user.id);
-      if (chatId) {
-        router.replace(`/chat/${chatId}`);
+      setIsCreating(true);
+      try {
+        const chatId = await chatService.getOrCreateDMChat(currentUser?.id || '', user.id);
+        if (chatId) {
+          router.replace(`/chat/${chatId}`);
+        }
+      } catch (error) {
+        console.error('Failed to start chat:', error);
+      } finally {
+        setIsCreating(false);
       }
-    } catch (error) {
-      console.error('Failed to start chat:', error);
-    } finally {
-      setIsCreating(false);
-    }
-  };
+    },
+    [isCreating, currentUser?.id, router]
+  );
 
   // Render user item
   const renderUser = useCallback(
@@ -113,7 +116,7 @@ export default function StartChatScreen() {
         </Pressable>
       );
     },
-    [isCreating]
+    [isCreating, handleStartChat]
   );
 
   return (
@@ -229,4 +232,4 @@ const styles = StyleSheet.create({
   userItemPressed: {
     backgroundColor: Colors.gray[100],
   },
-}); 
+});

@@ -3,7 +3,6 @@ import { View, Text } from '@tamagui/core';
 import { Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { Colors } from '@/theme';
 
 interface TabItem {
   route: string;
