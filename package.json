@@ -24,10 +24,20 @@
     "jobs:reset": "bun run scripts/jobs/cli.ts reset-bankrolls",
     "jobs:settle": "bun run scripts/jobs/cli.ts settle-games",
     "jobs:stats": "bun run scripts/jobs/cli.ts stats",
+    "jobs:game-updates": "bun run scripts/jobs/cli.ts game-updates",
+    "jobs:odds-updates": "bun run scripts/jobs/cli.ts odds-updates",
+    "jobs:notifications": "bun run scripts/jobs/cli.ts notifications",
     "jobs:cleanup": "bun run scripts/jobs/cli.ts cleanup",
-    "jobs:media": "bun run scripts/jobs/cli.ts media-cleanup",
+    "jobs:media-cleanup": "bun run scripts/jobs/cli.ts media-cleanup",
     "jobs:all": "bun run scripts/jobs/cli.ts all",
-    "jobs:schedule": "bun run scripts/jobs/cli.ts schedule"
+    "jobs:schedule": "bun run scripts/jobs/cli.ts schedule",
+    "jobs:runner": "bun run scripts/jobs/runner.ts",
+    "demo:new-user": "bun run scripts/mock/demo-scenarios.ts new-user",
+    "demo:saturday": "bun run scripts/mock/demo-scenarios.ts saturday-football",
+    "demo:chat": "bun run scripts/mock/demo-scenarios.ts active-chat",
+    "mock:activity": "bun run scripts/jobs/mock-activity.ts",
+    "demo:setup": "bun run scripts/mock/setup-demo.ts",
+    "demo:reactions": "bun run scripts/mock/trigger-reactions.ts"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.1.2",

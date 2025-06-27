@@ -14,6 +14,130 @@
 - Provides manual control for demo recordings and testing
 - Sets foundation for production cron jobs
 
+## 🚨 REVISED IMPLEMENTATION PLAN - PENDING APPROVAL
+
+### Critical Gaps Identified
+
+After thorough investigation, the following critical functionality is missing for a fully functioning app:
+
+1. **Stories Expiration**: Stories table exists but not included in content expiration job
+2. **Comments Cleanup**: Comments need cleanup when parent posts expire
+3. **Game Score Updates**: No job to update live game scores and mark games as completed
+4. **Odds Updates**: No job to update/simulate odds movements
+5. **Pick Actions Cleanup**: pick_actions table needs cleanup for expired posts
+6. **Story Views Cleanup**: story_views need cleanup when stories expire
+7. **Comprehensive Notifications**: Game start warnings, bet outcomes, expiration warnings
+8. **Stats Persistence**: Stats ARE in bankrolls table - need to update them properly
+
+### Revised File Plan
+
+| File Path | Purpose | Status | Changes Needed |
+|-----------|---------|--------|----------------|
+| `scripts/jobs/content-expiration.ts` | Expire ephemeral content | NEEDS UPDATE | Add stories, comments, pick_actions, story_views |
+| `scripts/jobs/stats-rollup.ts` | Calculate user stats | NEEDS UPDATE | Actually persist to bankrolls table |
+| `scripts/jobs/game-updates.ts` | Update game scores/status | TO CREATE | New job for live scores |
+| `scripts/jobs/odds-updates.ts` | Update game odds | TO CREATE | New job for odds movements |
+| `scripts/jobs/notifications.ts` | Send timely notifications | TO CREATE | New job for alerts |
+| `scripts/jobs/cleanup.ts` | Database maintenance | NEEDS UPDATE | Add more cleanup tasks |
+| `scripts/jobs/cli.ts` | CLI interface | NEEDS UPDATE | Add new commands |
+| `scripts/jobs/runner.ts` | Job scheduling | NEEDS UPDATE | Add new job schedules |
+
+### Detailed Implementation Tasks
+
+#### 1. Enhanced Content Expiration
+```typescript
+// Add to content-expiration.ts:
+- expireStories(): Soft delete stories > 24h old
+- cleanupComments(): Remove comments when parent post expires  
+- cleanupPickActions(): Remove pick_actions for expired posts
+- cleanupStoryViews(): Remove views for expired stories
+```
+
+#### 2. Fixed Stats Rollup
+```typescript
+// Update stats-rollup.ts:
+- Actually UPDATE bankrolls table with calculated stats
+- Update: total_wagered, total_won, win/loss/push counts
+- Update: biggest_win, biggest_loss, season_high, season_low
+- Update stats_metadata JSONB with:
+  - current_streak, best_streak
+  - perfect_days[], team_bet_counts{}
+  - fade_profit_generated
+  - daily_records{}
+```
+
+#### 3. Game Updates Job (NEW)
+```typescript
+// scripts/jobs/game-updates.ts
+export class GameUpdateJob extends BaseJob {
+  // Update scores for live games
+  // Mark completed games
+  // For MVP: Generate realistic scores based on odds
+  // Schedule: Every 5 minutes
+}
+```
+
+#### 4. Odds Updates Job (NEW)
+```typescript
+// scripts/jobs/odds-updates.ts
+export class OddsUpdateJob extends BaseJob {
+  // Update odds for upcoming games
+  // Simulate line movements
+  // Sharp money movements
+  // Schedule: Every 30 minutes
+}
+```
+
+#### 5. Notifications Job (NEW)
+```typescript
+// scripts/jobs/notifications.ts
+export class NotificationJob extends BaseJob {
+  // Game start warnings (15 min before)
+  // Bet settlement notifications
+  // Expiration warnings
+  // Weekly recap notifications
+  // Schedule: Every 5 minutes
+}
+```
+
+#### 6. Enhanced Cleanup
+```typescript
+// Add to cleanup.ts:
+- cleanupOldNotifications(): Remove > 30 days
+- cleanupExpiredSessions(): Remove old auth sessions
+- cleanupOrphanedChatMembers(): From deleted chats
+- cleanupOrphanedMessageReads(): From deleted messages
+```
+
+### Schedule Summary
+
+| Job | Frequency | Purpose |
+|-----|-----------|---------|
+| content-expiration | Every hour | Expire all ephemeral content |
+| game-updates | Every 5 min | Update live scores |
+| odds-updates | Every 30 min | Update betting lines |
+| notifications | Every 5 min | Send timely alerts |
+| badge-calculation | Every hour | Calculate badges |
+| stats-rollup | Every hour | Update user stats |
+| cleanup | Daily 3 AM | Database maintenance |
+| bankroll-reset | Weekly Monday | Reset bankrolls |
+| game-settlement | Every 30 min | Settle completed games |
+
+### Key Technical Decisions
+
+1. **Stats in Bankrolls**: Use existing bankrolls table columns for all stats
+2. **Mock Game Scores**: Generate realistic scores based on odds and spread
+3. **Notification Timing**: 15 min warnings for game starts
+4. **Cleanup Strategy**: Cascade deletes handle most cleanup automatically
+5. **Job Coordination**: Use job_executions table to prevent overlaps
+
+### Risk Mitigation
+
+- **Performance**: All queries use proper indexes and batch processing
+- **Data Integrity**: All updates wrapped in transactions
+- **Demo Control**: All jobs support dry-run and verbose modes
+- **Edge Function Ready**: Each job under 30 second execution time
+
 ## 🚨 Required Development Practices
 
 ### Database Management

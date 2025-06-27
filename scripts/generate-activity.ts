@@ -3,6 +3,13 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/supabase';
 import { PersonalityType } from './data/mock-users';
+import {
+  messageTemplates,
+  postTemplates,
+  getRandomTemplate,
+  fillTemplate,
+  getPersonalityFromBehavior,
+} from './mock/templates';
 
 // Get Supabase URL and service key from environment
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -24,7 +31,8 @@ const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey, {
   },
 });
 
-// Caption templates by personality
+// Caption templates by personality (kept for reference but using new templates)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const captionTemplates: Record<PersonalityType, string[]> = {
   [PersonalityType.SHARP_BETTOR]: [
     'Line value at {team} {line}. Books sleeping on this one.',
@@ -90,10 +98,17 @@ const captionTemplates: Record<PersonalityType, string[]> = {
 
 // Generate a caption based on personality and bet
 function generateCaption(personality: PersonalityType, team: string, line: string): string {
-  const templates = captionTemplates[personality] || captionTemplates[PersonalityType.CASUAL];
-  const template = templates[Math.floor(Math.random() * templates.length)];
+  // Use enhanced templates
+  const template = getRandomTemplate(postTemplates['pick-share'].normal);
 
-  return template.replace('{team}', team).replace('{line}', line);
+  return fillTemplate(template, {
+    team,
+    spread: line,
+    line,
+    type: 'spread',
+    odds: '-110',
+    confidence: 'medium',
+  });
 }
 
 async function generateActivity() {
@@ -229,21 +244,30 @@ async function generateActivity() {
       const messageCount = Math.floor(Math.random() * 5) + 3;
       for (let i = 0; i < messageCount; i++) {
         const sender = members[Math.floor(Math.random() * members.length)];
-        const messages = [
-          "Who's tailing this pick? 👀",
-          "I'm on a heater! 5-1 last two days 🔥",
-          'Fade me if you want to win 😂',
-          'Lakers ML is free money tonight',
-          'Anyone else on the over?',
-          'This line is moving fast',
-          "Books know something we don't",
-          'Parlays only today boys!',
-        ];
+        // Use template-based messages
+        const senderUser = mockUsers.find((u) => u.id === sender.user_id);
+        const personality = senderUser?.mock_personality_id
+          ? getPersonalityFromBehavior(senderUser.mock_personality_id)
+          : 'degen';
+
+        const templates =
+          messageTemplates[personality as keyof typeof messageTemplates] ||
+          messageTemplates['degen'];
+        const messageType = ['greeting', 'discussion', 'reaction'][i % 3];
+        const template = getRandomTemplate(
+          templates[messageType as keyof typeof templates] || templates.greeting
+        );
+
+        const content = fillTemplate(template, {
+          team: 'Lakers',
+          game: 'Lakers vs Celtics',
+          favoriteTeam: 'Lakers',
+        });
 
         await supabase.from('messages').insert({
           chat_id: chat.id,
           sender_id: sender.user_id,
-          content: messages[Math.floor(Math.random() * messages.length)],
+          content,
           expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         });
       }

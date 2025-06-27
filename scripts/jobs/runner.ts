@@ -1,6 +1,5 @@
 #!/usr/bin/env bun
 
-import { BaseJob, JobOptions } from './types';
 import { ContentExpirationJob } from './content-expiration';
 import { BankrollResetJob } from './bankroll-reset';
 import { BadgeCalculationJob } from './badge-calculation';
@@ -8,175 +7,189 @@ import { GameSettlementJob } from './game-settlement';
 import { StatsRollupJob } from './stats-rollup';
 import { CleanupJob } from './cleanup';
 import { MediaCleanupJob } from './media-cleanup';
+import { GameUpdateJob } from './game-updates';
+import { OddsUpdateJob } from './odds-updates';
+import { NotificationJob } from './notifications';
+import { BaseJob } from './types';
 
 interface JobSchedule {
   job: BaseJob;
-  cronExpression: string;
-  lastRun?: Date;
-  nextRun?: Date;
+  schedule: {
+    minute?: number | '*' | string;
+    hour?: number | '*' | string;
+    dayOfWeek?: number | '*';
+  };
 }
 
 export class JobRunner {
-  private schedules: JobSchedule[] = [];
+  private jobs: JobSchedule[] = [
+    {
+      job: new ContentExpirationJob(),
+      schedule: { minute: 0, hour: '*' }, // Every hour
+    },
+    {
+      job: new GameUpdateJob(),
+      schedule: { minute: '*/5', hour: '*' }, // Every 5 minutes
+    },
+    {
+      job: new OddsUpdateJob(),
+      schedule: { minute: '*/30', hour: '*' }, // Every 30 minutes
+    },
+    {
+      job: new NotificationJob(),
+      schedule: { minute: '*/5', hour: '*' }, // Every 5 minutes
+    },
+    {
+      job: new BadgeCalculationJob(),
+      schedule: { minute: 0, hour: '*' }, // Every hour
+    },
+    {
+      job: new GameSettlementJob(),
+      schedule: { minute: '*/30', hour: '*' }, // Every 30 minutes
+    },
+    {
+      job: new StatsRollupJob(),
+      schedule: { minute: 0, hour: '*' }, // Every hour
+    },
+    {
+      job: new BankrollResetJob(),
+      schedule: { minute: 0, hour: 0, dayOfWeek: 1 }, // Monday midnight
+    },
+    {
+      job: new CleanupJob(),
+      schedule: { minute: 0, hour: 3 }, // Daily at 3 AM
+    },
+    {
+      job: new MediaCleanupJob(),
+      schedule: { minute: 0, hour: 4 }, // Daily at 4 AM
+    },
+  ];
 
-  constructor() {
-    this.initializeSchedules();
+  async start() {
+    console.log('🚀 Job Runner started');
+    console.log(`📅 Monitoring ${this.jobs.length} jobs\n`);
+
+    // Run jobs that should run on startup
+    await this.checkAndRunJobs();
+
+    // Check every minute
+    setInterval(() => {
+      this.checkAndRunJobs();
+    }, 60 * 1000);
   }
 
-  private initializeSchedules() {
-    // Initialize all job schedules
-    this.schedules = [
-      {
-        job: new ContentExpirationJob(),
-        cronExpression: '0 * * * *', // Every hour
-      },
-      {
-        job: new BadgeCalculationJob(),
-        cronExpression: '0 * * * *', // Every hour
-      },
-      {
-        job: new BankrollResetJob(),
-        cronExpression: '0 0 * * 1', // Monday midnight
-      },
-      {
-        job: new GameSettlementJob(),
-        cronExpression: '*/30 * * * *', // Every 30 minutes
-      },
-      {
-        job: new StatsRollupJob(),
-        cronExpression: '0 * * * *', // Every hour
-      },
-      {
-        job: new CleanupJob(),
-        cronExpression: '0 3 * * *', // Daily at 3 AM
-      },
-      {
-        job: new MediaCleanupJob(),
-        cronExpression: '0 4 * * *', // Daily at 4 AM
-      },
-    ];
-  }
-
-  /**
-   * Run all jobs that are due based on their schedule
-   */
-  async runDueJobs(options: JobOptions = {}): Promise<void> {
+  private async checkAndRunJobs() {
     const now = new Date();
-    console.log(`🕐 Checking for due jobs at ${now.toISOString()}`);
+    const currentMinute = now.getMinutes();
+    const currentHour = now.getHours();
+    const currentDayOfWeek = now.getDay();
 
-    for (const schedule of this.schedules) {
-      if (this.isDue(schedule, now)) {
-        console.log(`\n▶️  Running ${schedule.job.constructor.name}...`);
+    for (const { job, schedule } of this.jobs) {
+      if (this.shouldRun(schedule, currentMinute, currentHour, currentDayOfWeek)) {
+        console.log(`\n⏰ Running ${job.name}...`);
 
         try {
-          const result = await schedule.job.execute(options);
-          schedule.lastRun = now;
+          const result = await job.execute({ dryRun: false, verbose: false });
 
           if (result.success) {
-            console.log(`✅ Success: ${result.message}`);
+            console.log(`✅ ${job.name} completed: ${result.message}`);
           } else {
-            console.log(`❌ Failed: ${result.message}`);
+            console.error(`❌ ${job.name} failed: ${result.message}`);
           }
         } catch (error) {
-          console.error(`❌ Error running ${schedule.job.constructor.name}:`, error);
+          console.error(`❌ ${job.name} error:`, error);
         }
       }
     }
   }
 
-  /**
-   * Run a specific job by name
-   */
-  async runJob(jobName: string, options: JobOptions = {}): Promise<void> {
-    const schedule = this.schedules.find(
-      (s) => s.job.constructor.name.toLowerCase() === jobName.toLowerCase()
-    );
-
-    if (!schedule) {
-      throw new Error(`Job not found: ${jobName}`);
+  private shouldRun(
+    schedule: JobSchedule['schedule'],
+    currentMinute: number,
+    currentHour: number,
+    currentDayOfWeek: number
+  ): boolean {
+    // Check minute
+    if (schedule.minute !== undefined) {
+      if (schedule.minute === '*') {
+        // Runs every minute - always true
+      } else if (typeof schedule.minute === 'string' && schedule.minute.startsWith('*/')) {
+        // Interval schedule (e.g., */5 means every 5 minutes)
+        const interval = parseInt(schedule.minute.substring(2));
+        if (currentMinute % interval !== 0) return false;
+      } else if (schedule.minute !== currentMinute) {
+        return false;
+      }
     }
 
-    await schedule.job.execute(options);
-  }
-
-  /**
-   * List all registered jobs
-   */
-  listJobs(): void {
-    console.log('\n📋 Registered Jobs:\n');
-
-    const jobInfo = this.schedules.map((schedule) => ({
-      name: schedule.job.constructor.name,
-      schedule: schedule.cronExpression,
-      lastRun: schedule.lastRun?.toISOString() || 'Never',
-    }));
-
-    console.table(jobInfo);
-  }
-
-  /**
-   * Check if a job is due to run
-   * Note: This is a simplified check - in production you'd use a proper cron parser
-   */
-  private isDue(schedule: JobSchedule, now: Date): boolean {
-    // For demo purposes, we'll just check if it hasn't run in the last hour
-    // In production, you'd use a cron parser library
-    if (!schedule.lastRun) return true;
-
-    const hoursSinceLastRun = (now.getTime() - schedule.lastRun.getTime()) / (1000 * 60 * 60);
-
-    // Simple logic based on cron expression
-    if (schedule.cronExpression.includes('*/30')) {
-      // Every 30 minutes
-      return hoursSinceLastRun >= 0.5;
-    } else if (schedule.cronExpression.startsWith('0 * * * *')) {
-      // Every hour
-      return hoursSinceLastRun >= 1;
-    } else if (
-      schedule.cronExpression.startsWith('0 3 * * *') ||
-      schedule.cronExpression.startsWith('0 4 * * *')
-    ) {
-      // Daily
-      return hoursSinceLastRun >= 24;
-    } else if (schedule.cronExpression === '0 0 * * 1') {
-      // Weekly on Monday
-      return now.getDay() === 1 && hoursSinceLastRun >= 168;
+    // Check hour
+    if (schedule.hour !== undefined) {
+      if (schedule.hour === '*') {
+        // Runs every hour - always true
+      } else if (typeof schedule.hour === 'string' && schedule.hour.startsWith('*/')) {
+        // Interval schedule
+        const interval = parseInt(schedule.hour.substring(2));
+        if (currentHour % interval !== 0) return false;
+      } else if (schedule.hour !== currentHour) {
+        return false;
+      }
     }
 
-    return false;
+    // Check day of week
+    if (schedule.dayOfWeek !== undefined && schedule.dayOfWeek !== '*') {
+      if (schedule.dayOfWeek !== currentDayOfWeek) return false;
+    }
+
+    return true;
+  }
+
+  async runOnce(jobName?: string) {
+    if (jobName) {
+      const jobSchedule = this.jobs.find(
+        (js) => js.job.name.toLowerCase() === jobName.toLowerCase()
+      );
+
+      if (!jobSchedule) {
+        console.error(`❌ Job not found: ${jobName}`);
+        console.log('\nAvailable jobs:');
+        this.jobs.forEach((js) => console.log(`  - ${js.job.name}`));
+        return;
+      }
+
+      console.log(`🚀 Running ${jobSchedule.job.name}...`);
+      const result = await jobSchedule.job.execute({ dryRun: false, verbose: true });
+      console.log(result.success ? '✅ Success' : '❌ Failed');
+      console.log(`Message: ${result.message}`);
+    } else {
+      // Run all jobs once
+      console.log('🚀 Running all jobs once...\n');
+
+      for (const { job } of this.jobs) {
+        console.log(`\n⏰ Running ${job.name}...`);
+
+        try {
+          const result = await job.execute({ dryRun: false, verbose: false });
+          console.log(result.success ? '✅ Success' : '❌ Failed');
+          console.log(`Message: ${result.message}`);
+        } catch (error) {
+          console.error(`❌ Error:`, error);
+        }
+      }
+    }
   }
 }
 
 // CLI execution
 if (process.argv[1] === import.meta.url.replace('file://', '')) {
   const runner = new JobRunner();
+
   const command = process.argv[2];
 
-  const options: JobOptions = {
-    dryRun: process.argv.includes('--dry-run'),
-    verbose: process.argv.includes('--verbose'),
-  };
-
-  switch (command) {
-    case 'run-due':
-      await runner.runDueJobs(options);
-      break;
-    case 'list':
-      runner.listJobs();
-      break;
-    case 'run': {
-      const jobName = process.argv[3];
-      if (!jobName) {
-        console.error('Please specify a job name');
-        process.exit(1);
-      }
-      await runner.runJob(jobName, options);
-      break;
-    }
-    default:
-      console.log('Usage:');
-      console.log('  bun run scripts/jobs/runner.ts run-due [--dry-run] [--verbose]');
-      console.log('  bun run scripts/jobs/runner.ts list');
-      console.log('  bun run scripts/jobs/runner.ts run <job-name> [--dry-run] [--verbose]');
+  if (command === 'once') {
+    // Run all jobs once
+    await runner.runOnce(process.argv[3]);
+  } else {
+    // Start the continuous runner
+    await runner.start();
   }
 }

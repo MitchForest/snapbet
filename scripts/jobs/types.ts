@@ -25,6 +25,14 @@ export interface JobOptions {
 export abstract class BaseJob {
   constructor(protected config: JobConfig) {}
 
+  get name(): string {
+    return this.config.name;
+  }
+
+  protected log(message: string): void {
+    console.log(`  ${message}`);
+  }
+
   async execute(options: JobOptions = {}): Promise<JobResult> {
     const start = Date.now();
     console.log(`🚀 Starting job: ${this.config.name}`);
