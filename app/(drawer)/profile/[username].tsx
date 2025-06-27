@@ -93,7 +93,7 @@ function ProfileScreenContent() {
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('id, username, display_name, avatar_url, bio, favorite_team, is_private')
-        .eq('username', username.toLowerCase())
+        .eq('username', username)
         .single();
 
       if (userError || !userData || !userData.username) {

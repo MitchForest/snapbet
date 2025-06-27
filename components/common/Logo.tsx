@@ -26,7 +26,7 @@ export function Logo({ size = 40, variant = 'full' }: LogoProps) {
     );
   }
 
-  // Full variant - "Snap Bet" text
+  // Full variant - "Snapbet" text
   return (
     <View justifyContent="center" alignItems="center">
       <Text
@@ -36,7 +36,7 @@ export function Logo({ size = 40, variant = 'full' }: LogoProps) {
         letterSpacing={-2}
         textAlign="center"
       >
-        Snap Bet
+        Snapbet
       </Text>
     </View>
   );

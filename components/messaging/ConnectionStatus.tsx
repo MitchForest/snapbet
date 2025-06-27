@@ -53,9 +53,8 @@ export function ConnectionStatus() {
     <Animated.View
       style={[
         containerStyle,
-        animatedStyle,
         {
-          height: fadeAnim,
+          opacity: fadeAnim,
         },
       ]}
     >

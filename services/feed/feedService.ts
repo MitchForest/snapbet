@@ -70,7 +70,7 @@ export class FeedService {
           created_at,
           expires_at,
           deleted_at,
-          user:users!user_id (
+          user:user_id (
             id,
             username,
             avatar_url,

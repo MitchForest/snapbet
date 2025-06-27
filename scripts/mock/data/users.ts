@@ -14,7 +14,8 @@ export interface MockUser {
 // Generate consistent avatar URL based on username
 const getAvatarUrl = (username: string): string => {
   // Using dicebear API with lorelei style for consistent, attractive avatars
-  return `https://api.dicebear.com/7.x/lorelei/svg?seed=${username}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+  // Requesting PNG instead of SVG for React Native compatibility
+  return `https://api.dicebear.com/7.x/lorelei/png?seed=${username}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
 };
 
 export const MOCK_USERS: MockUser[] = [

@@ -1,32 +1,25 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, Text, Pressable } from 'react-native';
-import { EngagementButton } from './EngagementButton';
+import { EngagementPill } from './EngagementPill';
 import { TailFadeSheet } from '@/components/betting/TailFadeSheet';
 import { WhoTailedModal } from '@/components/betting/WhoTailedModal';
 import { useUserPickAction, usePickActionCounts } from '@/hooks/useTailFade';
 import { Colors } from '@/theme';
 import { PostWithType } from '@/types/content';
 import { Bet } from '@/services/betting/types';
-import { Game } from '@/types/database';
 
 interface TailFadeButtonsProps {
   post: PostWithType;
   bet: Bet;
-  game: Game;
   onTailFadePress?: () => void;
 }
 
-export function TailFadeButtons({ post, bet, game, onTailFadePress }: TailFadeButtonsProps) {
+export function TailFadeButtons({ post, bet, onTailFadePress }: TailFadeButtonsProps) {
   const [sheetAction, setSheetAction] = useState<'tail' | 'fade' | null>(null);
   const [showWhoModal, setShowWhoModal] = useState(false);
 
   const { data: userAction } = useUserPickAction(post.id);
   const { data: counts } = usePickActionCounts(post.id);
-
-  // Check if game has started
-  const isExpired = useMemo(() => {
-    return new Date(game.commence_time) <= new Date();
-  }, [game.commence_time]);
 
   const handleTail = () => {
     if (onTailFadePress) onTailFadePress();
@@ -47,27 +40,21 @@ export function TailFadeButtons({ post, bet, game, onTailFadePress }: TailFadeBu
   return (
     <>
       <View style={styles.container}>
-        <EngagementButton
+        <EngagementPill
           icon="👍"
-          label="Tail"
           count={counts?.tailCount || 0}
           onPress={handleTail}
           isActive={userAction?.action_type === 'tail'}
           activeColor={Colors.primary}
-          disabled={isExpired || userAction !== null}
-          size="large"
           style={styles.button}
         />
 
-        <EngagementButton
+        <EngagementPill
           icon="👎"
-          label="Fade"
           count={counts?.fadeCount || 0}
           onPress={handleFade}
           isActive={userAction?.action_type === 'fade'}
           activeColor={Colors.error}
-          disabled={isExpired || userAction !== null}
-          size="large"
           style={styles.button}
         />
 
@@ -115,8 +102,6 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: Colors.border.light,
   },
   totalCount: {
     justifyContent: 'center',

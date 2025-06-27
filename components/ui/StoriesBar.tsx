@@ -113,7 +113,7 @@ export const StoriesBar: React.FC = () => {
                   <Avatar
                     size={64}
                     src={story.avatar}
-                    fallback={story.username[0]?.toUpperCase()}
+                    fallback={story.username?.[0]?.toUpperCase() || '?'}
                   />
                   {story.isLive && (
                     <View
@@ -141,7 +141,7 @@ export const StoriesBar: React.FC = () => {
                   width={64}
                   textAlign="center"
                 >
-                  {story.username}
+                  @{story.username}
                 </Text>
               </View>
             </Pressable>

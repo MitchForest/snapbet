@@ -271,8 +271,8 @@ export const Colors = {
   // Status colors
   error: '#EF4444', // Red for errors
   success: '#10B981', // Same as primary for consistency
-  warning: '#F59E0B', // Amber for warnings
-  info: '#3B82F6', // Blue for info
+  warning: '#FBBF24', // Amber for warnings
+  info: '#60A5FA', // Blue for informational messages
 
   // Action colors (for betting)
   tail: '#3B82F6', // Bright blue for tail
@@ -288,7 +288,7 @@ export const Colors = {
   // Utility colors
   overlay: 'rgba(0,0,0,0.5)', // Semi-transparent overlay
   shadow: 'rgba(0, 0, 0, 0.5)', // Shadow color
-  transparent: 'transparent', // Transparent
+  transparent: 'transparent',
 
   // Camera-specific colors
   camera: {

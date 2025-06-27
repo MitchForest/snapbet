@@ -111,9 +111,8 @@ export default function NotificationSettingsScreen() {
           )}
 
           <View marginTop="$6">
-            <Text fontSize="$3" color="$gray11" lineHeight="$4">
-              You can manage notification permissions for SnapBet in your device&apos;s Settings
-              app.
+            <Text fontSize="$3" color="$textSecondary" textAlign="center">
+              You can manage notification permissions for Snapbet in your device&apos;s Settings
             </Text>
           </View>
         </View>

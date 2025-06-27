@@ -11,6 +11,7 @@ import { FeedSkeleton } from '@/components/feed/FeedSkeleton';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Colors } from '@/theme';
 import { useAuthStore } from '@/stores/authStore';
+import { feedService } from '@/services/feed/feedService';
 
 const ESTIMATED_POST_HEIGHT = 600; // Updated for square media + header + engagement
 
@@ -24,6 +25,12 @@ function HomeScreenContent() {
     postsLength: posts.length,
     refreshing,
   });
+
+  // Clear cache on first mount to ensure fresh data after fixes
+  React.useEffect(() => {
+    console.log('Clearing feed cache to ensure fresh data...');
+    feedService.clearCache();
+  }, []);
 
   const renderPost = useCallback(
     ({ item }: { item: PostWithType }) => <MemoizedPostCard post={item} />,

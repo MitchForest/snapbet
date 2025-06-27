@@ -131,25 +131,15 @@ export function BaseSheet({
     return null;
   }
 
-  const SheetContent = (
-    <Animated.View
-      style={[
-        styles.sheet,
-        {
-          height: sheetHeight,
-          transform: [{ translateY }],
-          paddingBottom: insets.bottom,
-        },
-      ]}
-      {...panResponder.panHandlers}
-    >
+  const content = (
+    <>
       {showDragIndicator && (
-        <View style={styles.dragIndicatorContainer}>
+        <View style={styles.dragIndicatorContainer} {...panResponder.panHandlers}>
           <View style={styles.dragIndicator} />
         </View>
       )}
       {children}
-    </Animated.View>
+    </>
   );
 
   return (
@@ -171,17 +161,26 @@ export function BaseSheet({
       </Animated.View>
 
       {/* Sheet */}
-      {keyboardAvoidingEnabled ? (
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'position' : undefined}
-          style={StyleSheet.absoluteFillObject}
-          pointerEvents="box-none"
-        >
-          {SheetContent}
-        </KeyboardAvoidingView>
-      ) : (
-        SheetContent
-      )}
+      <Animated.View
+        style={[
+          styles.sheet,
+          {
+            height: sheetHeight,
+            transform: [{ translateY }],
+          },
+        ]}
+      >
+        {keyboardAvoidingEnabled ? (
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={[styles.contentContainer, { paddingBottom: insets.bottom }]}
+          >
+            {content}
+          </KeyboardAvoidingView>
+        ) : (
+          <View style={[styles.contentContainer, { paddingBottom: insets.bottom }]}>{content}</View>
+        )}
+      </Animated.View>
     </View>
   );
 }
@@ -212,6 +211,9 @@ const styles = StyleSheet.create({
         elevation: 20,
       },
     }),
+  },
+  contentContainer: {
+    flex: 1,
   },
   dragIndicatorContainer: {
     alignItems: 'center',

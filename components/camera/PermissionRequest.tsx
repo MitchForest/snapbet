@@ -57,21 +57,21 @@ export function PermissionRequest({
           icon: '📷',
           title: 'Camera Permission Required',
           description:
-            'Allow SnapBet to access your camera to take photos and videos for your posts and stories.',
+            'Allow Snapbet to access your camera to take photos and videos for your posts and stories.',
         };
       case 'mediaLibrary':
         return {
           icon: '🖼️',
           title: 'Photo Library Permission Required',
           description:
-            'Allow SnapBet to access your photos to share existing media in posts and stories.',
+            'Allow Snapbet to access your photos to share existing media in posts and stories.',
         };
       case 'both':
         return {
           icon: '📸',
           title: 'Camera & Photos Permission Required',
           description:
-            'Allow SnapBet to access your camera and photos to create and share content.',
+            'Allow Snapbet to access your camera and photos to create and share content.',
         };
     }
   };

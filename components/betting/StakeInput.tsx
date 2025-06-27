@@ -49,7 +49,7 @@ export function StakeInput({ value, onChange, quickAmounts, maxAmount }: StakeIn
   };
 
   return (
-    <View marginBottom={20}>
+    <View>
       <Text fontSize={14} color={Colors.text.secondary} marginBottom={8}>
         Bet Amount
       </Text>
@@ -126,8 +126,8 @@ function formatCentsToDisplay(cents: number): string {
 const styles = StyleSheet.create({
   quickButton: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     borderRadius: 8,
     backgroundColor: Colors.surface,
     borderWidth: 1,
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: 8,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderWidth: 1,
     borderColor: Colors.border.default,
   },

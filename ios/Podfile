@@ -60,5 +60,25 @@ target 'snapbet' do
         end
       end
     end
+    
+    # Fix warnings
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        # Fix expo-media-library header warnings
+        if target.name == "expo-media-library"
+          config.build_settings['WARNING_CFLAGS'] ||= []
+          config.build_settings['WARNING_CFLAGS'] << '-Wno-extra-tokens'
+          config.build_settings['WARNING_CFLAGS'] << '-Wno-c99-extensions'
+        end
+        
+        # Remove duplicate -lc++ flags
+        if config.build_settings['OTHER_LDFLAGS']
+          flags = config.build_settings['OTHER_LDFLAGS']
+          if flags.is_a?(Array)
+            config.build_settings['OTHER_LDFLAGS'] = flags.uniq
+          end
+        end
+      end
+    end
   end
 end

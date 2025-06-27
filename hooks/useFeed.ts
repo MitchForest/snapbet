@@ -176,7 +176,7 @@ export function useFeed() {
                 .select(
                   `
                   *,
-                  user:users!user_id (
+                  user:user_id (
                     id,
                     username,
                     avatar_url,

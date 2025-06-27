@@ -13,8 +13,8 @@ export function EmptyFeed() {
   return (
     <View style={styles.container}>
       <Text style={styles.emoji}>👋</Text>
-      <Text style={styles.title}>Welcome to SnapBet!</Text>
-      <Text style={styles.subtitle}>Your feed is empty</Text>
+      <Text style={styles.title}>Welcome to Snapbet!</Text>
+      <Text style={styles.subtitle}>Follow users to see their picks and content</Text>
       <Text style={styles.description}>
         Follow other bettors to see their picks and content in your feed
       </Text>

@@ -9,8 +9,11 @@ export default function HowToPlayScreen() {
     <View flex={1} backgroundColor={Colors.background}>
       <ScreenHeader title="How to Play" />
 
-      <ScrollView>
-        <View padding="$4" gap="$4">
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View paddingHorizontal="$4" paddingVertical="$6">
+          <Text fontSize="$8" fontWeight="bold" color="$textPrimary" marginBottom="$2">
+            Welcome to Snapbet!
+          </Text>
           <View backgroundColor="$surface" padding="$4" borderRadius="$3">
             <Text fontSize={24} fontWeight="bold" color="$textPrimary" marginBottom="$3">
               Welcome to SnapBet!

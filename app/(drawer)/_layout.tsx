@@ -32,7 +32,7 @@ export default function DrawerLayout() {
         name="(tabs)"
         options={{
           drawerLabel: 'Home',
-          title: 'SnapBet',
+          title: 'Snapbet',
         }}
       />
       <Drawer.Screen

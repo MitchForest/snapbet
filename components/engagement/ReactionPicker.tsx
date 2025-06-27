@@ -79,25 +79,41 @@ export function ReactionPicker({ onSelect, currentReaction, style }: ReactionPic
 
   return (
     <View style={[styles.container, style]}>
-      {REACTIONS.map((emoji) => (
-        <ReactionButton
-          key={emoji}
-          emoji={emoji}
-          isSelected={currentReaction === emoji}
-          onPress={() => handleSelect(emoji)}
-        />
-      ))}
+      <View style={styles.row}>
+        {REACTIONS.slice(0, 3).map((emoji) => (
+          <ReactionButton
+            key={emoji}
+            emoji={emoji}
+            isSelected={currentReaction === emoji}
+            onPress={() => handleSelect(emoji)}
+          />
+        ))}
+      </View>
+      <View style={styles.row}>
+        {REACTIONS.slice(3, 6).map((emoji) => (
+          <ReactionButton
+            key={emoji}
+            emoji={emoji}
+            isSelected={currentReaction === emoji}
+            onPress={() => handleSelect(emoji)}
+          />
+        ))}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 8,
   },
   reactionButton: {
     width: 44,

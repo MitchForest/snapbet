@@ -1,4 +1,5 @@
 import { MMKV } from 'react-native-mmkv';
+import { supabase } from '@/services/supabase';
 
 // This declaration is used to inform TypeScript about the existence of a global property
 // that is injected by React Native's JSI environment. This prevents type errors.
@@ -238,6 +239,16 @@ const storageService = {
 
   getLastViewedNotification: () => getAppStorage().getString('last_viewed_notification'),
   setLastViewedNotification: (id: string) => getAppStorage().set('last_viewed_notification', id),
+
+  // --- Supabase Storage Helpers ---
+  getPublicUrl: (path: string | null | undefined): string | null => {
+    if (!path) {
+      return null;
+    }
+    // All public media is stored in the 'media' bucket.
+    const { data } = supabase.storage.from('media').getPublicUrl(path);
+    return data?.publicUrl || null;
+  },
 
   // Media storage paths
   getPostMediaPath: (userId: string, filename: string) => `posts/${userId}/${filename}`,

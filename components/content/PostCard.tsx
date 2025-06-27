@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, Image, Pressable, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Colors, OpacityColors } from '@/theme';
@@ -6,8 +6,6 @@ import { PostWithType, PostType, POST_TYPE_CONFIGS } from '@/types/content';
 import { getTimeUntilExpiration } from '@/utils/content/postTypeHelpers';
 import { Avatar } from '@/components/common/Avatar';
 
-import { EngagementCounts } from '@/components/engagement/display/EngagementCounts';
-import { ReactionDisplay } from '@/components/engagement/display/ReactionDisplay';
 import { ReactionPicker } from '@/components/engagement/ReactionPicker';
 import { CommentSheet } from '@/components/engagement/sheets/CommentSheet';
 import { ReportModal } from '@/components/moderation/ReportModal';
@@ -15,6 +13,9 @@ import { PostOptionsMenu } from '@/components/content/PostOptionsMenu';
 import { useEngagement } from '@/hooks/useEngagement';
 import { toastService } from '@/services/toastService';
 import { TailFadeButtons } from '@/components/engagement/buttons/TailFadeButtons';
+import { useReactions } from '@/hooks/useReactions';
+import { EngagementPill } from '../engagement/buttons/EngagementPill';
+import { ReactionListSheet } from '../engagement/sheets/ReactionListSheet';
 
 interface PostCardProps {
   post: PostWithType;
@@ -40,12 +41,22 @@ export function PostCard({ post, onPress }: PostCardProps) {
   const [showReactions, setShowReactions] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showHiddenContent, setShowHiddenContent] = useState(false);
+  const [showReactionList, setShowReactionList] = useState(false);
 
   // Get engagement data
   const engagement = useEngagement(post.id, post.post_type);
+  const { toggleReaction } = useReactions(post.id);
 
   // Check if post is auto-hidden due to reports
   const isAutoHidden = post.report_count && post.report_count >= 3 && !showHiddenContent;
+
+  // Sort and summarize reactions for stable, summarized display
+  const sortedReactions = useMemo(
+    () => [...engagement.reactions].sort((a, b) => b.count - a.count),
+    [engagement.reactions]
+  );
+  const visibleReactions = sortedReactions.slice(0, 3);
+  const remainingReactionsCount = sortedReactions.length - visibleReactions.length;
 
   const handleMediaPress = () => {
     if (post.media_type === 'video') {
@@ -54,9 +65,17 @@ export function PostCard({ post, onPress }: PostCardProps) {
     onPress?.();
   };
 
-  const handleReactionSelect = (_emoji: string) => {
-    // Reactions are now handled by the ReactionPicker and useReactions hook
+  const handleReactionSelect = async (emoji: string) => {
+    // Toggle the reaction
+    await toggleReaction(emoji);
+    // Close the reaction picker
     setShowReactions(false);
+  };
+
+  const handleProfilePress = () => {
+    if (post.user?.username) {
+      router.push(`/profile/${post.user.username}`);
+    }
   };
 
   return (
@@ -64,14 +83,7 @@ export function PostCard({ post, onPress }: PostCardProps) {
       <Pressable onPress={onPress} style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <Pressable
-            style={styles.userInfo}
-            onPress={() => {
-              if (post.user?.username) {
-                router.push(`/profile/${post.user.username}`);
-              }
-            }}
-          >
+          <Pressable style={styles.userInfo} onPress={handleProfilePress}>
             <Avatar
               size={40}
               src={post.user?.avatar_url || undefined}
@@ -145,18 +157,40 @@ export function PostCard({ post, onPress }: PostCardProps) {
               </View>
             )}
 
-            {/* Reactions Display */}
-            <ReactionDisplay
-              reactions={engagement.reactions}
-              userReaction={engagement.userReaction}
-              postId={post.id}
-            />
+            {/* Engagement Section */}
+            <View style={styles.engagementContainer}>
+              <EngagementPill
+                icon="💬"
+                count={post.comment_count}
+                onPress={() => setShowComments(true)}
+              />
+              <EngagementPill
+                icon="❤️"
+                count={sortedReactions.reduce((sum, r) => sum + r.count, 0)}
+                onPress={() => setShowReactions(!showReactions)}
+              />
+              {visibleReactions.map((reaction) => (
+                <EngagementPill
+                  key={reaction.emoji}
+                  icon={reaction.emoji}
+                  count={reaction.count}
+                  onPress={() => handleReactionSelect(reaction.emoji)}
+                  isActive={engagement.userReaction === reaction.emoji}
+                />
+              ))}
+              {remainingReactionsCount > 0 && (
+                <EngagementPill
+                  icon={`+${remainingReactionsCount}`}
+                  onPress={() => setShowReactionList(true)}
+                />
+              )}
+            </View>
 
             {/* Tail/Fade Buttons for Pick Posts */}
             {post.post_type === PostType.PICK && post.bet_id && (
               <View style={styles.tailFadeContainer}>
                 {post.bet && post.bet.game ? (
-                  <TailFadeButtons post={post} bet={post.bet} game={post.bet.game} />
+                  <TailFadeButtons post={post} bet={post.bet} />
                 ) : (
                   <Text style={styles.tailFadeHint}>Loading bet details...</Text>
                 )}
@@ -170,21 +204,6 @@ export function PostCard({ post, onPress }: PostCardProps) {
                 currentReaction={engagement.userReaction}
               />
             )}
-
-            {/* Engagement Counts */}
-            <EngagementCounts
-              commentCount={post.comment_count}
-              reactionCount={engagement.reactions.reduce((sum, r) => sum + r.count, 0)}
-              tailCount={
-                post.post_type === PostType.PICK ? engagement.animatedCounts.tail : undefined
-              }
-              fadeCount={
-                post.post_type === PostType.PICK ? engagement.animatedCounts.fade : undefined
-              }
-              onCommentPress={() => setShowComments(true)}
-              onReactionPress={() => setShowReactions(!showReactions)}
-              postType={post.post_type}
-            />
           </>
         )}
       </Pressable>
@@ -203,6 +222,13 @@ export function PostCard({ post, onPress }: PostCardProps) {
         contentType="post"
         contentId={post.id}
         contentOwnerName={post.user?.username}
+      />
+
+      {/* Reaction List Sheet */}
+      <ReactionListSheet
+        isVisible={showReactionList}
+        onClose={() => setShowReactionList(false)}
+        reactions={sortedReactions}
       />
     </>
   );
@@ -343,11 +369,19 @@ const styles = StyleSheet.create({
   },
   captionContainer: {
     padding: 12,
+    paddingBottom: 8,
   },
   caption: {
     color: Colors.text.primary,
     fontSize: 14,
     lineHeight: 20,
+  },
+  engagementContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
   },
   tailFadeContainer: {
     padding: 16,

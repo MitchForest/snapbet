@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { View, Text, Stack } from '@tamagui/core';
-import { TouchableOpacity } from 'react-native';
+import { TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors } from '@/theme';
 import { Game } from '@/types/database';
 import { SportBadge } from './SportBadge';
@@ -47,194 +47,146 @@ export const GameCard = memo(
     };
 
     return (
-      <View
-        backgroundColor={Colors.surface}
-        borderRadius={12}
-        padding={16}
-        marginBottom={8}
-        borderWidth={1}
-        borderColor={Colors.border.default}
-      >
+      <View style={styles.container}>
         {/* Header */}
-        <Stack
-          flexDirection="row"
-          justifyContent="space-between"
-          alignItems="center"
-          marginBottom={12}
-        >
+        <View style={styles.header}>
           <Stack flexDirection="row" alignItems="center" gap={8}>
             <SportBadge sport={sport} />
-            <Text color={Colors.text.secondary} fontSize={14}>
-              • {timeString}
-            </Text>
+            <Text style={styles.timeText}>• {timeString}</Text>
           </Stack>
           {isLive && (
-            <View
-              backgroundColor={Colors.error}
-              paddingHorizontal={8}
-              paddingVertical={4}
-              borderRadius={8}
-            >
-              <Text color={Colors.white} fontSize={12} fontWeight="600">
-                LIVE
-              </Text>
+            <View style={styles.liveIndicator}>
+              <Text style={styles.liveText}>LIVE</Text>
             </View>
           )}
-        </Stack>
+        </View>
 
-        {/* Teams and Score */}
-        <Stack
-          flexDirection="row"
-          justifyContent="space-between"
-          alignItems="center"
-          marginBottom={16}
-        >
-          {/* Away Team */}
-          <Stack alignItems="center" flex={1}>
-            <View
-              width={60}
-              height={60}
-              backgroundColor={awayTeam?.primaryColor || Colors.gray[200]}
-              borderRadius={8}
-              justifyContent="center"
-              alignItems="center"
-              marginBottom={8}
-            >
-              <Text color={Colors.white} fontSize={20} fontWeight="700">
-                {awayTeamAbbr}
-              </Text>
+        {/* Table Layout */}
+        {!isFinal ? (
+          <View style={styles.tableContainer}>
+            {/* Table Header */}
+            <View style={styles.tableHeader}>
+              <View style={styles.teamColumn} />
+              <View style={styles.oddsColumn}>
+                <Text style={styles.columnHeader}>Spread</Text>
+              </View>
+              <View style={styles.oddsColumn}>
+                <Text style={styles.columnHeader}>Total</Text>
+              </View>
+              <View style={styles.oddsColumn}>
+                <Text style={styles.columnHeader}>Moneyline</Text>
+              </View>
             </View>
-            <Text color={Colors.text.primary} fontSize={14} fontWeight="600">
-              {awayTeamAbbr}
-            </Text>
-            <Text color={Colors.text.secondary} fontSize={12}>
-              {getTeamRecord(awayTeamAbbr)}
-            </Text>
-          </Stack>
 
-          {/* Score or VS */}
-          <Stack flex={1} alignItems="center">
-            {(isLive || isFinal) && game.home_score !== null && game.away_score !== null ? (
-              <Stack flexDirection="row" alignItems="center" gap={12}>
-                <Text color={Colors.text.primary} fontSize={24} fontWeight="700">
-                  {game.away_score}
-                </Text>
-                <Text color={Colors.text.secondary} fontSize={16}>
-                  -
-                </Text>
-                <Text color={Colors.text.primary} fontSize={24} fontWeight="700">
-                  {game.home_score}
-                </Text>
-              </Stack>
-            ) : (
-              <Text color={Colors.text.secondary} fontSize={16} fontWeight="500">
-                VS
-              </Text>
-            )}
-          </Stack>
-
-          {/* Home Team */}
-          <Stack alignItems="center" flex={1}>
-            <View
-              width={60}
-              height={60}
-              backgroundColor={homeTeam?.primaryColor || Colors.gray[200]}
-              borderRadius={8}
-              justifyContent="center"
-              alignItems="center"
-              marginBottom={8}
-            >
-              <Text color={Colors.white} fontSize={20} fontWeight="700">
-                {homeTeamAbbr}
-              </Text>
+            {/* Away Team Row */}
+            <View style={styles.tableRow}>
+              <View style={styles.teamColumn}>
+                <View style={styles.teamInfo}>
+                  <View
+                    style={[
+                      styles.teamBadge,
+                      { backgroundColor: awayTeam?.primaryColor || Colors.gray[200] },
+                    ]}
+                  >
+                    <Text style={styles.teamBadgeText}>{awayTeamAbbr}</Text>
+                  </View>
+                  <Text style={styles.teamName}>{awayTeamAbbr}</Text>
+                  <Text style={styles.teamRecord}>{getTeamRecord(awayTeamAbbr)}</Text>
+                </View>
+              </View>
+              <View style={styles.oddsColumn}>
+                <TouchableOpacity onPress={handleQuickBet} style={styles.oddsCell}>
+                  <Text style={styles.oddsLine}>
+                    {spread ? formatSpread(spread.line * -1) : '-'}
+                  </Text>
+                  <Text style={styles.oddsValue}>{spread ? formatOdds(spread.away) : '-'}</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.oddsColumn}>
+                <TouchableOpacity onPress={handleQuickBet} style={styles.oddsCell}>
+                  <Text style={styles.oddsLine}>O {total?.line || '-'}</Text>
+                  <Text style={styles.oddsValue}>{total ? formatOdds(total.over) : '-'}</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.oddsColumn}>
+                <TouchableOpacity onPress={handleQuickBet} style={styles.oddsCell}>
+                  <Text style={styles.oddsValue}>
+                    {moneyline ? formatOdds(moneyline.away) : '-'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
-            <Text color={Colors.text.primary} fontSize={14} fontWeight="600">
-              {homeTeamAbbr}
-            </Text>
-            <Text color={Colors.text.secondary} fontSize={12}>
-              {getTeamRecord(homeTeamAbbr)}
-            </Text>
-          </Stack>
-        </Stack>
 
-        {/* Odds */}
-        {odds && !isFinal && (
-          <Stack gap={8} marginBottom={16}>
-            {/* Spread */}
-            {spread && (
-              <Stack flexDirection="row" justifyContent="space-between">
-                <Text color={Colors.text.secondary} fontSize={13}>
-                  Spread:
-                </Text>
-                <Stack flexDirection="row" gap={8}>
-                  <Text color={Colors.text.primary} fontSize={13} fontWeight="500">
-                    {awayTeamAbbr} {formatSpread(spread.line * -1)} ({formatOdds(spread.away)})
+            {/* Home Team Row */}
+            <View style={[styles.tableRow, styles.lastRow]}>
+              <View style={styles.teamColumn}>
+                <View style={styles.teamInfo}>
+                  <View
+                    style={[
+                      styles.teamBadge,
+                      { backgroundColor: homeTeam?.primaryColor || Colors.gray[200] },
+                    ]}
+                  >
+                    <Text style={styles.teamBadgeText}>{homeTeamAbbr}</Text>
+                  </View>
+                  <Text style={styles.teamName}>{homeTeamAbbr}</Text>
+                  <Text style={styles.teamRecord}>{getTeamRecord(homeTeamAbbr)}</Text>
+                </View>
+              </View>
+              <View style={styles.oddsColumn}>
+                <TouchableOpacity onPress={handleQuickBet} style={styles.oddsCell}>
+                  <Text style={styles.oddsLine}>{spread ? formatSpread(spread.line) : '-'}</Text>
+                  <Text style={styles.oddsValue}>{spread ? formatOdds(spread.home) : '-'}</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.oddsColumn}>
+                <TouchableOpacity onPress={handleQuickBet} style={styles.oddsCell}>
+                  <Text style={styles.oddsLine}>U {total?.line || '-'}</Text>
+                  <Text style={styles.oddsValue}>{total ? formatOdds(total.under) : '-'}</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.oddsColumn}>
+                <TouchableOpacity onPress={handleQuickBet} style={styles.oddsCell}>
+                  <Text style={styles.oddsValue}>
+                    {moneyline ? formatOdds(moneyline.home) : '-'}
                   </Text>
-                  <Text color={Colors.text.secondary} fontSize={13}>
-                    |
-                  </Text>
-                  <Text color={Colors.text.primary} fontSize={13} fontWeight="500">
-                    {homeTeamAbbr} {formatSpread(spread.line)} ({formatOdds(spread.home)})
-                  </Text>
-                </Stack>
-              </Stack>
-            )}
-
-            {/* Total */}
-            {total && (
-              <Stack flexDirection="row" justifyContent="space-between">
-                <Text color={Colors.text.secondary} fontSize={13}>
-                  Total:
-                </Text>
-                <Stack flexDirection="row" gap={8}>
-                  <Text color={Colors.text.primary} fontSize={13} fontWeight="500">
-                    O {total.line} ({formatOdds(total.over)})
-                  </Text>
-                  <Text color={Colors.text.secondary} fontSize={13}>
-                    |
-                  </Text>
-                  <Text color={Colors.text.primary} fontSize={13} fontWeight="500">
-                    U {total.line} ({formatOdds(total.under)})
-                  </Text>
-                </Stack>
-              </Stack>
-            )}
-
-            {/* Moneyline */}
-            {moneyline && (
-              <Stack flexDirection="row" justifyContent="space-between">
-                <Text color={Colors.text.secondary} fontSize={13}>
-                  Money:
-                </Text>
-                <Stack flexDirection="row" gap={8}>
-                  <Text color={Colors.text.primary} fontSize={13} fontWeight="500">
-                    {awayTeamAbbr} {formatOdds(moneyline.away)}
-                  </Text>
-                  <Text color={Colors.text.secondary} fontSize={13}>
-                    |
-                  </Text>
-                  <Text color={Colors.text.primary} fontSize={13} fontWeight="500">
-                    {homeTeamAbbr} {formatOdds(moneyline.home)}
-                  </Text>
-                </Stack>
-              </Stack>
-            )}
-          </Stack>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        ) : (
+          // Final Score Display
+          <View style={styles.finalScoreContainer}>
+            <View style={styles.finalTeam}>
+              <View
+                style={[
+                  styles.teamBadge,
+                  { backgroundColor: awayTeam?.primaryColor || Colors.gray[200] },
+                ]}
+              >
+                <Text style={styles.teamBadgeText}>{awayTeamAbbr}</Text>
+              </View>
+              <Text style={styles.finalScore}>{game.away_score}</Text>
+            </View>
+            <Text style={styles.finalDivider}>-</Text>
+            <View style={styles.finalTeam}>
+              <View
+                style={[
+                  styles.teamBadge,
+                  { backgroundColor: homeTeam?.primaryColor || Colors.gray[200] },
+                ]}
+              >
+                <Text style={styles.teamBadgeText}>{homeTeamAbbr}</Text>
+              </View>
+              <Text style={styles.finalScore}>{game.home_score}</Text>
+            </View>
+          </View>
         )}
 
         {/* Quick Bet Button */}
         {!isFinal && (
-          <TouchableOpacity onPress={handleQuickBet}>
-            <View
-              backgroundColor={Colors.primary}
-              paddingVertical={12}
-              borderRadius={8}
-              alignItems="center"
-            >
-              <Text color={Colors.white} fontSize={16} fontWeight="600">
-                Quick Bet →
-              </Text>
-            </View>
+          <TouchableOpacity onPress={handleQuickBet} style={styles.quickBetButton}>
+            <Text style={styles.quickBetText}>Quick Bet →</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -252,6 +204,147 @@ export const GameCard = memo(
 );
 
 GameCard.displayName = 'GameCard';
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: Colors.border.default,
+    overflow: 'hidden',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.light,
+  },
+  timeText: {
+    color: Colors.text.secondary,
+    fontSize: 14,
+  },
+  liveIndicator: {
+    backgroundColor: Colors.error,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  liveText: {
+    color: Colors.white,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  tableContainer: {
+    backgroundColor: Colors.background,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.light,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.light,
+  },
+  lastRow: {
+    borderBottomWidth: 0,
+  },
+  teamColumn: {
+    flex: 1.2,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRightWidth: 1,
+    borderRightColor: Colors.border.light,
+  },
+  teamInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  teamBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  teamBadgeText: {
+    color: Colors.white,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  teamName: {
+    color: Colors.text.primary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  teamRecord: {
+    color: Colors.text.secondary,
+    fontSize: 12,
+    marginLeft: 'auto',
+  },
+  oddsColumn: {
+    flex: 1,
+  },
+  columnHeader: {
+    color: Colors.text.secondary,
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+    paddingVertical: 8,
+  },
+  oddsCell: {
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+  },
+  oddsLine: {
+    color: Colors.text.primary,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  oddsValue: {
+    color: Colors.text.secondary,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  finalScoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 24,
+    gap: 24,
+  },
+  finalTeam: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  finalScore: {
+    color: Colors.text.primary,
+    fontSize: 28,
+    fontWeight: '700',
+  },
+  finalDivider: {
+    color: Colors.text.secondary,
+    fontSize: 20,
+  },
+  quickBetButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  quickBetText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
 
 // Helper functions
 function getTeamAbbreviation(fullName: string): string {

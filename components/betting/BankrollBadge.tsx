@@ -26,15 +26,17 @@ export function BankrollBadge({ onPress }: BankrollBadgeProps) {
   if (isLoading) {
     return (
       <Stack
-        backgroundColor="$gray3"
-        paddingHorizontal="$3"
+        backgroundColor={Colors.surface}
+        paddingHorizontal="$4"
         paddingVertical="$2"
         borderRadius="$4"
         alignItems="center"
-        width={80}
-        height={32}
         justifyContent="center"
         flexDirection="row"
+        borderWidth={1}
+        borderColor={Colors.border.light}
+        minWidth={140}
+        height={36}
       >
         <ActivityIndicator size="small" color={Colors.text.secondary} />
       </Stack>
@@ -44,19 +46,21 @@ export function BankrollBadge({ onPress }: BankrollBadgeProps) {
   return (
     <Pressable onPress={onPress}>
       <Stack
-        backgroundColor="$gray3"
-        paddingHorizontal="$3"
+        backgroundColor={Colors.surface}
+        paddingHorizontal="$4"
         paddingVertical="$2"
         borderRadius="$4"
         alignItems="center"
-        gap="$1"
+        gap="$2"
         flexDirection="row"
+        borderWidth={1}
+        borderColor={Colors.border.light}
       >
-        <Text fontSize="$1" color="$gray11">
-          $
+        <Text fontSize="$3" color={Colors.text.secondary} fontWeight="500">
+          Bankroll:
         </Text>
-        <Text fontSize="$3" fontWeight="bold" color={color}>
-          {formatCentsToDisplay(available)}
+        <Text fontSize="$4" fontWeight="bold" color={color}>
+          ${formatCentsToDisplay(available)}
         </Text>
       </Stack>
     </Pressable>

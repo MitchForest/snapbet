@@ -45,7 +45,7 @@ export const MessagePrivacySettings = () => {
               <Stack flex={1}>
                 <Text fontSize="$4">Everyone</Text>
                 <Text fontSize="$3" color="$gray11">
-                  Anyone on SnapBet can message you
+                  Anyone on Snapbet can message you
                 </Text>
               </Stack>
             </Stack>
