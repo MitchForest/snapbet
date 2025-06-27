@@ -65,27 +65,33 @@ export function BetOutcomeOverlay({ bet }: BetOutcomeOverlayProps) {
 
   return (
     <Stack
-      backgroundColor={Colors.black + 'CC'} // 80% opacity - much more visible
-      padding="$2.5"
-      borderRadius="$3"
-      gap="$2"
-      maxWidth={300}
-      alignSelf="center"
+      backgroundColor={Colors.black + 'E6'} // 90% opacity
+      padding="$4"
+      borderRadius="$4"
+      gap="$3"
+      width="100%"
     >
       {/* Header with bet type and result */}
-      <Text color={Colors.gray[400]} fontSize="$2">
+      <Text color={Colors.gray[400]} fontSize="$3" fontWeight="500">
         {betTypeLabel} • {resultText} {resultEmoji}
       </Text>
 
       {/* Profit/Loss amount - main focus */}
-      <Text color={resultColor} fontSize="$6" fontWeight="800">
+      <Text color={resultColor} fontSize="$8" fontWeight="800" lineHeight="$8">
         {resultAmount > 0 ? '+' : resultAmount === 0 ? '' : '-'}${displayAmount}
       </Text>
 
-      {/* Bet details and score on one line */}
-      <Text color={Colors.gray[300]} fontSize="$3">
-        {formatBetSelection()} • {formatScore()}
-      </Text>
+      {/* Bet details and score */}
+      <Stack gap="$1">
+        <Text color={Colors.gray[300]} fontSize="$4">
+          {formatBetSelection()}
+        </Text>
+        {formatScore() && (
+          <Text color={Colors.gray[400]} fontSize="$3">
+            Final: {formatScore()}
+          </Text>
+        )}
+      </Stack>
     </Stack>
   );
 }

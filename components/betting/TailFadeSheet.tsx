@@ -135,7 +135,7 @@ export function TailFadeSheet({
     <BaseSheet
       isVisible={isOpen}
       onClose={onClose}
-      height="50%"
+      height="70%"
       showDragIndicator={true}
       enableSwipeToClose={true}
     >
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    gap: 16,
+    paddingBottom: 40,
   },
   title: {
     fontSize: 24,
@@ -268,6 +268,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     gap: 4,
+    marginTop: 16,
   },
   betDetailsLabel: {
     color: Colors.text.secondary,
@@ -283,6 +284,7 @@ const styles = StyleSheet.create({
   },
   stakeContainer: {
     gap: 8,
+    marginTop: 16,
   },
   stakeLabel: {
     color: Colors.text.secondary,

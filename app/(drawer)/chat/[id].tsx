@@ -8,6 +8,8 @@ import {
   Pressable,
   StyleSheet,
   ViewToken,
+  Alert,
+  AlertButton,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,6 +26,8 @@ import { useChatDetails } from '@/hooks/useChatDetails';
 import { useGroupMembers } from '@/hooks/useGroupMembers';
 import { Message, GroupMember } from '@/types/messaging';
 import { useAuthStore } from '@/stores/authStore';
+import { groupService } from '@/services/messaging/groupService';
+import { blockService } from '@/services/moderation/blockService';
 
 // Mention-enabled message input wrapper
 const MentionMessageInput: React.FC<{
@@ -104,6 +108,9 @@ export default function ChatScreen() {
   // Check if this is a group chat
   const isGroupChat = chat?.chat_type === 'group';
 
+  // Check if current user is admin
+  const isAdmin = members.find((m) => m.user_id === user?.id)?.role === 'admin';
+
   // Handle back navigation
   const handleBack = useCallback(() => {
     router.back();
@@ -112,11 +119,109 @@ export default function ChatScreen() {
   // Handle header action
   const handleHeaderAction = useCallback(() => {
     if (isGroupChat) {
-      router.push(`/group-info/${chatId}`);
+      const options: AlertButton[] = [];
+
+      if (isAdmin) {
+        options.push({
+          text: 'Edit Group Name',
+          onPress: () => {
+            Alert.prompt(
+              'Edit Group Name',
+              'Enter new group name:',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Save',
+                  onPress: async (newName) => {
+                    if (newName?.trim()) {
+                      await groupService.updateGroupDetails(chatId, { name: newName });
+                    }
+                  },
+                },
+              ],
+              'plain-text',
+              chat?.name || ''
+            );
+          },
+        });
+      }
+
+      options.push({
+        text: 'Leave Group',
+        style: 'destructive',
+        onPress: () => {
+          Alert.alert('Leave Group', 'Are you sure you want to leave this group?', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Leave',
+              style: 'destructive',
+              onPress: async () => {
+                const success = await groupService.removeGroupMember(chatId, user?.id || '');
+                if (success) {
+                  router.back();
+                }
+              },
+            },
+          ]);
+        },
+      });
+
+      if (isAdmin) {
+        options.push({
+          text: 'Delete Group',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Delete Group',
+              'Are you sure you want to delete this group? This action cannot be undone.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete',
+                  style: 'destructive',
+                  onPress: async () => {
+                    const success = await groupService.deleteGroup(chatId);
+                    if (success) {
+                      router.back();
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        });
+      }
+
+      options.push({ text: 'Cancel', style: 'cancel' });
+
+      Alert.alert('Group Options', undefined, options);
     } else {
-      // Future: Navigate to chat settings
+      Alert.alert('Chat Options', undefined, [
+        {
+          text: 'Block User',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert('Block User', 'Are you sure you want to block this user?', [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Block',
+                style: 'destructive',
+                onPress: async () => {
+                  if (otherUser?.id) {
+                    const success = await blockService.blockUser(otherUser.id);
+                    if (success) {
+                      router.back();
+                    }
+                  }
+                },
+              },
+            ]);
+          },
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
     }
-  }, [isGroupChat, chatId, router]);
+  }, [isGroupChat, isAdmin, chat, chatId, user?.id, otherUser?.id, router]);
 
   // Handle visible items change for read receipts
   const onViewableItemsChanged = useCallback(

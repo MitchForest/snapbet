@@ -51,7 +51,7 @@ const CONFIG = {
 };
 
 // Allowed emojis based on the constraint
-const ALLOWED_EMOJIS = ['🔥', '💰', '💯', '🎯'];
+const ALLOWED_EMOJIS = ['🔥', '💰', '😂', '😭', '💯', '🎯'];
 
 // Get user by username
 async function getUserByUsername(username: string): Promise<User | null> {
@@ -589,6 +589,98 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
   console.log(
     `  ✅ Created ${hotBettors.length + additionalHotBettors.length} hot bettors, ${fadeGods.length} fade gods, and ${risingStars.length} rising stars`
   );
+
+  // Create outcome posts for some settled bets from followed users
+  console.log('  🎯 Creating outcome posts for settled bets...');
+  const settledBets = bets.filter((b) => b.status === 'won' || b.status === 'lost');
+  const outcomePostsToCreate = 8; // Create 8 outcome posts
+  const selectedBets = settledBets.slice(0, outcomePostsToCreate);
+
+  for (const bet of selectedBets) {
+    const user = mockUsers.find((u) => u.id === bet.user_id);
+    if (!user) continue;
+
+    const game = games.find((g) => g.id === bet.game_id);
+    if (!game) continue;
+
+    const isWin = bet.status === 'won';
+    const personality = getPersonalityFromBehavior(user.mock_personality_id);
+
+    // Choose appropriate template based on win/loss and personality
+    let caption = '';
+    if (isWin) {
+      if (personality === 'sharp-bettor') {
+        caption = `📊 +${bet.actual_win} | ${game.home_team} vs ${game.away_team}\n\nAnother one in the books. Process over results.`;
+      } else if (personality === 'degen') {
+        caption = `LFG!!! 🚀🚀🚀 CASHED +${bet.actual_win}!!!\n\n${game.home_team} vs ${game.away_team} NEVER IN DOUBT!!!`;
+      } else {
+        caption = `✅ Winner! +${bet.actual_win}\n\n${game.home_team} vs ${game.away_team}`;
+      }
+    } else {
+      if (personality === 'sharp-bettor') {
+        caption = `❌ -${bet.stake} | ${game.home_team} vs ${game.away_team}\n\nVariance. On to the next.`;
+      } else if (personality === 'degen') {
+        caption = `Pain. -${bet.stake} 😭\n\n${game.home_team} vs ${game.away_team} absolutely robbed me`;
+      } else {
+        caption = `❌ Loss -${bet.stake}\n\n${game.home_team} vs ${game.away_team}`;
+      }
+    }
+
+    const outcomePost: Post = {
+      id: crypto.randomUUID(),
+      user_id: user.id,
+      caption,
+      created_at: new Date(new Date(bet.settled_at!).getTime() + 10 * 60 * 1000).toISOString(), // 10 mins after settlement
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      media_type: 'photo',
+      media_url: isWin ? mockMediaUrls.celebration[0] : mockMediaUrls.reaction[0],
+      post_type: 'outcome',
+      settled_bet_id: bet.id,
+    };
+
+    posts.push(outcomePost);
+
+    // Add some reactions to outcome posts
+    const reactionCount = Math.floor(Math.random() * 5) + 3;
+    const reactingUsers = mockUsers
+      .filter((u) => u.id !== user.id)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, reactionCount);
+
+    for (const reactor of reactingUsers) {
+      reactions.push({
+        post_id: outcomePost.id!,
+        user_id: reactor.id,
+        emoji: isWin ? '🔥' : '😭',
+      });
+    }
+  }
+
+  // Re-insert posts with outcome posts included
+  await supabase
+    .from('posts')
+    .delete()
+    .in(
+      'id',
+      posts.map((p) => p.id!)
+    );
+  const { error: finalPostError } = await supabase.from('posts').insert(posts);
+  if (finalPostError) console.error('Error creating posts with outcomes:', finalPostError);
+  else
+    console.log(
+      `  ✅ Created ${posts.length} total posts including ${outcomePostsToCreate} outcome posts`
+    );
+
+  // Re-insert reactions for outcome posts
+  await supabase
+    .from('reactions')
+    .delete()
+    .in(
+      'post_id',
+      posts.map((p) => p.id!)
+    );
+  const { error: finalReactionError } = await supabase.from('reactions').insert(reactions);
+  if (finalReactionError) console.error('Error creating reactions:', finalReactionError);
 }
 
 // Create group chats and add user
@@ -794,6 +886,7 @@ async function createNotifications(userId: string, mockUsers: MockUser[]) {
       senderId: mockUsers[1].id,
       senderUsername: mockUsers[1].username,
       preview: 'You have 3 new messages in NBA Degens 🏀',
+      title: 'New messages in NBA Degens 🏀',
     },
     created_at: new Date(now - 45 * 60 * 1000).toISOString(),
   });

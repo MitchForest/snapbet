@@ -40,17 +40,11 @@ export function TailFadeButtons({ post, bet, onTailFadePress }: TailFadeButtonsP
     <>
       <View style={styles.container}>
         <Pressable
-          style={[
-            styles.button,
-            styles.tailButton,
-            isTailed && styles.tailButtonActive
-          ]}
+          style={[styles.button, styles.tailButton, isTailed && styles.tailButtonActive]}
           onPress={handleTail}
           disabled={isTailed || isFaded}
         >
-          <Text style={[styles.buttonText, isTailed && styles.activeButtonText]}>
-            TAIL
-          </Text>
+          <Text style={[styles.buttonText, isTailed && styles.activeButtonText]}>TAIL</Text>
           {(counts?.tailCount || 0) > 0 && (
             <Text style={[styles.countText, isTailed && styles.activeButtonText]}>
               {counts?.tailCount}
@@ -59,17 +53,11 @@ export function TailFadeButtons({ post, bet, onTailFadePress }: TailFadeButtonsP
         </Pressable>
 
         <Pressable
-          style={[
-            styles.button,
-            styles.fadeButton,
-            isFaded && styles.fadeButtonActive
-          ]}
+          style={[styles.button, styles.fadeButton, isFaded && styles.fadeButtonActive]}
           onPress={handleFade}
           disabled={isTailed || isFaded}
         >
-          <Text style={[styles.buttonText, isFaded && styles.activeButtonText]}>
-            FADE
-          </Text>
+          <Text style={[styles.buttonText, isFaded && styles.activeButtonText]}>FADE</Text>
           {(counts?.fadeCount || 0) > 0 && (
             <Text style={[styles.countText, isFaded && styles.activeButtonText]}>
               {counts?.fadeCount}
@@ -125,20 +113,20 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tailButton: {
-    borderColor: '#10B981',
+    borderColor: Colors.success,
     backgroundColor: Colors.white,
   },
   tailButtonActive: {
-    backgroundColor: '#10B981',
-    borderColor: '#10B981',
+    backgroundColor: Colors.success,
+    borderColor: Colors.success,
   },
   fadeButton: {
-    borderColor: '#EF4444',
+    borderColor: Colors.error,
     backgroundColor: Colors.white,
   },
   fadeButtonActive: {
-    backgroundColor: '#EF4444',
-    borderColor: '#EF4444',
+    backgroundColor: Colors.error,
+    borderColor: Colors.error,
   },
   buttonText: {
     fontSize: 14,

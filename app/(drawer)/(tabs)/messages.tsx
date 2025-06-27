@@ -1,6 +1,6 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text } from '@tamagui/core';
-import { RefreshControl, Pressable, StyleSheet } from 'react-native';
+import { RefreshControl, Pressable, StyleSheet, Modal } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { useChats } from '@/hooks/useChats';
@@ -12,9 +12,13 @@ import { ChatSearch } from '@/components/messaging/ChatSearch';
 import { ConnectionStatus } from '@/components/messaging/ConnectionStatus';
 import { ChatWithDetails } from '@/types/messaging';
 import { Colors } from '@/theme';
+import { Ionicons } from '@expo/vector-icons';
+
+const MENU_OVERLAY_COLOR = 'rgba(0, 0, 0, 0.5)';
 
 export default function MessagesScreen() {
   const router = useRouter();
+  const [showNewChatMenu, setShowNewChatMenu] = useState(false);
   const {
     chats,
     isLoading,
@@ -125,25 +129,57 @@ export default function MessagesScreen() {
         ListFooterComponent={!isSearching && chats.length > 0 ? ListFooter : null}
       />
 
-      {/* Floating Action Buttons */}
-      <View position="absolute" bottom={20} right={20} gap="$2">
-        <Pressable onPress={handleCreateGroup} style={styles.fab}>
-          <Text fontSize="$6" color="white">
-            👥
-          </Text>
+      {/* Floating Action Button */}
+      <Pressable onPress={() => setShowNewChatMenu(true)} style={styles.fab}>
+        <Ionicons name="add" size={28} color="white" />
+      </Pressable>
+
+      {/* New Chat Menu */}
+      <Modal
+        visible={showNewChatMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowNewChatMenu(false)}
+      >
+        <Pressable style={styles.menuOverlay} onPress={() => setShowNewChatMenu(false)}>
+          <View style={styles.menuContainer}>
+            <Pressable
+              style={styles.menuOption}
+              onPress={() => {
+                setShowNewChatMenu(false);
+                handleStartChat();
+              }}
+            >
+              <View style={styles.menuIcon}>
+                <Text fontSize={20}>💬</Text>
+              </View>
+              <Text style={styles.menuText}>New Chat</Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.menuOption}
+              onPress={() => {
+                setShowNewChatMenu(false);
+                handleCreateGroup();
+              }}
+            >
+              <View style={styles.menuIcon}>
+                <Text fontSize={20}>👥</Text>
+              </View>
+              <Text style={styles.menuText}>New Group</Text>
+            </Pressable>
+          </View>
         </Pressable>
-        <Pressable onPress={handleStartChat} style={styles.fab}>
-          <Text fontSize="$6" color="white">
-            💬
-          </Text>
-        </Pressable>
-      </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   fab: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -155,5 +191,45 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
+  },
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: MENU_OVERLAY_COLOR,
+    justifyContent: 'flex-end',
+    paddingBottom: 100,
+  },
+  menuContainer: {
+    position: 'absolute',
+    bottom: 100,
+    right: 20,
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    paddingVertical: 8,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  menuOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    minWidth: 150,
+  },
+  menuIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.gray[100],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  menuText: {
+    fontSize: 16,
+    color: Colors.text.primary,
+    fontWeight: '500',
   },
 });

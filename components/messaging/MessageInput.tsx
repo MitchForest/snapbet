@@ -110,23 +110,6 @@ export function MessageInput({ onSendMessage, onTyping, chatExpiration }: Messag
       paddingBottom={Platform.OS === 'ios' ? insets.bottom + 8 : 12}
     >
       <Stack flexDirection="row" alignItems="flex-end" gap="$2">
-        {/* Text input */}
-        <View flex={1} style={styles.inputContainer}>
-          <TextInput
-            ref={inputRef}
-            style={styles.input}
-            value={text}
-            onChangeText={handleTextChange}
-            placeholder="Message..."
-            placeholderTextColor={Colors.text.tertiary}
-            multiline
-            maxLength={1000}
-            onSubmitEditing={handleSend}
-            returnKeyType="send"
-            editable={!isSending}
-          />
-        </View>
-
         {/* Media button - show when no text */}
         {!text.trim() && (
           <Pressable
@@ -145,6 +128,23 @@ export function MessageInput({ onSendMessage, onTyping, chatExpiration }: Messag
             )}
           </Pressable>
         )}
+
+        {/* Text input */}
+        <View flex={1} style={styles.inputContainer}>
+          <TextInput
+            ref={inputRef}
+            style={styles.input}
+            value={text}
+            onChangeText={handleTextChange}
+            placeholder="Message..."
+            placeholderTextColor={Colors.text.tertiary}
+            multiline
+            maxLength={1000}
+            returnKeyType="send"
+            editable={!isSending}
+            blurOnSubmit={false}
+          />
+        </View>
 
         {/* Send button - show when text exists */}
         {text.trim().length > 0 && (

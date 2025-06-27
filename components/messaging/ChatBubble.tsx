@@ -13,6 +13,7 @@ import * as Haptics from 'expo-haptics';
 import { MediaMessageDisplay } from './MediaMessageDisplay';
 import { useMessageReactions } from '@/hooks/useMessageReactions';
 import { MessageActionMenu } from './MessageActionMenu';
+import { router } from 'expo-router';
 
 interface ChatBubbleProps {
   message: Message;
@@ -47,13 +48,19 @@ export function ChatBubble({
     onResend?.();
   };
 
+  const handleAvatarPress = () => {
+    if (message.sender.username) {
+      router.push(`/profile/${message.sender.username}`);
+    }
+  };
+
   // Determine bubble styling based on ownership
   const bubbleStyle = {
     backgroundColor: isOwn ? Colors.primary : Colors.gray[200],
     borderRadius: 18,
     borderBottomRightRadius: isOwn ? 4 : 18,
     borderBottomLeftRadius: isOwn ? 18 : 4,
-    maxWidth: '80%',
+    maxWidth: '100%',
     minWidth: 60,
   };
 
@@ -132,19 +139,26 @@ export function ChatBubble({
 
   return (
     <>
-      <Stack flexDirection={isOwn ? 'row-reverse' : 'row'} gap="$2" alignItems="flex-end">
+      <Stack
+        flexDirection={isOwn ? 'row-reverse' : 'row'}
+        gap="$2"
+        alignItems="flex-end"
+        width="100%"
+      >
         {/* Avatar for other users */}
         {!isOwn && showAvatar && (
-          <Avatar
-            src={message.sender.avatar_url || undefined}
-            username={message.sender.username || undefined}
-            fallback={message.sender.username?.[0]?.toUpperCase() || '?'}
-            size={28}
-          />
+          <Pressable onPress={handleAvatarPress}>
+            <Avatar
+              src={message.sender.avatar_url || undefined}
+              username={message.sender.username || undefined}
+              fallback={message.sender.username?.[0]?.toUpperCase() || '?'}
+              size={28}
+            />
+          </Pressable>
         )}
         {!isOwn && !showAvatar && <View width={28} />}
 
-        <Stack maxWidth="80%">
+        <Stack flex={1} maxWidth="85%">
           {/* Sender name for group chats */}
           {!isOwn && chatType === 'group' && showSenderName && message.sender.username && (
             <Text fontSize="$2" color="$gray11" marginBottom="$1" marginLeft="$3" fontWeight="500">

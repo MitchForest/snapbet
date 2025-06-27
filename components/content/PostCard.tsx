@@ -8,12 +8,12 @@ import { getTimeUntilExpiration } from '@/utils/content/postTypeHelpers';
 import { Avatar } from '@/components/common/Avatar';
 import { BetPickOverlay } from '@/components/overlays/BetPickOverlay';
 import { BetOutcomeOverlay } from '@/components/overlays/BetOutcomeOverlay';
+import { TailFadeSheet } from '@/components/betting/TailFadeSheet';
 
 import { CommentSheet } from '@/components/engagement/sheets/CommentSheet';
 import { ReportModal } from '@/components/moderation/ReportModal';
 import { PostOptionsMenu } from '@/components/content/PostOptionsMenu';
 import { toastService } from '@/services/toastService';
-import { TailFadeButtons } from '@/components/engagement/buttons/TailFadeButtons';
 import { useReactions } from '@/hooks/useReactions';
 import { EngagementPill } from '../engagement/buttons/EngagementPill';
 import { AVAILABLE_REACTIONS } from '@/utils/constants/reactions';
@@ -41,6 +41,7 @@ export function PostCard({ post, onPress }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showHiddenContent, setShowHiddenContent] = useState(false);
+  const [tailFadeAction, setTailFadeAction] = useState<'tail' | 'fade' | null>(null);
 
   // Get engagement data including reactions
   const { reactions, userReactions, toggleReaction } = useReactions(post.id);
@@ -81,6 +82,14 @@ export function PostCard({ post, onPress }: PostCardProps) {
     if (post.user?.username) {
       router.push(`/profile/${post.user.username}`);
     }
+  };
+
+  const handleTail = () => {
+    setTailFadeAction('tail');
+  };
+
+  const handleFade = () => {
+    setTailFadeAction('fade');
   };
 
   return (
@@ -148,7 +157,7 @@ export function PostCard({ post, onPress }: PostCardProps) {
               {/* Bet Overlays */}
               {post.post_type === PostType.PICK && post.bet && (
                 <View style={styles.overlayContainer}>
-                  <BetPickOverlay bet={post.bet} />
+                  <BetPickOverlay bet={post.bet} onTail={handleTail} onFade={handleFade} />
                 </View>
               )}
 
@@ -186,17 +195,6 @@ export function PostCard({ post, onPress }: PostCardProps) {
                 />
               ))}
             </View>
-
-            {/* Tail/Fade Buttons for Pick Posts */}
-            {post.post_type === PostType.PICK && post.bet_id && (
-              <View style={styles.tailFadeContainer}>
-                {post.bet && post.bet.game ? (
-                  <TailFadeButtons post={post} bet={post.bet} />
-                ) : (
-                  <Text style={styles.tailFadeHint}>Loading bet details...</Text>
-                )}
-              </View>
-            )}
           </>
         )}
       </Pressable>
@@ -217,6 +215,26 @@ export function PostCard({ post, onPress }: PostCardProps) {
           contentType="post"
           contentId={post.id}
           contentOwnerName={post.user?.username}
+        />
+      )}
+
+      {/* Tail/Fade Sheet for Pick Posts */}
+      {post.post_type === PostType.PICK && post.bet && (
+        <TailFadeSheet
+          isOpen={tailFadeAction !== null}
+          onClose={() => setTailFadeAction(null)}
+          action={tailFadeAction}
+          originalBet={post.bet}
+          originalPost={post}
+          originalUser={
+            post.user
+              ? {
+                  username: post.user.username || '',
+                  display_name:
+                    ((post.user as Record<string, unknown>).display_name as string | null) || null,
+                }
+              : null
+          }
         />
       )}
     </>
@@ -358,14 +376,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     justifyContent: 'space-between',
-  },
-  tailFadeContainer: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  tailFadeHint: {
-    color: Colors.text.secondary,
-    fontSize: 14,
-    fontStyle: 'italic',
   },
 });
