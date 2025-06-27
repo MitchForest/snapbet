@@ -7,6 +7,7 @@ import { followService } from '@/services/social/followService';
 import { FollowRequestButton } from './FollowRequestButton';
 import { useReferralRewards } from '@/hooks/useReferralRewards';
 import { Colors } from '@/theme';
+import { router } from 'expo-router';
 
 interface ProfileUser {
   id: string;
@@ -57,15 +58,15 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   onEditProfile,
   onBlock,
 }) => {
-  // Calculate stats
+  // Calculate stats - Updated to remove decimals
   const winRate = stats
-    ? ((stats.win_count / (stats.win_count + stats.loss_count)) * 100).toFixed(1)
-    : '0.0';
-  const profit = stats ? ((stats.total_won - stats.total_wagered) / 100).toFixed(2) : '0.00';
+    ? Math.round((stats.win_count / (stats.win_count + stats.loss_count)) * 100)
+    : 0;
+  const profit = stats ? Math.round((stats.total_won - stats.total_wagered) / 100) : 0;
   const roi =
     stats && stats.total_wagered > 0
-      ? (((stats.total_won - stats.total_wagered) / stats.total_wagered) * 100).toFixed(1)
-      : '0.0';
+      ? Math.round(((stats.total_won - stats.total_wagered) / stats.total_wagered) * 100)
+      : 0;
 
   // Get follower/following counts with real-time updates
   const [followerCount, setFollowerCount] = React.useState(0);
@@ -114,9 +115,20 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
   return (
     <View paddingHorizontal="$4" paddingVertical="$4" backgroundColor="$surface">
+      {/* More options button in top right */}
+      {!isOwnProfile && onBlock && (
+        <View position="absolute" top="$4" right="$4" zIndex={1}>
+          <Pressable onPress={onBlock} style={styles.moreButton}>
+            <Text fontSize={18} color="$textSecondary">
+              •••
+            </Text>
+          </Pressable>
+        </View>
+      )}
+
       {/* Profile Info Row */}
       <View flexDirection="row" alignItems="center" marginBottom="$3">
-        <Avatar size={80} src={user.avatar_url || undefined} username={user.username} />
+        <Avatar size={80} src={user.avatar_url} username={user.username} />
         <View flex={1} marginLeft="$3">
           <View flexDirection="row" alignItems="center" gap="$2">
             <Text fontSize={24} fontWeight="600" color="$textPrimary">
@@ -153,14 +165,14 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       {/* Referral Bonus Info - only show on own profile */}
       {isOwnProfile && referralCount > 0 && (
         <View
-          backgroundColor="$emerald"
+          backgroundColor="$primary"
           paddingHorizontal="$3"
           paddingVertical="$2"
           borderRadius="$2"
           marginBottom="$3"
           alignSelf="flex-start"
         >
-          <Text fontSize={14} fontWeight="600" color="white">
+          <Text fontSize={14} fontWeight="600" color="$textInverse">
             {referralCount} referrals • +{formattedBonus}/week
           </Text>
         </View>
@@ -169,6 +181,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       {/* Weekly Badges - only show if we have stats access */}
       {showStats && badges.length > 0 && (
         <View marginBottom="$3">
+          {console.log('[ProfileHeader Debug] Rendering badges:', badges)}
           <WeeklyBadgeGrid badges={badges} />
         </View>
       )}
@@ -215,32 +228,34 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </View>
       )}
 
-      {/* Follow Stats Row */}
-      <View flexDirection="row" justifyContent="space-around" marginBottom="$3">
-        <Pressable>
-          <View alignItems="center">
-            <Text fontSize={18} fontWeight="600" color="$textPrimary">
-              {followerCount}
-            </Text>
-            <Text fontSize={12} color="$textSecondary">
-              Followers
-            </Text>
-          </View>
+      {/* Combined Follow Stats and Action Row */}
+      <View
+        flexDirection="row"
+        alignItems="center"
+        justifyContent="space-between"
+        paddingHorizontal="$2"
+      >
+        {/* Followers */}
+        <Pressable onPress={() => router.push('/followers')} style={styles.statsButton}>
+          <Text fontSize={16} fontWeight="600" color="$textPrimary" textAlign="center">
+            {followerCount}
+          </Text>
+          <Text fontSize={12} color="$textSecondary" textAlign="center">
+            Followers
+          </Text>
         </Pressable>
-        <Pressable>
-          <View alignItems="center">
-            <Text fontSize={18} fontWeight="600" color="$textPrimary">
-              {followingCount}
-            </Text>
-            <Text fontSize={12} color="$textSecondary">
-              Following
-            </Text>
-          </View>
-        </Pressable>
-      </View>
 
-      {/* Action Buttons */}
-      <View flexDirection="row" gap="$2">
+        {/* Following */}
+        <Pressable onPress={() => router.push('/following')} style={styles.statsButton}>
+          <Text fontSize={16} fontWeight="600" color="$textPrimary" textAlign="center">
+            {followingCount}
+          </Text>
+          <Text fontSize={12} color="$textSecondary" textAlign="center">
+            Following
+          </Text>
+        </Pressable>
+
+        {/* Action Button */}
         {isOwnProfile ? (
           <Pressable onPress={onEditProfile} style={styles.editProfileButton}>
             <Text fontSize={14} fontWeight="600" color="$textPrimary">
@@ -248,22 +263,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </Text>
           </Pressable>
         ) : (
-          <>
-            <View flex={1}>
-              <FollowRequestButton
-                targetUserId={user.id}
-                isPrivate={isPrivate}
-                onFollowChange={onFollow}
-              />
-            </View>
-            {onBlock && (
-              <Pressable onPress={onBlock} style={styles.moreButton}>
-                <Text fontSize={14} fontWeight="600" color="$textSecondary">
-                  •••
-                </Text>
-              </Pressable>
-            )}
-          </>
+          <FollowRequestButton
+            targetUserId={user.id}
+            isPrivate={isPrivate}
+            onFollowChange={onFollow}
+          />
         )}
       </View>
     </View>
@@ -272,18 +276,22 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
 const styles = StyleSheet.create({
   editProfileButton: {
-    flex: 1,
     backgroundColor: Colors.surface,
     paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+  },
+  moreButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
     borderRadius: 8,
     alignItems: 'center',
   },
-  moreButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.border.light,
+  statsButton: {
     alignItems: 'center',
+    minWidth: 70,
   },
 });

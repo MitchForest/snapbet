@@ -96,105 +96,173 @@ export async function searchUsers(query: string): Promise<UserWithStats[]> {
 export async function getHotBettors(limit: number = 10): Promise<UserWithStats[]> {
   try {
     const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+    console.log('[getHotBettors] Week start:', weekStart.toISOString());
 
-    // Get users with bets settled this week
-    const { data, error } = await supabase
-      .from('users')
+    // First, get all settled bets from this week with user info
+    const { data: betsData, error: betsError } = await supabase
+      .from('bets')
       .select(
         `
         id,
-        username,
-        display_name,
-        avatar_url,
-        bio,
-        favorite_team,
-        created_at,
-        bets!inner (
-          status,
-          settled_at
-        ),
-        bankrolls!inner (
-          win_count,
-          loss_count
+        user_id,
+        status,
+        settled_at,
+        users!inner (
+          id,
+          username,
+          display_name,
+          avatar_url,
+          bio,
+          favorite_team,
+          created_at
         )
       `
       )
-      .gte('bets.settled_at', weekStart.toISOString())
-      .in('bets.status', ['won', 'lost'])
-      .is('deleted_at', null);
+      .gte('settled_at', weekStart.toISOString())
+      .in('status', ['won', 'lost'])
+      .not('settled_at', 'is', null);
 
-    if (error) {
-      console.error('Database error fetching hot bettors:', error);
+    if (betsError) {
+      console.error('[getHotBettors] Error fetching bets:', betsError);
       throw new Error('Failed to fetch hot bettors');
     }
 
-    // Group by user and calculate this week's stats
+    console.log('[getHotBettors] Found', betsData?.length || 0, 'settled bets this week');
+
+    // Working variable for bets data
+    let workingBetsData = betsData;
+
+    // If no bets this week, fall back to last 7 days
+    let fallbackMode = false;
+    if (!workingBetsData || workingBetsData.length === 0) {
+      console.log('[getHotBettors] No bets this week, falling back to last 7 days');
+      fallbackMode = true;
+
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('bets')
+        .select(
+          `
+          id,
+          user_id,
+          status,
+          settled_at,
+          users!inner (
+            id,
+            username,
+            display_name,
+            avatar_url,
+            bio,
+            favorite_team,
+            created_at
+          )
+        `
+        )
+        .gte('settled_at', sevenDaysAgo.toISOString())
+        .in('status', ['won', 'lost'])
+        .not('settled_at', 'is', null);
+
+      if (fallbackError) {
+        console.error('[getHotBettors] Error fetching fallback bets:', fallbackError);
+        return [];
+      }
+
+      if (!fallbackData || fallbackData.length === 0) {
+        console.log('[getHotBettors] No bets in last 7 days either');
+        return [];
+      }
+
+      // Use fallback data
+      workingBetsData = fallbackData;
+    }
+
+    // Group by user and calculate stats
     const userStatsMap = new Map<
       string,
       {
-        id: string;
-        username: string;
-        display_name: string | null;
-        avatar_url: string | null;
-        bio: string | null;
-        favorite_team: string | null;
-        created_at: string;
-        weeklyWins: number;
-        weeklyLosses: number;
-        weeklyBets: number;
+        user: {
+          id: string;
+          username: string | null;
+          display_name: string | null;
+          avatar_url: string | null;
+          bio: string | null;
+          favorite_team: string | null;
+          created_at: string | null;
+        };
+        wins: number;
+        losses: number;
+        totalBets: number;
       }
     >();
 
-    (data || []).forEach((row) => {
-      const userId = row.id;
+    workingBetsData.forEach((bet) => {
+      const userId = bet.user_id;
+
       if (!userStatsMap.has(userId)) {
         userStatsMap.set(userId, {
-          id: row.id,
-          username: row.username || '',
-          display_name: row.display_name,
-          avatar_url: row.avatar_url,
-          bio: row.bio,
-          favorite_team: row.favorite_team,
-          created_at: row.created_at || '',
-          weeklyWins: 0,
-          weeklyLosses: 0,
-          weeklyBets: 0,
+          user: {
+            id: bet.users.id,
+            username: bet.users.username,
+            display_name: bet.users.display_name,
+            avatar_url: bet.users.avatar_url,
+            bio: bet.users.bio,
+            favorite_team: bet.users.favorite_team,
+            created_at: bet.users.created_at || '',
+          },
+          wins: 0,
+          losses: 0,
+          totalBets: 0,
         });
       }
 
-      const user = userStatsMap.get(userId);
-      if (user) {
-        user.weeklyBets++;
-        if (row.bets[0].status === 'won') {
-          user.weeklyWins++;
-        } else {
-          user.weeklyLosses++;
-        }
+      const stats = userStatsMap.get(userId)!;
+      stats.totalBets++;
+      if (bet.status === 'won') {
+        stats.wins++;
+      } else {
+        stats.losses++;
       }
     });
 
-    // Filter and sort
+    console.log('[getHotBettors] Found', userStatsMap.size, 'unique users with bets');
+
+    // Convert to array and filter by minimum bets
+    const minBets = fallbackMode ? 3 : MIN_BETS_FOR_HOT; // Lower threshold for fallback
     const hotBettors = Array.from(userStatsMap.values())
-      .filter((user) => user.weeklyBets >= MIN_BETS_FOR_HOT)
-      .map((user) => ({
-        id: user.id,
-        username: user.username,
-        display_name: user.display_name,
-        avatar_url: user.avatar_url,
-        bio: user.bio,
-        favorite_team: user.favorite_team,
-        created_at: user.created_at,
-        win_count: user.weeklyWins,
-        loss_count: user.weeklyLosses,
-        total_bets: user.weeklyBets,
-        win_rate: user.weeklyWins / user.weeklyBets,
+      .filter((stats) => stats.totalBets >= minBets)
+      .map((stats) => ({
+        id: stats.user.id,
+        username: stats.user.username || '',
+        display_name: stats.user.display_name,
+        avatar_url: stats.user.avatar_url,
+        bio: stats.user.bio,
+        favorite_team: stats.user.favorite_team,
+        created_at: stats.user.created_at || '',
+        win_count: stats.wins,
+        loss_count: stats.losses,
+        total_bets: stats.totalBets,
+        win_rate: stats.totalBets > 0 ? stats.wins / stats.totalBets : 0,
       }))
-      .sort((a, b) => b.win_rate - a.win_rate)
+      .filter((user) => user.win_rate >= 0.6) // At least 60% win rate
+      .sort((a, b) => {
+        // Sort by win rate, then by total bets
+        if (Math.abs(b.win_rate - a.win_rate) > 0.01) {
+          return b.win_rate - a.win_rate;
+        }
+        return b.total_bets - a.total_bets;
+      })
       .slice(0, limit);
 
+    console.log('[getHotBettors] Returning', hotBettors.length, 'hot bettors');
+    console.log(
+      '[getHotBettors] Hot bettors data:',
+      JSON.stringify(hotBettors.slice(0, 2), null, 2)
+    ); // Log first 2 for debugging
     return hotBettors;
   } catch (error) {
-    console.error('Error fetching hot bettors:', error);
+    console.error('[getHotBettors] Error:', error);
     throw error instanceof Error ? error : new Error('Unknown error fetching hot bettors');
   }
 }

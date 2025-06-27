@@ -139,7 +139,7 @@ export const FollowRequestButton: React.FC<FollowRequestButtonProps> = ({
             backgroundColor={Colors.primary}
             paddingHorizontal="$4"
             paddingVertical="$2"
-            borderRadius="$2"
+            borderRadius={20}
             opacity={isLoading ? 0.6 : 1}
           >
             {isLoading ? (
@@ -156,7 +156,7 @@ export const FollowRequestButton: React.FC<FollowRequestButtonProps> = ({
             backgroundColor={Colors.border.default}
             paddingHorizontal="$4"
             paddingVertical="$2"
-            borderRadius="$2"
+            borderRadius={20}
             opacity={isLoading ? 0.6 : 1}
           >
             <Text fontSize={14} fontWeight="600" color="$textPrimary">
@@ -189,10 +189,12 @@ export const FollowRequestButton: React.FC<FollowRequestButtonProps> = ({
     <Pressable onPress={handlePress} disabled={isLoading || isPending}>
       <View
         backgroundColor={buttonBg}
-        paddingHorizontal="$4"
+        paddingHorizontal="$5"
         paddingVertical="$2"
-        borderRadius="$2"
+        borderRadius={20}
         opacity={isLoading || isPending ? 0.6 : 1}
+        borderWidth={isFollowing ? 1 : 0}
+        borderColor={isFollowing ? Colors.border.light : 'transparent'}
       >
         {isLoading ? (
           <ActivityIndicator

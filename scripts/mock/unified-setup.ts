@@ -237,10 +237,16 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
     .filter((u) => ['sharp-bettor', 'live-bettor'].includes(u.mock_personality_id || ''))
     .slice(0, 5);
 
-  // Calculate days since start of week (Monday)
-  const today = new Date();
-  const dayOfWeek = today.getDay();
+  // Calculate current week boundaries
+  const now = new Date();
+  const dayOfWeek = now.getDay();
   const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sunday is 0, so it's 6 days since Monday
+  const mondayStart = new Date(now);
+  mondayStart.setDate(now.getDate() - daysSinceMonday);
+  mondayStart.setHours(0, 0, 0, 0);
+
+  console.log(`  📅 Current week: Monday ${mondayStart.toISOString()} to now ${now.toISOString()}`);
+  console.log(`  📅 Days since Monday: ${daysSinceMonday}`);
 
   for (const hotUser of hotBettors) {
     // Create 5-8 bets settled THIS WEEK with 70%+ win rate
@@ -252,9 +258,14 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
       const isWin = i < winCount;
       const betId = crypto.randomUUID();
 
-      // Ensure bets are settled within current week (0 to daysSinceMonday days ago)
-      const daysAgo = Math.floor(Math.random() * (daysSinceMonday + 1));
-      const hoursAgo = daysAgo * 24 + Math.floor(Math.random() * 24); // Add some hour variation
+      // Ensure bets are settled within current week (since Monday)
+      // Distribute evenly across the days we've had so far this week
+      const maxDaysAgo = Math.min(daysSinceMonday, 6); // Cap at 6 days to stay within week
+      const daysAgo = Math.random() * maxDaysAgo;
+      const hoursAgo = daysAgo * 24 + Math.floor(Math.random() * 12); // Add some hour variation
+
+      const settledAt = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
+      const createdAt = new Date(settledAt.getTime() - 2 * 60 * 60 * 1000); // Created 2 hours before settled
 
       bets.push({
         id: betId,
@@ -270,8 +281,8 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
         potential_win: 1818,
         actual_win: isWin ? 3818 : 0,
         status: isWin ? ('won' as const) : ('lost' as const),
-        settled_at: new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString(),
-        created_at: new Date(Date.now() - (hoursAgo + 1) * 60 * 60 * 1000).toISOString(),
+        settled_at: settledAt.toISOString(),
+        created_at: createdAt.toISOString(),
       });
     }
   }
@@ -293,8 +304,12 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
       const betId = crypto.randomUUID();
 
       // All bets settled within current week
-      const daysAgo = Math.floor(Math.random() * (daysSinceMonday + 1));
-      const hoursAgo = daysAgo * 24 + Math.floor(Math.random() * 12);
+      const maxDaysAgo = Math.min(daysSinceMonday, 6);
+      const daysAgo = Math.random() * maxDaysAgo;
+      const hoursAgo = daysAgo * 24 + Math.floor(Math.random() * 6);
+
+      const settledAt = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
+      const createdAt = new Date(settledAt.getTime() - 3 * 60 * 60 * 1000);
 
       bets.push({
         id: betId,
@@ -307,8 +322,8 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
         potential_win: 1364,
         actual_win: isWin ? 2864 : 0,
         status: isWin ? ('won' as const) : ('lost' as const),
-        settled_at: new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString(),
-        created_at: new Date(Date.now() - (hoursAgo + 2) * 60 * 60 * 1000).toISOString(),
+        settled_at: settledAt.toISOString(),
+        created_at: createdAt.toISOString(),
       });
     }
   }
@@ -389,10 +404,10 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
 
   // Update bankroll stats for all these users
   console.log('  💰 Updating bankroll stats...');
-  
+
   // Get all unique user IDs from bets
-  const uniqueUserIds = [...new Set(bets.map(b => b.user_id))];
-  
+  const uniqueUserIds = [...new Set(bets.map((b) => b.user_id))];
+
   for (const userId of uniqueUserIds) {
     const userBets = bets.filter((b) => b.user_id === userId);
     const wins = userBets.filter((b) => b.status === 'won').length;

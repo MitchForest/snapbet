@@ -122,14 +122,14 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="📄"
             label="Terms of Service"
-            onPress={() => toastService.showComingSoon('Terms of Service')}
+            onPress={() => router.push('/legal/terms')}
             showArrow
           />
 
           <SettingsRow
             icon="🔐"
             label="Privacy Policy"
-            onPress={() => toastService.showComingSoon('Privacy Policy')}
+            onPress={() => router.push('/legal/privacy')}
             showArrow
           />
         </View>

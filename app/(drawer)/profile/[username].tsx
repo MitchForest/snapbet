@@ -18,7 +18,10 @@ import { Colors } from '@/theme';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 
 function ProfileScreenContent() {
-  const { username } = useLocalSearchParams<{ username: string }>();
+  const { username, activeTab: initialTab } = useLocalSearchParams<{
+    username: string;
+    activeTab?: string;
+  }>();
   const currentUser = useAuthStore((state) => state.user);
 
   console.log('ProfileScreen - username param:', username);
@@ -51,7 +54,9 @@ function ProfileScreenContent() {
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [badges, setBadges] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'posts' | 'bets'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'bets'>(
+    initialTab === 'bets' ? 'bets' : 'posts'
+  );
 
   const [canViewContent, setCanViewContent] = useState(false);
   const [privacySettings, setPrivacySettings] = useState<PrivacySettings | null>(null);
@@ -138,8 +143,10 @@ function ProfileScreenContent() {
 
         // Get user badges
         if (bankrollData) {
+          console.log('[Profile Debug] Fetching badges for user:', user.id);
           const { calculateUserBadges } = await import('@/services/badges/badgeService');
           const userBadges = await calculateUserBadges(user.id);
+          console.log('[Profile Debug] Badges received:', userBadges);
           setBadges(userBadges);
         }
       } else {

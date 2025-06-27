@@ -1,85 +1,90 @@
 import React from 'react';
 import { Stack, Text, View } from '@tamagui/core';
 import { Colors } from '@/theme';
-import { PendingShareBet } from '@/types/content';
+import { Bet } from '@/services/betting/types';
+import { Game } from '@/types/database';
 import { formatOdds } from '@/utils/betting/oddsCalculator';
 
 interface BetOutcomeOverlayProps {
-  bet: PendingShareBet;
+  bet: Bet & { game?: Game };
 }
 
 export function BetOutcomeOverlay({ bet }: BetOutcomeOverlayProps) {
+  const game = bet.game;
   const isWin = bet.status === 'won';
   const isPush = bet.status === 'push';
-  const resultColor = isWin ? '#10B981' : isPush ? Colors.gray[500] : '#EF4444';
+  const resultColor = isWin ? '#10B981' : isPush ? '#FFA500' : '#EF4444';
   const resultEmoji = isWin ? '💰' : isPush ? '🤝' : '💸';
 
+  // Parse bet_details JSON
+  const betDetails = bet.bet_details as {
+    team?: string;
+    line?: number;
+    total_type?: 'over' | 'under';
+  };
+
   const formatBetSelection = () => {
-    switch (bet.betType) {
+    switch (bet.bet_type) {
       case 'spread': {
-        const spreadLine = bet.betDetails.line || 0;
-        return `${bet.betDetails.team} ${spreadLine > 0 ? '+' : ''}${spreadLine} (${formatOdds(bet.odds)})`;
+        const line = betDetails.line || 0;
+        return `${betDetails.team} ${line > 0 ? '+' : ''}${line}`;
       }
       case 'total':
-        return `${bet.betDetails.total_type?.toUpperCase()} ${bet.betDetails.line} (${formatOdds(bet.odds)})`;
+        return `${betDetails.total_type?.toUpperCase()} ${betDetails.line}`;
       case 'moneyline':
-        return `${bet.betDetails.team} ML (${formatOdds(bet.odds)})`;
+        return `${betDetails.team}`;
       default:
         return '';
     }
   };
 
   const getResultAmount = () => {
-    if (isPush) return bet.stake;
-    return bet.actualWin || bet.stake;
+    if (isPush) return 0; // Push returns stake, but profit is 0
+    if (isWin && bet.actual_win !== null) {
+      return bet.actual_win; // This is the profit amount
+    }
+    return -bet.stake; // Loss amount
   };
+
+  const resultAmount = getResultAmount();
 
   return (
     <Stack
-      position="absolute"
-      bottom="$4"
-      left="$4"
-      right="$4"
       backgroundColor={Colors.black + 'E6'} // 90% opacity
-      padding="$4"
+      padding="$3"
       borderRadius="$4"
-      borderWidth={3}
+      borderWidth={2}
       borderColor={resultColor}
+      alignItems="center"
     >
-      {/* Result Badge */}
-      <Stack alignItems="center" marginBottom="$3">
-        <View
-          backgroundColor={resultColor}
-          paddingHorizontal="$4"
-          paddingVertical="$2"
-          borderRadius="$3"
-        >
-          <Text color={Colors.white} fontSize="$6" fontWeight="bold">
-            {isWin ? 'WINNER!' : isPush ? 'PUSH' : 'LOSS'} {resultEmoji}
-          </Text>
-        </View>
+      {/* Result Status */}
+      <Stack flexDirection="row" alignItems="center" gap="$2" marginBottom="$2">
+        <Text fontSize="$7" fontWeight="bold" color={resultColor}>
+          {isWin ? 'WINNER' : isPush ? 'PUSH' : 'LOSS'}
+        </Text>
+        <Text fontSize="$6">{resultEmoji}</Text>
       </Stack>
 
-      {/* Profit/Loss */}
+      {/* Profit/Loss Amount */}
       <Text
         color={resultColor}
-        fontSize="$7"
+        fontSize="$8"
         fontWeight="bold"
-        textAlign="center"
         marginBottom="$2"
       >
-        {isWin ? '+' : isPush ? '' : '-'}${(Math.abs(getResultAmount()) / 100).toFixed(2)}
+        {resultAmount > 0 ? '+' : resultAmount === 0 ? '' : ''}$
+        {(Math.abs(resultAmount) / 100).toFixed(2)}
       </Text>
 
-      {/* Bet Details */}
-      <Text color={Colors.gray[400]} fontSize="$3" textAlign="center" marginBottom="$1">
-        {formatBetSelection()}
+      {/* Original Bet Info */}
+      <Text color={Colors.gray[300]} fontSize="$2" marginBottom="$1">
+        {formatBetSelection()} • {formatOdds(bet.odds)}
       </Text>
 
-      {/* Final Score */}
-      {bet.game && bet.game.away_score !== null && bet.game.home_score !== null && (
-        <Text color={Colors.gray[400]} fontSize="$2" textAlign="center">
-          {bet.game.away_team} {bet.game.away_score} - {bet.game.home_team} {bet.game.home_score}
+      {/* Final Score (if available) */}
+      {game && game.away_score !== null && game.home_score !== null && (
+        <Text color={Colors.gray[400]} fontSize="$2">
+          Final: {game.away_team} {game.away_score}, {game.home_team} {game.home_score}
         </Text>
       )}
     </Stack>

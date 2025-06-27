@@ -156,11 +156,11 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
                   backgroundColor="$primary"
                   borderRadius="$round"
                   paddingHorizontal="$2"
-                  paddingVertical="$0.5"
+                  paddingVertical="$1"
                   minWidth={20}
                   alignItems="center"
                 >
-                  <Text fontSize="$2" color="white" fontWeight="600">
+                  <Text fontSize={12} color="white" fontWeight="600">
                     {chat.unread_count > 99 ? '99+' : chat.unread_count}
                   </Text>
                 </View>

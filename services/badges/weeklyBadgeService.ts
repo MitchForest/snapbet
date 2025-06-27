@@ -18,19 +18,33 @@ interface WeeklyStats {
 }
 
 export async function calculateWeeklyBadges(userId: string): Promise<string[]> {
+  console.log('[Badge Debug] Calculating badges for user:', userId);
+
   try {
     // Get user's weekly stats using the database function
     const { data: statsData, error: statsError } = await supabase.rpc('get_user_weekly_stats', {
       p_user_id: userId,
     });
 
+    console.log('[Badge Debug] Stats data:', statsData);
+    console.log('[Badge Debug] Stats error:', statsError);
+
     if (statsError || !statsData || (statsData as WeeklyStats[]).length === 0) {
-      console.error('Error fetching weekly stats:', statsError);
+      console.error('[Badge Debug] Error fetching weekly stats:', statsError);
       return [];
     }
 
     const stats = (statsData as WeeklyStats[])[0];
     const badges: string[] = [];
+
+    console.log('[Badge Debug] User stats:', {
+      current_streak: stats.current_streak,
+      profit: stats.profit,
+      win_rate: stats.win_rate,
+      total_bets: stats.total_bets,
+      total_wagered: stats.total_wagered,
+      picks_posted: stats.picks_posted,
+    });
 
     // 1. Hot Streak - 3+ wins in a row
     if (stats.current_streak >= 3) {
@@ -78,9 +92,10 @@ export async function calculateWeeklyBadges(userId: string): Promise<string[]> {
       badges.push('influencer');
     }
 
+    console.log('[Badge Debug] Calculated badges:', badges);
     return badges;
   } catch (error) {
-    console.error('Error calculating weekly badges:', error);
+    console.error('[Badge Debug] Error in calculateWeeklyBadges:', error);
     return [];
   }
 }
@@ -143,14 +158,19 @@ export async function saveWeeklyBadges(userId: string, badges: string[]): Promis
 }
 
 export async function getUserWeeklyBadges(userId: string): Promise<string[]> {
+  console.log('[Badge Debug] Getting weekly badges for user:', userId);
+
   try {
     // Get current week start
     const { data: weekStartData, error: weekStartError } = await supabase.rpc(
       'get_week_start' as never
     );
 
+    console.log('[Badge Debug] Week start data:', weekStartData);
+    console.log('[Badge Debug] Week start error:', weekStartError);
+
     if (weekStartError || !weekStartData) {
-      console.error('Error getting week start:', weekStartError);
+      console.error('[Badge Debug] Error getting week start:', weekStartError);
       return [];
     }
 
@@ -162,14 +182,20 @@ export async function getUserWeeklyBadges(userId: string): Promise<string[]> {
       .eq('week_start_date', weekStartData as string)
       .is('lost_at', null);
 
+    console.log('[Badge Debug] Retrieved badges:', badges);
+    console.log('[Badge Debug] Badge retrieval error:', error);
+
     if (error) {
-      console.error('Error fetching weekly badges:', error);
+      console.error('[Badge Debug] Error fetching weekly badges:', error);
       return [];
     }
 
-    return badges.map((b) => b.badge_id);
+    const badgeIds = badges.map((b) => b.badge_id);
+    console.log('[Badge Debug] Badge IDs:', badgeIds);
+
+    return badgeIds;
   } catch (error) {
-    console.error('Error getting user weekly badges:', error);
+    console.error('[Badge Debug] Error getting user weekly badges:', error);
     return [];
   }
 }

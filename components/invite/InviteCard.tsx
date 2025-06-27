@@ -54,7 +54,7 @@ export function InviteCard({ referralCode }: InviteCardProps) {
   return (
     <Stack>
       <View
-        backgroundColor="$emerald"
+        backgroundColor="$primary"
         borderRadius="$4"
         padding="$6"
         alignItems="center"
@@ -69,7 +69,7 @@ export function InviteCard({ referralCode }: InviteCardProps) {
           right={-20}
           width={100}
           height={100}
-          backgroundColor="$emeraldLight"
+          backgroundColor="$primaryHover"
           borderRadius={50}
           opacity={0.3}
         />
@@ -79,31 +79,31 @@ export function InviteCard({ referralCode }: InviteCardProps) {
           left={-30}
           width={120}
           height={120}
-          backgroundColor="$emeraldLight"
+          backgroundColor="$primaryHover"
           borderRadius={60}
           opacity={0.2}
         />
 
         {/* Content */}
-        <Text fontSize={20} fontWeight="600" color="white" marginBottom="$2">
+        <Text fontSize={20} fontWeight="600" color="$textInverse" marginBottom="$2">
           Your Invite Code
         </Text>
 
         <Pressable onPress={handleCopyCode}>
           <View
-            backgroundColor="white"
+            backgroundColor="$surface"
             paddingHorizontal="$6"
             paddingVertical="$3"
             borderRadius="$3"
             marginBottom="$4"
           >
-            <Text fontSize={32} fontWeight="700" color="$emerald" letterSpacing={2}>
+            <Text fontSize={32} fontWeight="700" color="$primary" letterSpacing={2}>
               {referralCode}
             </Text>
           </View>
         </Pressable>
 
-        <Text fontSize={14} color="white" opacity={0.9} textAlign="center" marginBottom="$4">
+        <Text fontSize={14} color="$textInverse" opacity={0.9} textAlign="center" marginBottom="$4">
           Tap code to copy
         </Text>
 
@@ -115,7 +115,7 @@ export function InviteCard({ referralCode }: InviteCardProps) {
           })}
         >
           <View
-            backgroundColor="white"
+            backgroundColor="$surface"
             paddingHorizontal="$6"
             paddingVertical="$3"
             borderRadius="$3"
@@ -124,7 +124,7 @@ export function InviteCard({ referralCode }: InviteCardProps) {
             gap="$2"
           >
             <Text fontSize={20}>📤</Text>
-            <Text fontSize={16} fontWeight="600" color="$emerald">
+            <Text fontSize={16} fontWeight="600" color="$primary">
               Share Invite
             </Text>
           </View>

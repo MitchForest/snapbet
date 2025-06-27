@@ -46,7 +46,7 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, label, onPress, badge }) => (
 
 export const DrawerContent: React.FC<DrawerContentComponentProps> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { user, signOut, resetBankroll } = useAuthStore();
+  const { user, signOut } = useAuthStore();
   const { unreadCount } = useNotifications();
   interface UserStats {
     balance: number;
@@ -61,6 +61,7 @@ export const DrawerContent: React.FC<DrawerContentComponentProps> = ({ navigatio
   const [followingCount, setFollowingCount] = useState(0);
   const [followRequestCount, setFollowRequestCount] = useState(0);
   const [username, setUsername] = useState<string>('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -68,15 +69,16 @@ export const DrawerContent: React.FC<DrawerContentComponentProps> = ({ navigatio
     // Fetch user stats and counts
     const fetchUserData = async () => {
       try {
-        // Get user profile with username
+        // Get user profile with username and avatar
         const { data: profile } = await supabase
           .from('users')
-          .select('username')
+          .select('username, avatar_url')
           .eq('id', user.id)
           .single();
 
         if (profile?.username) {
           setUsername(profile.username);
+          setAvatarUrl(profile.avatar_url);
         }
 
         // Get bankroll stats
@@ -135,28 +137,6 @@ export const DrawerContent: React.FC<DrawerContentComponentProps> = ({ navigatio
     };
   }, [user?.id]);
 
-  const handleResetBankroll = () => {
-    Alert.alert(
-      'Reset Bankroll',
-      'Are you sure you want to reset your bankroll? This will clear your betting history and reset to your weekly amount (including referral bonuses).',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reset',
-          style: 'destructive',
-          onPress: async () => {
-            const { error } = await resetBankroll();
-            if (error) {
-              Alert.alert('Error', 'Failed to reset bankroll');
-            } else {
-              Alert.alert('Success', 'Your bankroll has been reset to your weekly amount');
-            }
-          },
-        },
-      ]
-    );
-  };
-
   const handleSignOut = () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
@@ -192,7 +172,7 @@ export const DrawerContent: React.FC<DrawerContentComponentProps> = ({ navigatio
             borderBottomWidth={1}
             borderBottomColor="$divider"
           >
-            <Avatar size={64} />
+            <Avatar size={64} src={avatarUrl} username={username} />
             <Text fontSize={20} fontWeight="600" marginTop="$3" color="$textPrimary">
               @{username}
             </Text>
@@ -264,8 +244,8 @@ export const DrawerContent: React.FC<DrawerContentComponentProps> = ({ navigatio
               icon="📜"
               label="Bet History"
               onPress={() => {
-                // TODO: Navigate to bet history (future sprint)
-                Alert.alert('Coming Soon', 'Bet History will be available in a future update');
+                // Navigate to user's profile on the bets tab
+                navigation.navigate('profile/[username]', { username, activeTab: 'bets' });
                 navigation.closeDrawer();
               }}
             />
@@ -281,7 +261,6 @@ export const DrawerContent: React.FC<DrawerContentComponentProps> = ({ navigatio
                 navigation.closeDrawer();
               }}
             />
-            <MenuItem icon="↻" label="Reset Bankroll" onPress={handleResetBankroll} />
           </View>
 
           {/* Social Section */}

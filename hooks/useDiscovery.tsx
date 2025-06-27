@@ -89,21 +89,28 @@ export function useDiscovery() {
     const cacheKey = CacheUtils.getCacheKey('discovery', 'hot');
     const cached = Storage.general.get<{ data: UserWithStats[]; timestamp: number }>(cacheKey);
 
+    console.log('[useDiscovery] loadHotBettors called');
+    console.log('[useDiscovery] Cache key:', cacheKey);
+    console.log('[useDiscovery] Cached data exists:', !!cached);
+
     if (cached && !CacheUtils.isExpired(cached.timestamp, CACHE_TTL)) {
+      console.log('[useDiscovery] Using cached data with', cached.data.length, 'hot bettors');
       setData((prev) => ({ ...prev, hotBettors: cached.data }));
       setIsLoading((prev) => ({ ...prev, hot: false }));
       return;
     }
 
+    console.log('[useDiscovery] Cache miss or expired, fetching fresh data');
     setIsLoading((prev) => ({ ...prev, hot: true }));
     setErrors((prev) => ({ ...prev, hot: null }));
 
     try {
       const hotBettors = await getHotBettors();
+      console.log('[useDiscovery] Fetched', hotBettors.length, 'hot bettors from API');
       setData((prev) => ({ ...prev, hotBettors }));
       Storage.general.set(cacheKey, { data: hotBettors, timestamp: Date.now() });
     } catch (error) {
-      console.error('Error loading hot bettors:', error);
+      console.error('[useDiscovery] Error loading hot bettors:', error);
       setErrors((prev) => ({
         ...prev,
         hot: error instanceof Error ? error.message : 'Failed to load hot bettors',
@@ -251,6 +258,16 @@ export function useDiscovery() {
     loadRisingStars();
   }, [loadHotBettors, loadTrendingPicks, loadFadeMaterial, loadRisingStars]);
 
+  const refreshHot = useCallback(async () => {
+    // Clear cache to force fresh data
+    const cacheKey = CacheUtils.getCacheKey('discovery', 'hot');
+    Storage.general.delete(cacheKey);
+    console.log('[useDiscovery] Cleared hot bettors cache, forcing refresh');
+
+    // Now load fresh data
+    await loadHotBettors();
+  }, [loadHotBettors]);
+
   return {
     hotBettors: data.hotBettors,
     trendingPicks: data.trendingPicks,
@@ -260,7 +277,7 @@ export function useDiscovery() {
     errors,
     followingStatus,
     updateFollowingStatus,
-    refreshHot: loadHotBettors,
+    refreshHot,
     refreshTrending: loadTrendingPicks,
     refreshFade: loadFadeMaterial,
     refreshRising: loadRisingStars,

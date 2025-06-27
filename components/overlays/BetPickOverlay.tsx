@@ -1,17 +1,27 @@
 import React from 'react';
 import { Stack, Text, View } from '@tamagui/core';
 import { Colors } from '@/theme';
-import { PendingShareBet } from '@/types/content';
+import { Bet } from '@/services/betting/types';
+import { Game } from '@/types/database';
 import { formatOdds } from '@/utils/betting/oddsCalculator';
 
 interface BetPickOverlayProps {
-  bet: PendingShareBet;
+  bet: Bet & { game?: Game };
 }
 
 export function BetPickOverlay({ bet }: BetPickOverlayProps) {
+  const game = bet.game;
+
+  // Parse bet_details JSON
+  const betDetails = bet.bet_details as {
+    team?: string;
+    line?: number;
+    total_type?: 'over' | 'under';
+  };
+
   // Simple team color mapping for MVP
   const getTeamColor = () => {
-    const team = bet.betDetails.team?.toLowerCase() || '';
+    const team = betDetails.team?.toLowerCase() || '';
     if (team.includes('lakers')) return '#552583';
     if (team.includes('celtics')) return '#007A33';
     if (team.includes('warriors')) return '#1D428A';
@@ -24,73 +34,72 @@ export function BetPickOverlay({ bet }: BetPickOverlayProps) {
   const teamColor = getTeamColor();
 
   const formatBetSelection = () => {
-    switch (bet.betType) {
+    switch (bet.bet_type) {
       case 'spread': {
-        const spreadLine = bet.betDetails.line || 0;
-        return `${bet.betDetails.team} ${spreadLine > 0 ? '+' : ''}${spreadLine}`;
+        const line = betDetails.line || 0;
+        return `${betDetails.team} ${line > 0 ? '+' : ''}${line}`;
       }
       case 'total':
-        return `${bet.betDetails.total_type?.toUpperCase()} ${bet.betDetails.line}`;
+        return `${betDetails.total_type?.toUpperCase()} ${betDetails.line}`;
       case 'moneyline':
-        return `${bet.betDetails.team} ML`;
+        return `${betDetails.team} ML`;
       default:
         return '';
     }
   };
 
   const formatGameTime = () => {
-    if (!bet.game) return '';
-    const date = new Date(bet.game.commence_time);
+    if (!game) return '';
+    const date = new Date(game.commence_time);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
     const hours = date.getHours();
     const minutes = date.getMinutes();
     const ampm = hours >= 12 ? 'PM' : 'AM';
     const displayHours = hours % 12 || 12;
-    return `Tonight ${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+    const time = `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+    
+    // Check if game is today, tomorrow, or later
+    if (date.toDateString() === today.toDateString()) {
+      return `Today ${time}`;
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return `Tomorrow ${time}`;
+    } else {
+      return `${date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} ${time}`;
+    }
   };
 
   return (
     <Stack
-      position="absolute"
-      bottom="$4"
-      left="$4"
-      right="$4"
       backgroundColor={Colors.black + 'CC'} // 80% opacity
       padding="$3"
       borderRadius="$4"
       borderWidth={2}
       borderColor={teamColor}
     >
-      {/* Bet Type Badge and Game Time */}
-      <Stack flexDirection="row" justifyContent="space-between" marginBottom="$2">
-        <View
-          backgroundColor={teamColor}
-          paddingHorizontal="$2"
-          paddingVertical="$1"
-          borderRadius="$2"
-        >
-          <Text color={Colors.white} fontSize="$2" fontWeight="bold">
-            {bet.betType.toUpperCase()}
-          </Text>
-        </View>
-        <Text color={Colors.gray[400]} fontSize="$2">
-          {formatGameTime()}
-        </Text>
-      </Stack>
-
-      {/* Bet Selection */}
-      <Text color={Colors.white} fontSize="$5" fontWeight="bold" marginBottom="$1">
+      {/* Bet Selection - Main Focus */}
+      <Text color={Colors.white} fontSize="$5" fontWeight="bold" marginBottom="$2">
         {formatBetSelection()}
       </Text>
 
-      {/* Odds & Stake */}
-      <Stack flexDirection="row" justifyContent="space-between" alignItems="center">
-        <Text color={Colors.gray[400]} fontSize="$3">
+      {/* Odds, Stake & Potential Win */}
+      <Stack flexDirection="row" justifyContent="space-between" alignItems="center" marginBottom="$1">
+        <Text color={Colors.gray[300]} fontSize="$3">
           {formatOdds(bet.odds)} • ${(bet.stake / 100).toFixed(2)}
         </Text>
-        <Text color="#10B981" fontSize="$3">
-          Win ${(bet.potentialWin / 100).toFixed(2)}
+        <Text color="#10B981" fontSize="$3" fontWeight="600">
+          Win ${(bet.potential_win / 100).toFixed(2)}
         </Text>
       </Stack>
+
+      {/* Game Time */}
+      {game && (
+        <Text color={Colors.gray[400]} fontSize="$2" textAlign="center">
+          {formatGameTime()}
+        </Text>
+      )}
     </Stack>
   );
 }

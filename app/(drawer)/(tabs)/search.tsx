@@ -50,6 +50,16 @@ function SearchScreenContent() {
     updateDiscoveryFollowing(userId, isFollowing);
   };
 
+  // Debug logging
+  React.useEffect(() => {
+    console.log('[SearchScreen] Hot bettors:', hotBettors.length);
+    console.log('[SearchScreen] Loading state:', isLoading.hot);
+    console.log('[SearchScreen] Error state:', errors.hot);
+    if (hotBettors.length > 0) {
+      console.log('[SearchScreen] First hot bettor:', hotBettors[0]);
+    }
+  }, [hotBettors, isLoading.hot, errors.hot]);
+
   const renderSearchResults = () => {
     if (searchState === 'searching') {
       return <SearchSkeleton />;

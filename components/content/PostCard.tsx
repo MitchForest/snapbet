@@ -6,6 +6,8 @@ import { Colors, OpacityColors } from '@/theme';
 import { PostWithType, PostType, POST_TYPE_CONFIGS } from '@/types/content';
 import { getTimeUntilExpiration } from '@/utils/content/postTypeHelpers';
 import { Avatar } from '@/components/common/Avatar';
+import { BetPickOverlay } from '@/components/overlays/BetPickOverlay';
+import { BetOutcomeOverlay } from '@/components/overlays/BetOutcomeOverlay';
 
 import { CommentSheet } from '@/components/engagement/sheets/CommentSheet';
 import { ReportModal } from '@/components/moderation/ReportModal';
@@ -143,13 +145,16 @@ export function PostCard({ post, onPress }: PostCardProps) {
                 </View>
               )}
 
-              {/* Placeholder for bet overlays */}
-              {post.post_type !== PostType.CONTENT && (
-                <View style={styles.overlayPlaceholder}>
-                  <Text style={styles.overlayText}>
-                    {post.post_type === PostType.PICK ? '🎯 Pick details' : '🏆 Outcome details'}
-                  </Text>
-                  <Text style={styles.overlayHint}>Coming soon</Text>
+              {/* Bet Overlays */}
+              {post.post_type === PostType.PICK && post.bet && (
+                <View style={styles.overlayContainer}>
+                  <BetPickOverlay bet={post.bet} />
+                </View>
+              )}
+
+              {post.post_type === PostType.OUTCOME && post.settled_bet && (
+                <View style={styles.overlayContainer}>
+                  <BetOutcomeOverlay bet={post.settled_bet} />
                 </View>
               )}
             </Pressable>
@@ -331,25 +336,12 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 20,
   },
-  overlayPlaceholder: {
+  overlayContainer: {
     position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: OpacityColors.overlay.dark,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  overlayText: {
-    color: Colors.white,
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  overlayHint: {
-    color: Colors.gray[300],
-    fontSize: 12,
+    bottom: 16,
+    left: 16,
+    right: 16,
+    zIndex: 10,
   },
   captionContainer: {
     padding: 12,

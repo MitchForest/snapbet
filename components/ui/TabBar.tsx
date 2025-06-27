@@ -64,7 +64,7 @@ export const TabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
               alignItems="center"
               justifyContent="center"
             >
-              <Text fontSize="$1" color="white" fontWeight="600">
+              <Text fontSize={10} color="white" fontWeight="600">
                 {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
               </Text>
             </View>
