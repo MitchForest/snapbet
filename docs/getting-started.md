@@ -99,6 +99,7 @@ bun run start
 
 # Or specific platform
 bun run ios      # iOS Simulator
+bun run ios --device #iOS Device
 bun run android  # Android Emulator
 ```
 

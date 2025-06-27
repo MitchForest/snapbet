@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text } from '@tamagui/core';
-import { Pressable, ScrollView, Alert } from 'react-native';
+import { Pressable, ScrollView, Alert, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DrawerContentComponentProps } from '@react-navigation/drawer';
 import { Avatar } from '@/components/common/Avatar';
@@ -178,7 +178,12 @@ export const DrawerContent: React.FC<DrawerContentComponentProps> = ({ navigatio
 
   return (
     <View flex={1} backgroundColor="$background">
-      <ScrollView>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollViewContent}
+        bounces={true}
+        scrollEnabled={true}
+      >
         <View paddingTop={insets.top + 20}>
           {/* Profile Section */}
           <View
@@ -305,12 +310,22 @@ export const DrawerContent: React.FC<DrawerContentComponentProps> = ({ navigatio
             paddingTop="$3"
             borderTopWidth={1}
             borderTopColor="$divider"
-            paddingBottom={insets.bottom + 20}
+            paddingBottom={20}
           >
             <MenuItem icon="🚪" label="Sign Out" onPress={handleSignOut} />
           </View>
+
+          {/* Extra padding at bottom to ensure scrollability */}
+          <View height={insets.bottom + 40} />
         </View>
       </ScrollView>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  scrollViewContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
+  },
+});

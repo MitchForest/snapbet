@@ -1,6 +1,8 @@
 import React from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { TamaguiProvider } from '@tamagui/core';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { ToastProvider } from '@/components/common/ToastProvider';
@@ -15,15 +17,23 @@ function RootLayoutNav() {
 export default function RootLayout() {
   console.log('RootLayout rendering...');
   return (
-    <ErrorBoundary level="root">
-      <AuthProvider>
-        <TamaguiProvider config={config}>
-          <ToastProvider>
-            <StatusBar style="dark" />
-            <RootLayoutNav />
-          </ToastProvider>
-        </TamaguiProvider>
-      </AuthProvider>
-    </ErrorBoundary>
+    <GestureHandlerRootView style={styles.container}>
+      <ErrorBoundary level="root">
+        <AuthProvider>
+          <TamaguiProvider config={config}>
+            <ToastProvider>
+              <StatusBar style="dark" />
+              <RootLayoutNav />
+            </ToastProvider>
+          </TamaguiProvider>
+        </AuthProvider>
+      </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});

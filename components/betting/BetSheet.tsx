@@ -163,7 +163,7 @@ export function BetSheet({ isVisible, onClose, game }: BetSheetProps) {
     <BaseSheet
       isVisible={isVisible}
       onClose={handleClose}
-      height="90%"
+      height="85%"
       keyboardAvoidingEnabled={true}
       enableSwipeToClose={!isPlacing}
     >
@@ -239,24 +239,75 @@ export function BetSheet({ isVisible, onClose, game }: BetSheetProps) {
 
 // Helper functions
 function getTeamAbbreviation(fullName: string): string {
-  // This is a simplified version - should match GameCard implementation
-  const parts = fullName.split(' ');
+  // Comprehensive mapping for all teams
   const cityMap: Record<string, string> = {
+    // NBA Teams
     'Los Angeles Lakers': 'LAL',
     'Los Angeles Clippers': 'LAC',
     'Boston Celtics': 'BOS',
-    'Golden State Warriors': 'GSW',
-    'Miami Heat': 'MIA',
-    'Milwaukee Bucks': 'MIL',
+    'Brooklyn Nets': 'BKN',
+    'New York Knicks': 'NYK',
     'Philadelphia 76ers': 'PHI',
+    'Toronto Raptors': 'TOR',
+    'Chicago Bulls': 'CHI',
+    'Cleveland Cavaliers': 'CLE',
+    'Detroit Pistons': 'DET',
+    'Indiana Pacers': 'IND',
+    'Milwaukee Bucks': 'MIL',
+    'Atlanta Hawks': 'ATL',
+    'Charlotte Hornets': 'CHA',
+    'Miami Heat': 'MIA',
+    'Orlando Magic': 'ORL',
+    'Washington Wizards': 'WAS',
     'Denver Nuggets': 'DEN',
-    'Kansas City Chiefs': 'KC',
+    'Minnesota Timberwolves': 'MIN',
+    'Oklahoma City Thunder': 'OKC',
+    'Portland Trail Blazers': 'POR',
+    'Utah Jazz': 'UTA',
+    'Golden State Warriors': 'GSW',
+    'Phoenix Suns': 'PHX',
+    'Sacramento Kings': 'SAC',
+    'Dallas Mavericks': 'DAL',
+    'Houston Rockets': 'HOU',
+    'Memphis Grizzlies': 'MEM',
+    'New Orleans Pelicans': 'NOP',
+    'San Antonio Spurs': 'SAS',
+    // NFL Teams
     'Buffalo Bills': 'BUF',
-    'San Francisco 49ers': 'SF',
+    'Miami Dolphins': 'MIA',
+    'New England Patriots': 'NE',
+    'New York Jets': 'NYJ',
+    'Baltimore Ravens': 'BAL',
+    'Cincinnati Bengals': 'CIN',
+    'Cleveland Browns': 'CLE',
+    'Pittsburgh Steelers': 'PIT',
+    'Houston Texans': 'HOU',
+    'Indianapolis Colts': 'IND',
+    'Jacksonville Jaguars': 'JAX',
+    'Tennessee Titans': 'TEN',
+    'Denver Broncos': 'DEN',
+    'Kansas City Chiefs': 'KC',
+    'Las Vegas Raiders': 'LV',
+    'Los Angeles Chargers': 'LAC',
     'Dallas Cowboys': 'DAL',
+    'New York Giants': 'NYG',
+    'Philadelphia Eagles': 'PHI',
+    'Washington Commanders': 'WAS',
+    'Chicago Bears': 'CHI',
+    'Detroit Lions': 'DET',
+    'Green Bay Packers': 'GB',
+    'Minnesota Vikings': 'MIN',
+    'Atlanta Falcons': 'ATL',
+    'Carolina Panthers': 'CAR',
+    'New Orleans Saints': 'NO',
+    'Tampa Bay Buccaneers': 'TB',
+    'Arizona Cardinals': 'ARI',
+    'Los Angeles Rams': 'LAR',
+    'San Francisco 49ers': 'SF',
+    'Seattle Seahawks': 'SEA',
   };
 
-  return cityMap[fullName] || parts[parts.length - 1].substring(0, 3).toUpperCase();
+  return cityMap[fullName] || fullName.substring(0, 3).toUpperCase();
 }
 
 function formatGameTime(date: Date): string {

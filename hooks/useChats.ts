@@ -4,18 +4,13 @@ import { supabase } from '@/services/supabase/client';
 import { chatService } from '@/services/messaging/chatService';
 import { ChatWithDetails } from '@/types/messaging';
 import { useAuth } from '@/hooks/useAuth';
+import { presenceService } from '@/services/realtime/presenceService';
 import * as Haptics from 'expo-haptics';
 
 interface TypingEventPayload {
   chatId: string;
   userId: string;
   isTyping: boolean;
-}
-
-interface PresenceState {
-  [key: string]: {
-    user_id?: string;
-  }[];
 }
 
 export function useChats() {
@@ -25,10 +20,8 @@ export function useChats() {
   const [error, setError] = useState<Error | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [totalUnreadCount, setTotalUnreadCount] = useState(0);
-  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [typingUsers, setTypingUsers] = useState<Map<string, Set<string>>>(new Map());
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const presenceChannelRef = useRef<RealtimeChannel | null>(null);
 
   // Load chats
   const loadChats = useCallback(async () => {
@@ -116,24 +109,6 @@ export function useChats() {
     });
   }, []);
 
-  // Handle presence sync
-  const handlePresenceSync = useCallback(() => {
-    if (!presenceChannelRef.current) return;
-
-    const state = presenceChannelRef.current.presenceState() as PresenceState;
-    const online = new Set<string>();
-
-    Object.values(state).forEach((presences) => {
-      presences.forEach((presence) => {
-        if (presence.user_id) {
-          online.add(presence.user_id);
-        }
-      });
-    });
-
-    setOnlineUsers(online);
-  }, []);
-
   // Set up real-time subscriptions
   useEffect(() => {
     if (!user?.id || chats.length === 0) return;
@@ -141,64 +116,49 @@ export function useChats() {
     // Get all chat IDs for subscription
     const chatIds = chats.map((chat) => chat.chat_id);
 
-    // Clean up existing subscriptions
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-    }
-    if (presenceChannelRef.current) {
-      supabase.removeChannel(presenceChannelRef.current);
-    }
+    // Create a cleanup function
+    const cleanup = async () => {
+      if (channelRef.current) {
+        await supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
 
-    // Subscribe to messages in user's chats
-    const channel = supabase
-      .channel(`user-chats:${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `chat_id=in.(${chatIds.join(',')})`,
-        },
-        handleNewMessage
-      )
-      .on('broadcast', { event: 'typing' }, handleTypingEvent)
-      .subscribe();
+    // Setup function
+    const setupSubscriptions = async () => {
+      // Clean up existing subscriptions first
+      await cleanup();
 
-    channelRef.current = channel;
+      // Small delay to ensure cleanup completes
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
-    // Subscribe to global presence for online status
-    const presenceChannel = supabase
-      .channel('presence:global', {
-        config: {
-          presence: {
-            key: user.id,
+      // Subscribe to messages in user's chats
+      const channel = supabase
+        .channel(`user-chats:${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+            filter: `chat_id=in.(${chatIds.join(',')})`,
           },
-        },
-      })
-      .on('presence', { event: 'sync' }, handlePresenceSync)
-      .on('presence', { event: 'join' }, handlePresenceSync)
-      .on('presence', { event: 'leave' }, handlePresenceSync)
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await presenceChannel.track({ user_id: user.id });
-        }
-      });
+          handleNewMessage
+        )
+        .on('broadcast', { event: 'typing' }, handleTypingEvent)
+        .subscribe();
 
-    presenceChannelRef.current = presenceChannel;
+      channelRef.current = channel;
+    };
+
+    // Run setup
+    setupSubscriptions();
 
     // Cleanup
     return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-      if (presenceChannelRef.current) {
-        supabase.removeChannel(presenceChannelRef.current);
-        presenceChannelRef.current = null;
-      }
+      cleanup();
     };
-  }, [user?.id, chats, handleNewMessage, handleTypingEvent, handlePresenceSync]);
+  }, [user?.id, chats.length, handleNewMessage, handleTypingEvent]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Archive a chat
   const archiveChat = useCallback(
@@ -228,12 +188,9 @@ export function useChats() {
   );
 
   // Check if a user is online
-  const isUserOnline = useCallback(
-    (userId: string) => {
-      return onlineUsers.has(userId);
-    },
-    [onlineUsers]
-  );
+  const isUserOnline = useCallback((userId: string) => {
+    return presenceService.isUserOnline(userId);
+  }, []);
 
   // Get typing users for a chat
   const getTypingUsers = useCallback(

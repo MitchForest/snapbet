@@ -4,46 +4,82 @@ The mock ecosystem provides realistic demo content and activity for Snapbet, cre
 
 ## Quick Start
 
-### One-Command Setup
+### Three-Stage Mock System
 
-To set up a complete demo environment with all content:
+The mock ecosystem now has three stages to demonstrate all features of the app:
 
+#### 1. Setup Stage
 ```bash
-# Set up everything: users, posts, chats, bets, reactions
-bun run demo:setup
+# Set up everything with your username
+bun run mock:setup --username=YOUR_USERNAME
 
-# Or with explicit user ID to join chats
-bun run demo:setup --user-id=YOUR_USER_ID
+# Example:
+bun run mock:setup --username=mitchforest
 ```
 
-This single command will:
-- ✅ Verify mock users exist
-- ✅ Create recent posts with picks
-- ✅ Generate active group chats
-- ✅ Add betting activity
-- ✅ Create reactions and comments
-- ✅ Add you to demo chat groups
+This creates:
+- ✅ 30 mock users with profile pictures (using dicebear avatars)
+- ✅ Real games from odds API
+- ✅ Bidirectional follow relationships
+- ✅ Hot Bettors (5 users with 70%+ win rate in last 7 days)
+- ✅ Fade Gods (3 users with poor records that others fade)
+- ✅ Trending picks (posts with 15-25 tails in 24h)
+- ✅ Rising stars (new users with good performance)
+- ✅ Stories, posts, chats, and notifications
+- ✅ Populated explore/search sections
 
-### Trigger Reactions to Your Activity
-
-After you create posts or place bets, trigger community reactions:
-
+#### 2. Progress Stage
 ```bash
-# Generate reactions to your recent activity
-bun run demo:reactions --user-id=YOUR_USER_ID
+# Simulate time passing and activity
+bun run mock:progress
 ```
 
-This will:
-- 🔥 Add emoji reactions to your posts
-- 💬 Generate comments on your content
-- 👥 Create tail/fade actions on your picks
-- 💭 Start chat discussions about your bets
+This simulates progression:
+- ✅ Settles games that started 3+ hours ago
+- ✅ Updates user bankrolls based on bet outcomes
+- ✅ Creates outcome posts (celebrations/commiserations)
+- ✅ Adds new games and bets
+- ✅ Generates more tails/fades on recent picks
+- ✅ New followers for the user
+- ✅ Fresh messages in chats
+- ✅ Continued activity to keep app feeling alive
+
+#### 3. Cleanup Stage
+```bash
+# Remove all mock data to start fresh
+bun run mock:cleanup
+```
+
+This removes everything except mock users (for quick re-setup).
 
 ## Architecture
 
+### Mock Scripts Organization
+
+```
+scripts/mock/
+├── data/                 # Mock data definitions
+│   ├── users.ts         # 30 mock users with personalities
+│   └── games.ts         # Game generation logic
+├── generators/          # Individual content generators
+│   ├── users.ts        # Seeds mock users with avatars
+│   └── ...             # Other generators
+├── orchestrators/       # High-level workflow scripts
+│   ├── setup.ts        # Complete environment setup
+│   ├── settle.ts       # Game settlement & activity
+│   └── cleanup.ts      # Remove all mock data
+└── templates.ts         # Content templates
+```
+
 ### Mock Users (30 Total)
 
-The system uses 30 pre-seeded mock users with distinct personalities:
+Each mock user has:
+- **Profile Picture**: Consistent avatar from dicebear API
+- **Personality**: Defines behavior patterns
+- **Bio**: Personality-appropriate description
+- **Bankroll**: Starting balance based on betting style
+
+The system uses 30 pre-defined mock users with distinct personalities:
 
 - **Sharp Bettors** (4): Data-driven, analytical, post early morning
 - **Degens** (5): High-energy, emotional, active late night
@@ -53,29 +89,51 @@ The system uses 30 pre-seeded mock users with distinct personalities:
 - **Live Bettors** (3): Focus on in-game betting, active during games
 - **Parlay Degens** (3): Love long-shot parlays, dream big
 
-### Activity Types
+### Avatar Generation
 
-1. **Posts**
-   - Pick shares (betting selections with analysis)
-   - Outcome posts (win/loss reactions)
-   - General reactions (game commentary)
+Mock users have consistent, attractive avatars generated using the dicebear API:
 
-2. **Messages**
-   - Group chat participation
-   - Personality-based responses
-   - Game discussions
+```typescript
+const avatarUrl = `https://api.dicebear.com/7.x/lorelei/svg?seed=${username}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+```
 
-3. **Reactions**
-   - Emoji reactions on posts (🔥, 💯, 📊, etc.)
-   - Personality-specific patterns
+This ensures:
+- Consistent avatars across app restarts
+- Attractive, professional-looking profiles
+- Unique avatar for each username
+- No external image hosting required
 
-4. **Tail/Fade Actions**
-   - Following or opposing betting picks
-   - Based on personality traits
+### What Gets Created
 
-5. **Comments**
-   - Engaging discussions on posts
-   - Personality-driven responses
+The unified setup creates:
+
+1. **Social Graph**
+   - 15 mock users follow you
+   - You follow 25 mock users
+   - Ensures your feed is populated
+
+2. **Stories** (15 active)
+   - Mix of betting picks and general content
+   - Photo and video stories
+   - Recent (within last 2 hours)
+
+3. **Posts** (20 recent)
+   - 10 pick posts with associated bets
+   - 10 general reaction posts
+   - Each with 3-8 reactions
+   - Each with 1-4 comments
+   - Pick posts have 2-5 tail/fade actions
+
+4. **Chats**
+   - 3 group chats: "NBA Degens 🏀", "Saturday Squad 🏈", "Degen Support Group 🫂"
+   - 5 direct message conversations
+   - Recent message history in each
+
+5. **Notifications**
+   - Follow notifications
+   - Reaction notifications
+   - Tail/fade notifications
+   - Message notifications
 
 ### Content Templates
 
@@ -96,120 +154,54 @@ Over 200+ template variations ensure natural-feeling content:
 }
 ```
 
-## Available Commands
+## Usage
 
-### Setup Commands
+### Initial Setup
 
-| Command | Description |
-|---------|-------------|
-| `bun run demo:setup` | Complete demo environment setup |
-| `bun run demo:setup --user-id=ID` | Setup + add user to chats |
+1. **Run the complete setup**:
+   ```bash
+   bun run mock:setup --username=YOUR_USERNAME
+   ```
 
-### Scenario Commands
+2. **Open the app** - You should see:
+   - A populated feed with recent posts
+   - Active stories at the top with profile pictures
+   - Notifications waiting for you
+   - Group chats with conversations
+   - Direct messages from mock users
 
-| Command | Description |
-|---------|-------------|
-| `bun run demo:new-user` | Fresh user experience with recent activity |
-| `bun run demo:saturday` | Saturday football betting rush |
-| `bun run demo:chat` | Active chat discussions |
+### Individual Commands
 
-### Activity Commands
+For specific tasks:
 
-| Command | Description |
-|---------|-------------|
-| `bun run mock:activity` | Generate one hour of activity |
-| `bun run demo:reactions --user-id=ID` | Trigger reactions to user's content |
-| `bun run jobs:runner` | Start hourly activity generation |
+```bash
+# Just seed mock users with avatars
+bun run mock:users
 
-## Demo Scenarios
+# Add games only
+bun run db:add-games
 
-### New User Experience
-Creates a welcoming environment for new users:
-- 5 recent posts with picks
-- Active "NBA Degens 🏀" chat
-- Fresh content from last hour
-
-### Saturday Football
-Simulates pre-game betting excitement:
-- 10 users placing NFL bets
-- 5 pick posts being shared
-- "Saturday Squad 🏈" group discussion
-- Betting rush atmosphere
-
-### Active Chat
-Focuses on live chat engagement:
-- 20 recent messages
-- Multiple personalities discussing
-- Real-time feel
-
-## Hourly Activity Job
-
-The mock activity job runs every hour (except 2-6 AM) and generates:
-- 30% activity chance per active user
-- Personality-based activity patterns
-- Natural time-of-day variations
-
-### Activity Schedule
-
-```
-Morning (6 AM - 12 PM): Sharp bettors active, analytical posts
-Afternoon (12 PM - 6 PM): Mixed activity, general discussions  
-Evening (6 PM - 12 AM): Degens active, emotional reactions
-Late Night (12 AM - 2 AM): Parlay degens, wild bets
+# Clean up all mock data
+bun run mock:cleanup
 ```
 
-## Integration Tips
+### Customization
 
-### Adding Users to Chats
-
-The setup script automatically adds the current user to demo chats:
-- NBA Degens 🏀
-- Saturday Squad 🏈  
-- Degen Support Group 🫂
-
-### Customizing Activity
-
-Edit activity patterns in `scripts/mock/activity-generator.ts`:
-
-```typescript
-const activityPatterns = {
-  'sharp-bettor': {
-    morning: { post: 0.3, message: 0.2, reaction: 0.2, tailFade: 0.2, comment: 0.1 },
-    // Adjust weights to change behavior
-  }
-}
-```
-
-### Adding New Templates
-
-Add templates in `scripts/mock/templates.ts`:
-
-```typescript
-export const messageTemplates = {
-  'new-personality': {
-    greeting: ["Your templates here"],
-    reaction: ["Reaction templates"],
-    discussion: ["Discussion starters"]
-  }
-}
-```
+The setup can be customized by editing `scripts/mock/orchestrators/setup.ts` or the unified setup configuration.
 
 ## Troubleshooting
 
+### Username Not Found
+```bash
+❌ User with username "YOUR_USERNAME" not found
+```
+Make sure you're using your actual username, not user ID. Check your profile in the app to confirm your username.
+
 ### No Mock Users Found
 ```bash
-# Seed mock users first
-bun run scripts/seed-mock-users.ts
+❌ No mock users found. Please run: bun run mock:users
 ```
-
-### User Not Added to Chats
-```bash
-# Run with explicit username (preferred)
-bun run demo:setup --username=YOUR_USERNAME
-
-# Or with user ID for backwards compatibility
-bun run demo:setup --user-id=YOUR_SUPABASE_USER_ID
-```
+The mock users should be created automatically, but you can run the seed script manually if needed.
 
 ### Environment Variables Required
 The mock scripts require both environment variables in your `.env` file:
@@ -220,20 +212,13 @@ SUPABASE_SERVICE_KEY=your_service_key_here
 
 The service key is needed for admin operations to create content across all mock users.
 
-### Scripts Architecture
-The mock scripts use a separate Node.js-compatible Supabase client (`scripts/supabase-client.ts`) that avoids React Native dependencies. This allows them to run in the Node.js environment via bun without import errors.
-
-## Best Practices
-
-1. **Run setup once** - Creates a good baseline of content
-2. **Use reactions trigger** - After creating your own content
-3. **Let hourly job run** - For ongoing natural activity
-4. **Vary scenarios** - Mix different demo types for variety
-
 ## Technical Details
 
 ### Database Tables Used
-- `users` - Mock user accounts
+- `users` - Mock user accounts with avatars and follow relationships
+- `bankrolls` - User bankroll information
+- `follows` - Follow relationships
+- `stories` - Story content
 - `posts` - Content and pick shares
 - `messages` - Chat messages
 - `chats` - Group chat rooms
@@ -242,18 +227,53 @@ The mock scripts use a separate Node.js-compatible Supabase client (`scripts/sup
 - `pick_actions` - Tail/fade relationships
 - `comments` - Post comments
 - `reactions` - Emoji reactions
+- `notifications` - User notifications
+- `games` - Sports games for betting
 
 ### Performance Considerations
 - Batched operations where possible
 - Respects Supabase rate limits
 - Efficient queries with proper indexes
-- Cleanup of old activity built-in
+- Uses upsert for idempotent operations
 
-## Future Enhancements
+### Scripts Architecture
+The mock scripts use a separate Node.js-compatible Supabase client (`scripts/supabase-client.ts`) that avoids React Native dependencies. This allows them to run in the Node.js environment via bun without import errors.
 
-Potential improvements for later:
-- Real-time WebSocket activity
-- AI-powered conversations
-- Sport-specific content
-- Live game simulations
-- Trending topics system
+## Key Features for Demo
+
+The mock ecosystem ensures all app features are demonstrable:
+
+### Explore/Search Page Sections
+- **🔥 Hot Bettors**: 5 users with 70%+ win rate and 5+ bets in last 7 days
+- **📈 Trending Picks**: Posts with 15-25 tails in last 24 hours
+- **🎪 Fade Gods**: 3 users with poor records that others successfully fade
+- **⭐ Rising Stars**: 3 new users (joined < 7 days ago) with 75%+ win rate
+
+### Social Proof
+- Posts with high engagement (reactions, comments, tails/fades)
+- Active group chats with ongoing conversations
+- Stories from various personality types
+- Follow relationships creating a connected network
+
+### Betting Ecosystem
+- Historical bet data showing wins/losses
+- Pending bets on upcoming games
+- Outcome posts celebrating wins or commiserating losses
+- Bankroll changes reflecting betting activity
+
+## Best Practices
+
+1. **Run setup once** - Creates a complete baseline of content
+2. **Username required** - Always use --username parameter
+3. **Run progress periodically** - Simulates time passing and activity
+4. **Check all sections** - Feed, stories, chats, explore, notifications
+5. **Clean up between demos** - Start fresh for each demonstration
+
+## Troubleshooting Explore Sections
+
+If explore sections appear empty:
+
+1. **Check timing** - Hot bettors need bets from last 7 days
+2. **Run setup fresh** - `bun run mock:cleanup` then `bun run mock:setup`
+3. **Verify data** - Check that mock users have proper win/loss records
+4. **Progress simulation** - Run `bun run mock:progress` to create more activity

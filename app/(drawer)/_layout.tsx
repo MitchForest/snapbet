@@ -2,6 +2,7 @@ import React from 'react';
 import { Drawer } from 'expo-router/drawer';
 import { DrawerContent } from '@/components/ui/DrawerContent';
 import { useAuthStore } from '@/stores/authStore';
+import { usePresence } from '@/hooks/usePresence';
 import { Ionicons } from '@expo/vector-icons';
 
 const isAdmin = (userId: string): boolean => {
@@ -12,6 +13,9 @@ const isAdmin = (userId: string): boolean => {
 export default function DrawerLayout() {
   const user = useAuthStore((state) => state.user);
   const showAdminOptions = user && isAdmin(user.id);
+
+  // Initialize presence tracking for authenticated users
+  usePresence();
 
   return (
     <Drawer
@@ -129,9 +133,35 @@ export default function DrawerLayout() {
           title: 'Blocked Users',
         }}
       />
-      {/* Story screens are handled by the story/_layout.tsx file */}
+      <Drawer.Screen
+        name="chat/[id]"
+        options={{
+          drawerItemStyle: { display: 'none' },
+          title: 'Chat',
+        }}
+      />
+      <Drawer.Screen
+        name="create-group"
+        options={{
+          drawerItemStyle: { display: 'none' },
+          title: 'Create Group',
+        }}
+      />
+      <Drawer.Screen
+        name="add-group-members"
+        options={{
+          drawerItemStyle: { display: 'none' },
+          title: 'Add Members',
+        }}
+      />
+      <Drawer.Screen
+        name="group-info/[id]"
+        options={{
+          drawerItemStyle: { display: 'none' },
+          title: 'Group Info',
+        }}
+      />
 
-      {/* Admin screens - conditionally rendered */}
       {showAdminOptions && (
         <Drawer.Screen
           name="admin/moderation"

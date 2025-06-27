@@ -2,7 +2,6 @@ import { supabase } from '@/services/supabase/client';
 import { Game } from '@/types/database';
 import { Json } from '@/types/supabase-generated';
 import { Storage, StorageKeys, CacheUtils } from '@/services/storage/storageService';
-import { generateMockGames } from '@/scripts/data/mock-games';
 
 // Types
 export type Sport = 'NBA' | 'NFL' | 'all';
@@ -25,29 +24,21 @@ export class GameService {
         return this.filterBySport(cached, options?.sport);
       }
 
-      // For MVP, use mock data
-      const mockGames = generateMockGames(7);
+      // Fetch from database - only scheduled games
+      const { data: games, error } = await supabase
+        .from('games')
+        .select('*')
+        .eq('status', 'scheduled')
+        .order('commence_time', { ascending: true });
 
-      // Transform mock games to our Game type
-      const games: Game[] = mockGames.map((game) => ({
-        id: game.id,
-        sport: game.sport,
-        sport_title: game.sport_title,
-        home_team: game.home_team,
-        away_team: game.away_team,
-        commence_time: game.commence_time,
-        status: game.status || 'scheduled',
-        home_score: game.home_score ?? null,
-        away_score: game.away_score ?? null,
-        odds_data: game.odds_data as unknown as Game['odds_data'],
-        created_at: game.created_at ?? null,
-        last_updated: game.last_updated ?? null,
-      }));
+      if (error) throw error;
+
+      const typedGames = (games || []) as Game[];
 
       // Cache the games
-      this.cacheGames(games);
+      this.cacheGames(typedGames);
 
-      return this.filterBySport(games, options?.sport);
+      return this.filterBySport(typedGames, options?.sport);
     } catch (error) {
       console.error('Error fetching games:', error);
       throw error;

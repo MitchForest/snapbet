@@ -190,6 +190,7 @@ const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: OpacityColors.overlay.light,
+    zIndex: 999,
   },
   sheet: {
     position: 'absolute',
@@ -199,6 +200,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    zIndex: 1000,
     ...Platform.select({
       ios: {
         shadowColor: OpacityColors.shadow,

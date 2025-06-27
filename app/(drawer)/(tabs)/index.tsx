@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, SafeAreaView } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
+
 import { useFeed } from '@/hooks/useFeed';
 import { MemoizedPostCard } from '@/utils/performance/memoHelpers';
 import { PostWithType } from '@/types/content';
@@ -58,34 +59,39 @@ function HomeScreenContent() {
   if (isLoading && posts.length === 0) {
     console.log(`[${new Date().toISOString()}] HomeScreenContent - Showing skeleton`);
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <StoriesBar />
         <FeedSkeleton />
-      </View>
+      </SafeAreaView>
     );
   }
 
   console.log(`[${new Date().toISOString()}] HomeScreenContent - Rendering FlashList`);
   return (
-    <View style={styles.container}>
-      <FlashList
-        data={posts}
-        renderItem={renderPost}
-        keyExtractor={keyExtractor}
-        ListHeaderComponent={renderHeader}
-        ListEmptyComponent={renderEmpty}
-        ListFooterComponent={renderFooter}
-        onRefresh={refetch}
-        refreshing={refreshing}
-        onEndReached={handleEndReached}
-        onEndReachedThreshold={0.5}
-        showsVerticalScrollIndicator={false}
-        estimatedItemSize={ESTIMATED_POST_HEIGHT}
-        drawDistance={1000}
-        removeClippedSubviews={true}
-        contentContainerStyle={styles.listContent}
-      />
-    </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.listContainer}>
+        <FlashList
+          data={posts}
+          renderItem={renderPost}
+          keyExtractor={keyExtractor}
+          ListHeaderComponent={renderHeader}
+          ListEmptyComponent={renderEmpty}
+          ListFooterComponent={renderFooter}
+          onRefresh={refetch}
+          refreshing={refreshing}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.5}
+          showsVerticalScrollIndicator={false}
+          estimatedItemSize={ESTIMATED_POST_HEIGHT}
+          drawDistance={1000}
+          removeClippedSubviews={true}
+          contentContainerStyle={styles.listContent}
+          // Add nestedScrollEnabled for better scroll handling
+          nestedScrollEnabled={true}
+          // Remove estimatedListSize as it can cause issues
+        />
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -103,8 +109,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  listContainer: {
+    flex: 1,
+  },
   listContent: {
-    paddingBottom: 100, // Extra padding for tab bar
+    paddingBottom: 20, // Reduced padding - tab bar is handled by safe area
   },
   footerLoader: {
     paddingVertical: 20,

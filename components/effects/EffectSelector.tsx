@@ -28,15 +28,15 @@ const styles = StyleSheet.create({
     flexGrow: 0,
   },
   categoryContent: {
-    paddingHorizontal: 16,
+    paddingLeft: 16,
+    paddingRight: 8,
     paddingVertical: 12,
     alignItems: 'center',
   },
   effectsContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 40, // Extra padding to ensure bottom effects are visible
-    flexGrow: 1,
+    paddingBottom: 80,
   },
   categoryButton: {
     marginRight: 8,
@@ -90,7 +90,8 @@ export function EffectSelector({
 
   return (
     <Stack
-      height={320}
+      flex={1}
+      maxHeight={400}
       backgroundColor="rgba(0, 0, 0, 0.9)"
       borderTopLeftRadius="$4"
       borderTopRightRadius="$4"

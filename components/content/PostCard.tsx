@@ -11,8 +11,8 @@ import { ReactionDisplay } from '@/components/engagement/display/ReactionDisplay
 import { ReactionPicker } from '@/components/engagement/ReactionPicker';
 import { CommentSheet } from '@/components/engagement/sheets/CommentSheet';
 import { ReportModal } from '@/components/moderation/ReportModal';
+import { PostOptionsMenu } from '@/components/content/PostOptionsMenu';
 import { useEngagement } from '@/hooks/useEngagement';
-import { useAuthStore } from '@/stores/authStore';
 import { toastService } from '@/services/toastService';
 import { TailFadeButtons } from '@/components/engagement/buttons/TailFadeButtons';
 
@@ -35,7 +35,6 @@ function PostTypeIndicator({ type }: { type: PostType }) {
 }
 
 export function PostCard({ post, onPress }: PostCardProps) {
-  const { user } = useAuthStore();
   const timeUntilExpiration = getTimeUntilExpiration(post.expires_at);
   const [showComments, setShowComments] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
@@ -48,9 +47,6 @@ export function PostCard({ post, onPress }: PostCardProps) {
   // Check if post is auto-hidden due to reports
   const isAutoHidden = post.report_count && post.report_count >= 3 && !showHiddenContent;
 
-  // Check if this is user's own post
-  const isOwnPost = user?.id === post.user_id;
-
   const handleMediaPress = () => {
     if (post.media_type === 'video') {
       toastService.showComingSoon('Video playback');
@@ -61,15 +57,6 @@ export function PostCard({ post, onPress }: PostCardProps) {
   const handleReactionSelect = (_emoji: string) => {
     // Reactions are now handled by the ReactionPicker and useReactions hook
     setShowReactions(false);
-  };
-
-  const handleMorePress = () => {
-    if (isOwnPost) {
-      // For own posts, show delete option (coming soon)
-      toastService.showComingSoon('Post options');
-    } else {
-      setShowReportModal(true);
-    }
   };
 
   return (
@@ -97,9 +84,11 @@ export function PostCard({ post, onPress }: PostCardProps) {
           </Pressable>
           <View style={styles.headerRight}>
             <PostTypeIndicator type={post.post_type} />
-            <TouchableOpacity onPress={handleMorePress} style={styles.moreButton}>
-              <Text style={styles.moreIcon}>⋯</Text>
-            </TouchableOpacity>
+            <PostOptionsMenu
+              postId={post.id}
+              postUserId={post.user_id}
+              onReport={() => setShowReportModal(true)}
+            />
           </View>
         </View>
 
@@ -269,13 +258,6 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     fontSize: 12,
     fontWeight: '500',
-  },
-  moreButton: {
-    padding: 8,
-  },
-  moreIcon: {
-    fontSize: 20,
-    color: Colors.text.secondary,
   },
   hiddenContentContainer: {
     padding: 40,

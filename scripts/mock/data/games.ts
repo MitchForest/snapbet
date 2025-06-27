@@ -1,5 +1,5 @@
-import type { Database } from '../../types/supabase';
-import { NBA_TEAMS as TEAMS_NBA, NFL_TEAMS as TEAMS_NFL } from '../../data/teams';
+import type { Database } from '../../../types/supabase';
+import { NBA_TEAMS as TEAMS_NBA, NFL_TEAMS as TEAMS_NFL } from '../../../data/teams';
 
 type GameInsert = Database['public']['Tables']['games']['Insert'];
 

@@ -1,6 +1,15 @@
 import { supabase } from '@/services/supabase/client';
-import { PersonalityType } from '@/scripts/data/mock-users';
 import { calculateUserBadges } from '@/services/badges/badgeService';
+
+// Define personality types locally instead of importing from mock
+type PersonalityType =
+  | 'fade-material'
+  | 'sharp-bettor'
+  | 'degen'
+  | 'contrarian'
+  | 'homer'
+  | 'live-bettor'
+  | 'parlay-degen';
 
 interface StatsMetadata {
   perfect_days?: string[];
@@ -142,9 +151,7 @@ export async function generateFollowSuggestions(
 
     // 3. Add 1-2 entertainment value (fade material)
     const fadeMaterial = users.filter(
-      (u) =>
-        u.mock_personality_id === PersonalityType.FADE_MATERIAL &&
-        !suggestions.some((s) => s.id === u.id)
+      (u) => u.mock_personality_id === 'fade-material' && !suggestions.some((s) => s.id === u.id)
     );
     suggestions.push(...fadeMaterial.slice(0, 2));
 

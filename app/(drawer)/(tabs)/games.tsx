@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { View, Stack, Text } from '@tamagui/core';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Stack } from '@tamagui/core';
 import { Colors } from '@/theme';
 import { GamesList } from '@/components/betting/GamesList';
 import { BetSheet } from '@/components/betting/BetSheet';
@@ -9,7 +8,6 @@ import { BankrollStatsModal } from '@/components/betting/BankrollStatsModal';
 import { Game } from '@/types/database';
 
 export default function GamesScreen() {
-  const insets = useSafeAreaInsets();
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isBetSheetVisible, setIsBetSheetVisible] = useState(false);
   const [isBankrollModalVisible, setIsBankrollModalVisible] = useState(false);
@@ -31,21 +29,16 @@ export default function GamesScreen() {
 
   return (
     <View flex={1} backgroundColor={Colors.background}>
-      {/* Header */}
+      {/* Sticky Bankroll Badge */}
       <Stack
-        paddingTop={insets.top}
         paddingHorizontal="$4"
-        paddingBottom="$3"
-        backgroundColor={Colors.background}
+        paddingVertical="$2"
+        backgroundColor={Colors.surface}
         borderBottomWidth={1}
-        borderBottomColor="$gray3"
-        flexDirection="row"
+        borderBottomColor={Colors.border.light}
         alignItems="center"
-        justifyContent="space-between"
+        zIndex={10}
       >
-        <Text fontSize="$6" fontWeight="bold">
-          Games
-        </Text>
         <BankrollBadge onPress={handleBankrollPress} />
       </Stack>
 
