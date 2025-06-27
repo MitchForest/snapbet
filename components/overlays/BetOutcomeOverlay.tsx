@@ -3,7 +3,6 @@ import { Stack, Text } from '@tamagui/core';
 import { Colors } from '@/theme';
 import { Bet } from '@/services/betting/types';
 import { Game } from '@/types/database-helpers';
-import { formatOdds } from '@/utils/betting/oddsCalculator';
 
 interface BetOutcomeOverlayProps {
   bet: Bet & { game?: Game };
@@ -15,6 +14,7 @@ export function BetOutcomeOverlay({ bet }: BetOutcomeOverlayProps) {
   const isPush = bet.status === 'push';
   const resultColor = isWin ? '#10B981' : isPush ? '#FFA500' : '#EF4444';
   const resultEmoji = isWin ? '💰' : isPush ? '🤝' : '💸';
+  const resultText = isWin ? 'WINNER' : isPush ? 'PUSH' : 'LOSS';
 
   // Parse bet_details JSON
   const betDetails = bet.bet_details as {
@@ -23,65 +23,69 @@ export function BetOutcomeOverlay({ bet }: BetOutcomeOverlayProps) {
     total_type?: 'over' | 'under';
   };
 
+  // Format the bet selection
   const formatBetSelection = () => {
     switch (bet.bet_type) {
       case 'spread': {
         const line = betDetails.line || 0;
-        return `${betDetails.team} ${line > 0 ? '+' : ''}${line}`;
+        const lineStr = line !== 0 ? ` ${line > 0 ? '+' : ''}${line}` : '';
+        return `${betDetails.team}${lineStr}`;
       }
-      case 'total':
-        return `${betDetails.total_type?.toUpperCase()} ${betDetails.line}`;
+      case 'total': {
+        const line = betDetails.line || 0;
+        return `${betDetails.total_type?.toUpperCase()} ${line}`;
+      }
       case 'moneyline':
-        return `${betDetails.team}`;
+        return betDetails.team || '';
       default:
         return '';
     }
   };
 
   const getResultAmount = () => {
-    if (isPush) return 0; // Push returns stake, but profit is 0
+    if (isPush) return 0;
     if (isWin && bet.actual_win !== null) {
-      return bet.actual_win; // This is the profit amount
+      return bet.actual_win;
     }
-    return -bet.stake; // Loss amount
+    return -bet.stake;
   };
 
   const resultAmount = getResultAmount();
+  const betTypeLabel = bet.bet_type.toUpperCase();
+  const displayAmount = Math.abs(Math.round(resultAmount / 100));
+
+  // Format score if available
+  const formatScore = () => {
+    if (!game || game.away_score === null || game.home_score === null) return '';
+    // Use team abbreviations if available, otherwise first 3 letters
+    const awayAbbr = game.away_team.substring(0, 3).toUpperCase();
+    const homeAbbr = game.home_team.substring(0, 3).toUpperCase();
+    return `${awayAbbr} ${game.away_score}-${game.home_score} ${homeAbbr}`;
+  };
 
   return (
     <Stack
-      backgroundColor={Colors.black + 'E6'} // 90% opacity
-      padding="$3"
-      borderRadius="$4"
-      borderWidth={2}
-      borderColor={resultColor}
-      alignItems="center"
+      backgroundColor={Colors.black + 'CC'} // 80% opacity - much more visible
+      padding="$2.5"
+      borderRadius="$3"
+      gap="$2"
+      maxWidth={300}
+      alignSelf="center"
     >
-      {/* Result Status */}
-      <Stack flexDirection="row" alignItems="center" gap="$2" marginBottom="$2">
-        <Text fontSize="$7" fontWeight="bold" color={resultColor}>
-          {isWin ? 'WINNER' : isPush ? 'PUSH' : 'LOSS'}
-        </Text>
-        <Text fontSize="$6">{resultEmoji}</Text>
-      </Stack>
-
-      {/* Profit/Loss Amount */}
-      <Text color={resultColor} fontSize="$8" fontWeight="bold" marginBottom="$2">
-        {resultAmount > 0 ? '+' : resultAmount === 0 ? '' : ''}$
-        {(Math.abs(resultAmount) / 100).toFixed(2)}
+      {/* Header with bet type and result */}
+      <Text color={Colors.gray[400]} fontSize="$2">
+        {betTypeLabel} • {resultText} {resultEmoji}
       </Text>
 
-      {/* Original Bet Info */}
-      <Text color={Colors.gray[300]} fontSize="$2" marginBottom="$1">
-        {formatBetSelection()} • {formatOdds(bet.odds)}
+      {/* Profit/Loss amount - main focus */}
+      <Text color={resultColor} fontSize="$6" fontWeight="800">
+        {resultAmount > 0 ? '+' : resultAmount === 0 ? '' : '-'}${displayAmount}
       </Text>
 
-      {/* Final Score (if available) */}
-      {game && game.away_score !== null && game.home_score !== null && (
-        <Text color={Colors.gray[400]} fontSize="$2">
-          Final: {game.away_team} {game.away_score}, {game.home_team} {game.home_score}
-        </Text>
-      )}
+      {/* Bet details and score on one line */}
+      <Text color={Colors.gray[300]} fontSize="$3">
+        {formatBetSelection()} • {formatScore()}
+      </Text>
     </Stack>
   );
 }

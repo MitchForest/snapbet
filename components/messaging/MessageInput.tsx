@@ -5,6 +5,7 @@ import { Colors } from '@/theme';
 import { MessageContent } from '@/types/messaging';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface MessageInputProps {
   onSendMessage: (content: MessageContent) => Promise<void>;
@@ -18,6 +19,7 @@ export function MessageInput({ onSendMessage, onTyping, chatExpiration }: Messag
   const [isSending, setIsSending] = useState(false);
   const inputRef = useRef<TextInput>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const insets = useSafeAreaInsets();
 
   const handleTextChange = useCallback(
     (newText: string) => {
@@ -105,7 +107,7 @@ export function MessageInput({ onSendMessage, onTyping, chatExpiration }: Messag
       borderTopColor={Colors.border.light}
       paddingHorizontal="$4"
       paddingTop="$3"
-      paddingBottom={Platform.OS === 'ios' ? '$2' : '$3'}
+      paddingBottom={Platform.OS === 'ios' ? insets.bottom + 8 : 12}
     >
       <Stack flexDirection="row" alignItems="flex-end" gap="$2">
         {/* Text input */}

@@ -50,10 +50,10 @@ export function ChatBubble({
   // Determine bubble styling based on ownership
   const bubbleStyle = {
     backgroundColor: isOwn ? Colors.primary : Colors.gray[200],
-    borderRadius: 16,
-    borderBottomRightRadius: isOwn ? 4 : 16,
-    borderBottomLeftRadius: isOwn ? 16 : 4,
-    maxWidth: '75%',
+    borderRadius: 18,
+    borderBottomRightRadius: isOwn ? 4 : 18,
+    borderBottomLeftRadius: isOwn ? 18 : 4,
+    maxWidth: '80%',
     minWidth: 60,
   };
 
@@ -132,12 +132,7 @@ export function ChatBubble({
 
   return (
     <>
-      <Stack
-        flexDirection={isOwn ? 'row-reverse' : 'row'}
-        gap="$2"
-        alignItems="flex-end"
-        maxWidth="75%"
-      >
+      <Stack flexDirection={isOwn ? 'row-reverse' : 'row'} gap="$2" alignItems="flex-end">
         {/* Avatar for other users */}
         {!isOwn && showAvatar && (
           <Avatar
@@ -149,7 +144,7 @@ export function ChatBubble({
         )}
         {!isOwn && !showAvatar && <View width={28} />}
 
-        <Stack maxWidth="75%">
+        <Stack maxWidth="80%">
           {/* Sender name for group chats */}
           {!isOwn && chatType === 'group' && showSenderName && message.sender.username && (
             <Text fontSize="$2" color="$gray11" marginBottom="$1" marginLeft="$3" fontWeight="500">

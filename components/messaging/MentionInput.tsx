@@ -12,6 +12,7 @@ import { Avatar } from '@/components/common/Avatar';
 import { GroupMember } from '@/types/messaging';
 import { useMentions } from '@/hooks/useMentions';
 import { Colors } from '@/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface MentionInputProps {
   value: string;
@@ -32,6 +33,7 @@ export const MentionInput: React.FC<MentionInputProps> = ({
 }) => {
   const inputRef = useRef<TextInput>(null);
   const [cursorPosition, setCursorPosition] = useState(0);
+  const insets = useSafeAreaInsets();
 
   const { mentionState, suggestions, handleTextChange, selectMention, cancelMention } =
     useMentions(members);
@@ -109,7 +111,12 @@ export const MentionInput: React.FC<MentionInputProps> = ({
       )}
 
       {/* Input field */}
-      <View style={styles.inputContainer}>
+      <View
+        style={[
+          styles.inputContainer,
+          Platform.OS === 'ios' && { paddingBottom: insets.bottom + 8 },
+        ]}
+      >
         <TextInput
           ref={inputRef}
           style={styles.input}
@@ -158,6 +165,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     paddingHorizontal: 16,
     paddingVertical: 8,
+    paddingBottom: Platform.OS === 'android' ? 12 : 8,
     backgroundColor: Colors.white,
     borderTopWidth: 1,
     borderTopColor: Colors.gray[200],

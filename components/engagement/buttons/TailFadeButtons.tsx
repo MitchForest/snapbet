@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Text, Pressable } from 'react-native';
-import { EngagementPill } from './EngagementPill';
 import { TailFadeSheet } from '@/components/betting/TailFadeSheet';
 import { WhoTailedModal } from '@/components/betting/WhoTailedModal';
 import { useUserPickAction, usePickActionCounts } from '@/hooks/useTailFade';
 import { Colors } from '@/theme';
 import { PostWithType } from '@/types/content';
 import { Bet } from '@/services/betting/types';
+import * as Haptics from 'expo-haptics';
 
 interface TailFadeButtonsProps {
   post: PostWithType;
@@ -21,50 +21,61 @@ export function TailFadeButtons({ post, bet, onTailFadePress }: TailFadeButtonsP
   const { data: userAction } = useUserPickAction(post.id);
   const { data: counts } = usePickActionCounts(post.id);
 
-  const handleTail = () => {
+  const handleTail = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (onTailFadePress) onTailFadePress();
     setSheetAction('tail');
   };
 
-  const handleFade = () => {
+  const handleFade = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (onTailFadePress) onTailFadePress();
     setSheetAction('fade');
   };
 
-  const handleCountPress = () => {
-    if ((counts?.tailCount || 0) + (counts?.fadeCount || 0) > 0) {
-      setShowWhoModal(true);
-    }
-  };
+  const isTailed = userAction?.action_type === 'tail';
+  const isFaded = userAction?.action_type === 'fade';
 
   return (
     <>
       <View style={styles.container}>
-        <EngagementPill
-          icon="👍"
-          count={counts?.tailCount || 0}
+        <Pressable
+          style={[
+            styles.button,
+            styles.tailButton,
+            isTailed && styles.tailButtonActive
+          ]}
           onPress={handleTail}
-          isActive={userAction?.action_type === 'tail'}
-          activeColor={Colors.primary}
-          style={styles.button}
-        />
-
-        <EngagementPill
-          icon="👎"
-          count={counts?.fadeCount || 0}
-          onPress={handleFade}
-          isActive={userAction?.action_type === 'fade'}
-          activeColor={Colors.error}
-          style={styles.button}
-        />
-
-        {(counts?.tailCount || 0) + (counts?.fadeCount || 0) > 0 && (
-          <Pressable onPress={handleCountPress} style={styles.totalCount}>
-            <Text style={styles.totalCountText}>
-              {(counts?.tailCount || 0) + (counts?.fadeCount || 0)} total
+          disabled={isTailed || isFaded}
+        >
+          <Text style={[styles.buttonText, isTailed && styles.activeButtonText]}>
+            TAIL
+          </Text>
+          {(counts?.tailCount || 0) > 0 && (
+            <Text style={[styles.countText, isTailed && styles.activeButtonText]}>
+              {counts?.tailCount}
             </Text>
-          </Pressable>
-        )}
+          )}
+        </Pressable>
+
+        <Pressable
+          style={[
+            styles.button,
+            styles.fadeButton,
+            isFaded && styles.fadeButtonActive
+          ]}
+          onPress={handleFade}
+          disabled={isTailed || isFaded}
+        >
+          <Text style={[styles.buttonText, isFaded && styles.activeButtonText]}>
+            FADE
+          </Text>
+          {(counts?.fadeCount || 0) > 0 && (
+            <Text style={[styles.countText, isFaded && styles.activeButtonText]}>
+              {counts?.fadeCount}
+            </Text>
+          )}
+        </Pressable>
       </View>
 
       <TailFadeSheet
@@ -96,19 +107,51 @@ export function TailFadeButtons({ post, bet, onTailFadePress }: TailFadeButtonsP
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    gap: 16,
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    justifyContent: 'center',
   },
   button: {
     flex: 1,
-  },
-  totalCount: {
+    maxWidth: 140,
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 24,
+    borderWidth: 2,
+    gap: 8,
   },
-  totalCountText: {
+  tailButton: {
+    borderColor: '#10B981',
+    backgroundColor: Colors.white,
+  },
+  tailButtonActive: {
+    backgroundColor: '#10B981',
+    borderColor: '#10B981',
+  },
+  fadeButton: {
+    borderColor: '#EF4444',
+    backgroundColor: Colors.white,
+  },
+  fadeButtonActive: {
+    backgroundColor: '#EF4444',
+    borderColor: '#EF4444',
+  },
+  buttonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    color: Colors.text.primary,
+  },
+  activeButtonText: {
+    color: Colors.white,
+  },
+  countText: {
     fontSize: 12,
     color: Colors.text.secondary,
+    fontWeight: '600',
   },
 });

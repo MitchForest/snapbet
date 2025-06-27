@@ -19,30 +19,20 @@ export function BetPickOverlay({ bet }: BetPickOverlayProps) {
     total_type?: 'over' | 'under';
   };
 
-  // Simple team color mapping for MVP
-  const getTeamColor = () => {
-    const team = betDetails.team?.toLowerCase() || '';
-    if (team.includes('lakers')) return '#552583';
-    if (team.includes('celtics')) return '#007A33';
-    if (team.includes('warriors')) return '#1D428A';
-    if (team.includes('heat')) return '#98002E';
-    if (team.includes('chiefs')) return '#E31837';
-    if (team.includes('bills')) return '#00338D';
-    return Colors.primary;
-  };
-
-  const teamColor = getTeamColor();
-
+  // Format the bet selection - clean and simple
   const formatBetSelection = () => {
     switch (bet.bet_type) {
       case 'spread': {
         const line = betDetails.line || 0;
-        return `${betDetails.team} ${line > 0 ? '+' : ''}${line}`;
+        const lineStr = line !== 0 ? ` ${line > 0 ? '+' : ''}${line}` : '';
+        return `${betDetails.team}${lineStr}`;
       }
-      case 'total':
-        return `${betDetails.total_type?.toUpperCase()} ${betDetails.line}`;
+      case 'total': {
+        const line = betDetails.line || 0;
+        return `${betDetails.total_type?.toUpperCase()} ${line}`;
+      }
       case 'moneyline':
-        return `${betDetails.team} ML`;
+        return betDetails.team || '';
       default:
         return '';
     }
@@ -61,50 +51,42 @@ export function BetPickOverlay({ bet }: BetPickOverlayProps) {
     const displayHours = hours % 12 || 12;
     const time = `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
 
-    // Check if game is today, tomorrow, or later
     if (date.toDateString() === today.toDateString()) {
-      return `Today ${time}`;
+      return `Tonight ${time}`;
     } else if (date.toDateString() === tomorrow.toDateString()) {
       return `Tomorrow ${time}`;
     } else {
-      return `${date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} ${time}`;
+      return `${date.toLocaleDateString('en-US', { weekday: 'short' })} ${time}`;
     }
   };
 
+  const betTypeLabel = bet.bet_type.toUpperCase();
+  const stake = Math.round(bet.stake / 100);
+  const toWin = Math.round(bet.potential_win / 100);
+
   return (
     <Stack
-      backgroundColor={Colors.black + 'CC'} // 80% opacity
-      padding="$3"
-      borderRadius="$4"
-      borderWidth={2}
-      borderColor={teamColor}
+      backgroundColor={Colors.black + 'CC'} // 80% opacity - much more visible
+      padding="$2.5"
+      borderRadius="$3"
+      gap="$2"
+      maxWidth={300}
+      alignSelf="center"
     >
-      {/* Bet Selection - Main Focus */}
-      <Text color={Colors.white} fontSize="$5" fontWeight="bold" marginBottom="$2">
+      {/* Minimal header */}
+      <Text color={Colors.gray[400]} fontSize="$2">
+        {betTypeLabel} • {formatGameTime()}
+      </Text>
+
+      {/* Main bet selection */}
+      <Text color={Colors.white} fontSize="$5" fontWeight="700">
         {formatBetSelection()}
       </Text>
 
-      {/* Odds, Stake & Potential Win */}
-      <Stack
-        flexDirection="row"
-        justifyContent="space-between"
-        alignItems="center"
-        marginBottom="$1"
-      >
-        <Text color={Colors.gray[300]} fontSize="$3">
-          {formatOdds(bet.odds)} • ${(bet.stake / 100).toFixed(2)}
-        </Text>
-        <Text color="#10B981" fontSize="$3" fontWeight="600">
-          Win ${(bet.potential_win / 100).toFixed(2)}
-        </Text>
-      </Stack>
-
-      {/* Game Time */}
-      {game && (
-        <Text color={Colors.gray[400]} fontSize="$2" textAlign="center">
-          {formatGameTime()}
-        </Text>
-      )}
+      {/* Compact odds and stake */}
+      <Text color={Colors.gray[300]} fontSize="$3">
+        {formatOdds(bet.odds)} • ${stake} to win ${toWin}
+      </Text>
     </Stack>
   );
 }

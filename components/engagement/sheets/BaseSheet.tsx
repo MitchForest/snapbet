@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, ReactNode, useCallback } from 'react';
+import React, { useEffect, useRef, ReactNode, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -45,61 +45,6 @@ export function BaseSheet({
   const sheetHeight =
     typeof height === 'string' ? (parseInt(height) / 100) * SCREEN_HEIGHT : height;
 
-  // Pan responder for swipe gestures
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => enableSwipeToClose,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        // Only respond to downward swipes
-        return enableSwipeToClose && gestureState.dy > 0;
-      },
-      onPanResponderMove: (_, gestureState) => {
-        lastGestureDy.current = gestureState.dy;
-        translateY.setValue(gestureState.dy);
-
-        // Update backdrop opacity based on drag distance
-        const opacity = 1 - gestureState.dy / sheetHeight;
-        backdropOpacity.setValue(Math.max(0, Math.min(1, opacity)));
-      },
-      onPanResponderRelease: () => {
-        if (lastGestureDy.current > sheetHeight * DISMISS_THRESHOLD) {
-          closeSheet();
-        } else {
-          // Snap back to open position
-          Animated.parallel([
-            Animated.spring(translateY, {
-              toValue: 0,
-              useNativeDriver: true,
-              tension: 50,
-              friction: 8,
-            }),
-            Animated.timing(backdropOpacity, {
-              toValue: 1,
-              duration: 200,
-              useNativeDriver: true,
-            }),
-          ]).start();
-        }
-      },
-    })
-  ).current;
-
-  const openSheet = useCallback(() => {
-    Animated.parallel([
-      Animated.spring(translateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 50,
-        friction: 8,
-      }),
-      Animated.timing(backdropOpacity, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [translateY, backdropOpacity]);
-
   const closeSheet = useCallback(() => {
     Animated.parallel([
       Animated.timing(translateY, {
@@ -119,13 +64,70 @@ export function BaseSheet({
     });
   }, [translateY, backdropOpacity, onClose]);
 
+  // Create pan responder with useMemo to avoid recreation
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => enableSwipeToClose,
+        onMoveShouldSetPanResponder: (_, gestureState) => {
+          // Only respond to downward swipes
+          return enableSwipeToClose && gestureState.dy > 0;
+        },
+        onPanResponderMove: (_, gestureState) => {
+          lastGestureDy.current = gestureState.dy;
+          translateY.setValue(gestureState.dy);
+
+          // Update backdrop opacity based on drag distance
+          const opacity = 1 - gestureState.dy / sheetHeight;
+          backdropOpacity.setValue(Math.max(0, Math.min(1, opacity)));
+        },
+        onPanResponderRelease: () => {
+          if (lastGestureDy.current > sheetHeight * DISMISS_THRESHOLD) {
+            closeSheet();
+          } else {
+            // Snap back to open position
+            Animated.parallel([
+              Animated.spring(translateY, {
+                toValue: 0,
+                useNativeDriver: true,
+                tension: 50,
+                friction: 8,
+              }),
+              Animated.timing(backdropOpacity, {
+                toValue: 1,
+                duration: 200,
+                useNativeDriver: true,
+              }),
+            ]).start();
+          }
+        },
+      }),
+    [enableSwipeToClose, translateY, backdropOpacity, sheetHeight, closeSheet]
+  );
+
+  const openSheet = useCallback(() => {
+    Animated.parallel([
+      Animated.spring(translateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 8,
+      }),
+      Animated.timing(backdropOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [translateY, backdropOpacity]);
+
   useEffect(() => {
     if (isVisible) {
       setIsRendered(true);
-      // Small delay to ensure the sheet is rendered off-screen first
-      setTimeout(() => {
+      // Use requestAnimationFrame instead of setTimeout
+      requestAnimationFrame(() => {
         openSheet();
-      }, 50);
+      });
     } else if (isRendered) {
       closeSheet();
     }

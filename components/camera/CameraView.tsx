@@ -212,33 +212,35 @@ export function CameraScreen({ onCapture, onClose }: CameraScreenProps) {
 
       {/* Effect Selector - bottom sheet */}
       {effectsPanelOpen && (
-        <Pressable style={styles.effectsOverlay} onPress={() => setEffectsPanelOpen(false)} />
-      )}
+        <>
+          <Pressable style={styles.effectsOverlay} onPress={() => setEffectsPanelOpen(false)} />
 
-      <Animated.View
-        style={[
-          styles.effectSelectorContainer,
-          {
-            transform: [
+          <Animated.View
+            style={[
+              styles.effectSelectorContainer,
               {
-                translateY: effectsPanelAnimation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [350, 0], // Slide up from bottom
-                }),
+                transform: [
+                  {
+                    translateY: effectsPanelAnimation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [350, 0], // Slide up from bottom
+                    }),
+                  },
+                ],
               },
-            ],
-          },
-        ]}
-      >
-        <View style={styles.effectsHandle}>
-          <View style={styles.effectsHandleBar} />
-        </View>
-        <EffectSelector
-          onSelectEffect={setSelectedEffectId}
-          currentEffectId={selectedEffectId}
-          onPreviewLocked={handlePreviewLocked}
-        />
-      </Animated.View>
+            ]}
+          >
+            <View style={styles.effectsHandle}>
+              <View style={styles.effectsHandleBar} />
+            </View>
+            <EffectSelector
+              onSelectEffect={setSelectedEffectId}
+              currentEffectId={selectedEffectId}
+              onPreviewLocked={handlePreviewLocked}
+            />
+          </Animated.View>
+        </>
+      )}
 
       {/* Camera Controls */}
       <CameraControls

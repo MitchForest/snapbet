@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Text, Stack } from '@tamagui/core';
 import { Switch, ScrollView } from 'react-native';
 import { BaseSheet } from '@/components/engagement/sheets/BaseSheet';
@@ -16,6 +16,7 @@ import { toastService } from '@/services/toastService';
 import { bettingService } from '@/services/betting/bettingService';
 import { useBetSharing } from '@/hooks/useBetSharing';
 import { PendingShareBet } from '@/types/content';
+import { useAvailableBalance } from '@/hooks/useBankroll';
 
 interface BetSheetProps {
   isVisible: boolean;
@@ -26,7 +27,7 @@ interface BetSheetProps {
 export function BetSheet({ isVisible, onClose, game }: BetSheetProps) {
   const router = useRouter();
   const { storeBetForSharing } = useBetSharing();
-  const [availableBankroll] = useState(100000); // $1000 default for MVP
+  const availableBankroll = useAvailableBalance();
 
   const {
     betType,

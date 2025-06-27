@@ -22,7 +22,7 @@ import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useReadReceipts } from '@/hooks/useReadReceipts';
 import { useChatDetails } from '@/hooks/useChatDetails';
 import { useGroupMembers } from '@/hooks/useGroupMembers';
-import { Message } from '@/types/messaging';
+import { Message, GroupMember } from '@/types/messaging';
 import { useAuthStore } from '@/stores/authStore';
 
 // Mention-enabled message input wrapper
@@ -31,10 +31,10 @@ const MentionMessageInput: React.FC<{
   onSendMessage: (content: { text?: string }) => Promise<void>;
   onTyping: (isTyping: boolean) => void;
   chatExpiration: number;
-}> = ({ chatId, onSendMessage, onTyping }) => {
+  members: GroupMember[];
+}> = ({ chatId: _chatId, onSendMessage, onTyping, members }) => {
   const [message, setMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const { members } = useGroupMembers(chatId);
 
   const handleSend = async () => {
     if (!message.trim()) return;
@@ -144,8 +144,18 @@ export default function ChatScreen() {
       const showAvatar =
         !isOwn && (index === 0 || messages[index - 1]?.sender_id !== item.sender_id);
 
+      const messageStyle = [
+        styles.messageContainer,
+        isOwn ? styles.messageContainerOwn : styles.messageContainerOther,
+      ];
+
       return (
-        <View key={item.id} data-message-id={item.id} data-sender-id={item.sender_id}>
+        <View
+          key={item.id}
+          data-message-id={item.id}
+          data-sender-id={item.sender_id}
+          style={messageStyle}
+        >
           <ChatBubble
             message={item}
             isOwn={isOwn}
@@ -292,6 +302,7 @@ export default function ChatScreen() {
             onSendMessage={sendMessage}
             onTyping={setTyping}
             chatExpiration={(chat.settings?.expiration_hours as number) || 24}
+            members={members}
           />
         ) : (
           <MessageInput
@@ -312,6 +323,15 @@ const styles = StyleSheet.create({
   messagesContent: {
     paddingTop: 16,
     paddingBottom: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
+  },
+  messageContainer: {
+    marginBottom: 8,
+  },
+  messageContainerOwn: {
+    alignItems: 'flex-end',
+  },
+  messageContainerOther: {
+    alignItems: 'flex-start',
   },
 });
