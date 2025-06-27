@@ -16,10 +16,6 @@ const containerStyle = {
   zIndex: 1000,
 };
 
-const animatedStyle = {
-  overflow: 'hidden' as const,
-};
-
 export function ConnectionStatus() {
   const { status } = useRealtimeConnection();
   const fadeAnim = React.useRef(new Animated.Value(0)).current;

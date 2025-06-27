@@ -147,11 +147,12 @@ function SearchScreenContent() {
   );
 
   return (
-    <View style={styles.container}>
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+    >
+      <View style={styles.container}>
         <SearchBar
           value={query}
           onChangeText={setQuery}
@@ -164,11 +165,13 @@ function SearchScreenContent() {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          bounces={true}
+          scrollEventThrottle={16}
         >
           {query.length > 0 ? renderSearchResults() : renderDiscoverySections()}
         </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 

@@ -609,3 +609,11 @@ export const getTeamById = (id: string): Team | undefined => {
 export const getTeamsBySport = (sport: 'NFL' | 'NBA'): Team[] => {
   return ALL_TEAMS.filter((team) => team.sport === sport);
 };
+
+export const getTeamByFullName = (fullName: string): Team | undefined => {
+  // Try to match by combining city and name
+  return ALL_TEAMS.find((team) => {
+    const teamFullName = `${team.city} ${team.name}`;
+    return teamFullName === fullName;
+  });
+};

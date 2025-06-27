@@ -4,7 +4,7 @@ import { TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors } from '@/theme';
 import { Game } from '@/types/database';
 import { BetType, BetSelection, TeamSelection, TotalSelection } from '@/stores/betSlipStore';
-import { getTeamById } from '@/data/teams';
+import { getTeamByFullName } from '@/data/teams';
 import * as Haptics from 'expo-haptics';
 
 interface TeamSelectorProps {
@@ -24,10 +24,10 @@ export function TeamSelector({ game, betType, selected, onChange }: TeamSelector
   };
 
   // Get team info
-  const homeTeamAbbr = getTeamAbbreviation(game.home_team);
-  const awayTeamAbbr = getTeamAbbreviation(game.away_team);
-  const homeTeam = getTeamById(homeTeamAbbr);
-  const awayTeam = getTeamById(awayTeamAbbr);
+  const homeTeam = getTeamByFullName(game.home_team);
+  const awayTeam = getTeamByFullName(game.away_team);
+  const homeTeamAbbr = homeTeam?.abbreviation || getTeamAbbreviation(game.home_team);
+  const awayTeamAbbr = awayTeam?.abbreviation || getTeamAbbreviation(game.away_team);
 
   if (betType === 'spread' || betType === 'moneyline') {
     const spread = odds.spreads;

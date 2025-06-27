@@ -9,7 +9,6 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, OpacityColors } from '@/theme';
 
 interface BaseSheetProps {
@@ -25,6 +24,7 @@ interface BaseSheetProps {
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const DISMISS_THRESHOLD = 0.3; // Dismiss when dragged 30% of sheet height
+const SAFE_AREA_BOTTOM = 34; // Standard safe area bottom height
 
 export function BaseSheet({
   isVisible,
@@ -36,7 +36,6 @@ export function BaseSheet({
   keyboardAvoidingEnabled = false,
   disableContentWrapper = false,
 }: BaseSheetProps) {
-  const insets = useSafeAreaInsets();
   const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const lastGestureDy = useRef(0);
@@ -123,11 +122,14 @@ export function BaseSheet({
   useEffect(() => {
     if (isVisible) {
       setIsRendered(true);
-      openSheet();
-    } else {
+      // Small delay to ensure the sheet is rendered off-screen first
+      setTimeout(() => {
+        openSheet();
+      }, 50);
+    } else if (isRendered) {
       closeSheet();
     }
-  }, [isVisible, openSheet, closeSheet]);
+  }, [isVisible, openSheet, closeSheet, isRendered]);
 
   if (!isRendered) {
     return null;
@@ -180,17 +182,19 @@ export function BaseSheet({
                 <View style={styles.dragIndicator} />
               </View>
             )}
-            <View style={{ flex: 1, paddingBottom: insets.bottom }}>{children}</View>
+            <View style={[styles.flexContainer, { paddingBottom: SAFE_AREA_BOTTOM }]}>
+              {children}
+            </View>
           </>
         ) : keyboardAvoidingEnabled ? (
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={[styles.contentContainer, { paddingBottom: insets.bottom }]}
+            style={[styles.contentContainer, { paddingBottom: SAFE_AREA_BOTTOM }]}
           >
             {content}
           </KeyboardAvoidingView>
         ) : (
-          <View style={[styles.contentContainer, { paddingBottom: insets.bottom }]}>{content}</View>
+          <View style={[styles.flexContainer, { paddingBottom: SAFE_AREA_BOTTOM }]}>{content}</View>
         )}
       </Animated.View>
     </View>
@@ -201,7 +205,7 @@ const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: OpacityColors.overlay.light,
-    zIndex: 999,
+    zIndex: 9999,
   },
   sheet: {
     position: 'absolute',
@@ -211,7 +215,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    zIndex: 1000,
+    zIndex: 10000,
     ...Platform.select({
       ios: {
         shadowColor: OpacityColors.shadow,
@@ -225,6 +229,9 @@ const styles = StyleSheet.create({
     }),
   },
   contentContainer: {
+    flex: 1,
+  },
+  flexContainer: {
     flex: 1,
   },
   dragIndicatorContainer: {

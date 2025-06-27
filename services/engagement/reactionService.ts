@@ -26,7 +26,7 @@ export interface GetReactionUsersResult {
 
 class ReactionService {
   /**
-   * Toggle a reaction on a post or story (add, update, or remove)
+   * Toggle a reaction on a post or story (add or remove)
    */
   async toggleReaction(
     contentId: string,
@@ -46,8 +46,12 @@ class ReactionService {
     }
 
     try {
-      // Build query based on content type
-      const query = supabase.from('reactions').select('*').eq('user_id', user.id);
+      // Build query to check if user has THIS SPECIFIC emoji reaction
+      const query = supabase
+        .from('reactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('emoji', emoji); // Check for specific emoji
 
       if (isStory) {
         query.eq('story_id', contentId).is('post_id', null);
@@ -55,37 +59,18 @@ class ReactionService {
         query.eq('post_id', contentId).is('story_id', null);
       }
 
-      // Check if user already has a reaction on this content
+      // Check if user already has this specific reaction
       const { data: existingReaction } = await query.single();
 
       if (existingReaction) {
-        if (existingReaction.emoji === emoji) {
-          // Same emoji - remove the reaction
-          const { error } = await supabase.from('reactions').delete().eq('id', existingReaction.id);
+        // User has this reaction - remove it
+        const { error } = await supabase.from('reactions').delete().eq('id', existingReaction.id);
 
-          if (error) throw error;
+        if (error) throw error;
 
-          return { removed: true };
-        } else {
-          // Different emoji - update the reaction
-          const { data: updatedReaction, error } = await supabase
-            .from('reactions')
-            .update({ emoji })
-            .eq('id', existingReaction.id)
-            .select()
-            .single();
-
-          if (error) throw error;
-
-          // Create notification for new reaction type
-          if (!isStory) {
-            await this.createReactionNotification(contentId, user.id, emoji);
-          }
-
-          return { reaction: updatedReaction, removed: false };
-        }
+        return { removed: true };
       } else {
-        // No existing reaction - create new one
+        // User doesn't have this reaction - add it
         const insertData = {
           user_id: user.id,
           emoji,
@@ -150,13 +135,9 @@ class ReactionService {
   }
 
   /**
-   * Get the current user's reaction for a post or story
+   * Get the current user's reactions for a post or story
    */
-  async getUserReaction(
-    contentId: string,
-    userId: string,
-    isStory = false
-  ): Promise<string | null> {
+  async getUserReactions(contentId: string, userId: string, isStory = false): Promise<string[]> {
     try {
       const query = supabase.from('reactions').select('emoji').eq('user_id', userId);
 
@@ -166,16 +147,13 @@ class ReactionService {
         query.eq('post_id', contentId);
       }
 
-      const { data: reaction, error } = await query.single();
+      const { data: reactions, error } = await query;
 
-      if (error) {
-        if (error.code === 'PGRST116') return null; // Not found
-        throw error;
-      }
+      if (error) throw error;
 
-      return reaction?.emoji || null;
+      return reactions?.map((r) => r.emoji) || [];
     } catch (error) {
-      throw new Error(error instanceof Error ? error.message : 'Failed to fetch user reaction');
+      throw new Error(error instanceof Error ? error.message : 'Failed to fetch user reactions');
     }
   }
 

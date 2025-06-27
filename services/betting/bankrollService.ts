@@ -193,6 +193,8 @@ class BankrollService {
     lastReset: Date | null;
     nextReset: Date;
     referralBonus: number;
+    winCount: number;
+    lossCount: number;
   }> {
     try {
       // Get bankroll data
@@ -220,6 +222,8 @@ class BankrollService {
         lastReset: bankroll.last_reset ? new Date(bankroll.last_reset) : null,
         nextReset,
         referralBonus: bankroll.referral_bonus || 0,
+        winCount: bankroll.win_count,
+        lossCount: bankroll.loss_count,
       };
     } catch (error) {
       console.error('Error getting bankroll stats:', error);

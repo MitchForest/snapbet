@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { View, Text, ViewProps } from '@tamagui/core';
-import { Image, ActivityIndicator } from 'react-native';
+import { Image, ActivityIndicator, StyleSheet } from 'react-native';
 import { Colors } from '@/theme';
 import { storageService } from '@/services/storage/storageService';
 import {
@@ -24,6 +24,13 @@ const failedUrlCache = new Set<string>();
 
 // Loading timeout in milliseconds
 const LOADING_TIMEOUT = 5000;
+
+const styles = StyleSheet.create({
+  fallbackText: {
+    color: Colors.text.primary,
+    fontWeight: '600',
+  },
+});
 
 export const Avatar: React.FC<AvatarProps> = ({
   src,
@@ -108,6 +115,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   useEffect(() => {
     setImageError(false);
     setLoadingTimedOut(false);
+    setIsLoading(false);
   }, [imageUrl]);
 
   const handleImageError = useCallback(() => {
@@ -184,13 +192,13 @@ export const Avatar: React.FC<AvatarProps> = ({
       {shouldShowFallback && (
         <>
           {isEmoji ? (
-            <Text style={{ fontSize: size * 0.5 }}>{fallback}</Text>
+            <Text fontSize={size * 0.5}>{fallback}</Text>
           ) : initials ? (
-            <Text style={{ fontSize: size * 0.4, color: Colors.text.primary, fontWeight: '600' }}>
+            <Text fontSize={size * 0.4} style={styles.fallbackText}>
               {initials}
             </Text>
           ) : (
-            <Text style={{ fontSize: size * 0.5 }}>{fallback}</Text>
+            <Text fontSize={size * 0.5}>{fallback}</Text>
           )}
         </>
       )}

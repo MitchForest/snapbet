@@ -26,7 +26,7 @@ function debounce<T extends (...args: any[]) => any>(
 
 interface UseReactionsResult {
   reactions: ReactionSummary[];
-  userReaction: string | null;
+  userReactions: string[];
   totalReactions: number;
   isLoading: boolean;
   toggleReaction: (emoji: string) => void;
@@ -36,17 +36,17 @@ interface UseReactionsResult {
 export function useReactions(postId: string): UseReactionsResult {
   const { user } = useAuth();
   const [reactions, setReactions] = useState<ReactionSummary[]>([]);
-  const [userReaction, setUserReaction] = useState<string | null>(null);
+  const [userReactions, setUserReactions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Track pending reaction changes for rollback
-  const previousUserReaction = useRef<string | null>(null);
+  const previousUserReactions = useRef<string[]>([]);
   const isSubscribed = useRef(false);
 
   // Calculate total reactions
   const totalReactions = useMemo(() => reactions.reduce((sum, r) => sum + r.count, 0), [reactions]);
 
-  // Load reactions and user's reaction
+  // Load reactions and user's reactions
   const loadReactions = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -55,11 +55,11 @@ export function useReactions(postId: string): UseReactionsResult {
       const reactionSummary = await reactionService.getReactions(postId);
       setReactions(reactionSummary);
 
-      // Load user's reaction if logged in
+      // Load user's reactions if logged in
       if (user) {
-        const userEmoji = await reactionService.getUserReaction(postId, user.id);
-        setUserReaction(userEmoji);
-        previousUserReaction.current = userEmoji;
+        const userEmojis = await reactionService.getUserReactions(postId, user.id);
+        setUserReactions(userEmojis);
+        previousUserReactions.current = userEmojis;
       }
     } catch (err) {
       console.error('Failed to load reactions:', err);
@@ -70,45 +70,39 @@ export function useReactions(postId: string): UseReactionsResult {
   }, [postId, user]);
 
   // Optimistic reaction update
-  const updateReactionsOptimistically = useCallback(
-    (emoji: string, isAdding: boolean, previousEmoji: string | null) => {
-      setReactions((prev) => {
-        const newReactions = [...prev];
+  const updateReactionsOptimistically = useCallback((emoji: string, isAdding: boolean) => {
+    setReactions((prev) => {
+      const newReactions = [...prev];
+      const emojiIndex = newReactions.findIndex((r) => r.emoji === emoji);
 
-        // Handle previous emoji removal
-        if (previousEmoji) {
-          const prevIndex = newReactions.findIndex((r) => r.emoji === previousEmoji);
-          if (prevIndex >= 0) {
-            newReactions[prevIndex] = {
-              ...newReactions[prevIndex],
-              count: Math.max(0, newReactions[prevIndex].count - 1),
-            };
-            // Remove if count is 0
-            if (newReactions[prevIndex].count === 0) {
-              newReactions.splice(prevIndex, 1);
-            }
+      if (isAdding) {
+        // Adding reaction
+        if (emojiIndex >= 0) {
+          newReactions[emojiIndex] = {
+            ...newReactions[emojiIndex],
+            count: newReactions[emojiIndex].count + 1,
+          };
+        } else {
+          newReactions.push({ emoji, count: 1 });
+        }
+      } else {
+        // Removing reaction
+        if (emojiIndex >= 0) {
+          newReactions[emojiIndex] = {
+            ...newReactions[emojiIndex],
+            count: Math.max(0, newReactions[emojiIndex].count - 1),
+          };
+          // Remove if count is 0
+          if (newReactions[emojiIndex].count === 0) {
+            newReactions.splice(emojiIndex, 1);
           }
         }
+      }
 
-        // Handle new emoji
-        if (isAdding) {
-          const emojiIndex = newReactions.findIndex((r) => r.emoji === emoji);
-          if (emojiIndex >= 0) {
-            newReactions[emojiIndex] = {
-              ...newReactions[emojiIndex],
-              count: newReactions[emojiIndex].count + 1,
-            };
-          } else {
-            newReactions.push({ emoji, count: 1 });
-          }
-        }
-
-        // Sort by count
-        return newReactions.sort((a, b) => b.count - a.count);
-      });
-    },
-    []
-  );
+      // Sort by count
+      return newReactions.sort((a, b) => b.count - a.count);
+    });
+  }, []);
 
   // Debounced toggle reaction
   const toggleReactionDebounced = useMemo(
@@ -127,27 +121,17 @@ export function useReactions(postId: string): UseReactionsResult {
           }
         } catch (err) {
           // Rollback on error
-          const currentReaction = userReaction;
-          setUserReaction(previousUserReaction.current);
+          setUserReactions(previousUserReactions.current);
 
           // Rollback reaction counts
-          if (currentReaction && currentReaction !== previousUserReaction.current) {
-            // Was adding/changing
-            updateReactionsOptimistically(
-              previousUserReaction.current || '',
-              !!previousUserReaction.current,
-              currentReaction
-            );
-          } else if (!currentReaction && previousUserReaction.current) {
-            // Was removing
-            updateReactionsOptimistically(previousUserReaction.current, true, null);
-          }
+          const wasAdding = !previousUserReactions.current.includes(emoji);
+          updateReactionsOptimistically(emoji, !wasAdding);
 
           const errorMessage = err instanceof Error ? err.message : 'Failed to update reaction';
           toastService.showError(errorMessage);
         }
       }, 300),
-    [postId, user, userReaction, updateReactionsOptimistically]
+    [postId, user, updateReactionsOptimistically]
   );
 
   // Toggle reaction handler
@@ -159,19 +143,21 @@ export function useReactions(postId: string): UseReactionsResult {
       }
 
       // Store current state for potential rollback
-      previousUserReaction.current = userReaction;
+      previousUserReactions.current = [...userReactions];
 
       // Optimistic update
-      const isRemoving = userReaction === emoji;
-      const newReaction = isRemoving ? null : emoji;
+      const hasReaction = userReactions.includes(emoji);
+      const newReactions = hasReaction
+        ? userReactions.filter((r) => r !== emoji)
+        : [...userReactions, emoji];
 
-      setUserReaction(newReaction);
-      updateReactionsOptimistically(emoji, !isRemoving, userReaction);
+      setUserReactions(newReactions);
+      updateReactionsOptimistically(emoji, !hasReaction);
 
       // Debounced API call
       toggleReactionDebounced(emoji);
     },
-    [user, userReaction, updateReactionsOptimistically, toggleReactionDebounced]
+    [user, userReactions, updateReactionsOptimistically, toggleReactionDebounced]
   );
 
   // Refresh reactions
@@ -207,7 +193,7 @@ export function useReactions(postId: string): UseReactionsResult {
 
   return {
     reactions,
-    userReaction,
+    userReactions,
     totalReactions,
     isLoading,
     toggleReaction,

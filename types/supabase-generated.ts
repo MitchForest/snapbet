@@ -53,6 +53,7 @@ export type Database = {
           total_won: number;
           updated_at: string | null;
           user_id: string;
+          weekly_deposit: number | null;
           win_count: number;
         };
         Insert: {
@@ -72,6 +73,7 @@ export type Database = {
           total_won?: number;
           updated_at?: string | null;
           user_id: string;
+          weekly_deposit?: number | null;
           win_count?: number;
         };
         Update: {
@@ -91,6 +93,7 @@ export type Database = {
           total_won?: number;
           updated_at?: string | null;
           user_id?: string;
+          weekly_deposit?: number | null;
           win_count?: number;
         };
         Relationships: [
@@ -1382,6 +1385,10 @@ export type Database = {
         Args: { stake: number; odds: number };
         Returns: number;
       };
+      calculate_potential_win: {
+        Args: { p_stake: number; p_odds: number };
+        Returns: number;
+      };
       calculate_referral_bonus: {
         Args: { user_id: string };
         Returns: number;
@@ -1537,7 +1544,35 @@ export type Database = {
         Args: { table_name: string; column_name: string; row_id: string };
         Returns: undefined;
       };
+      is_chat_member: {
+        Args: { p_chat_id: string; p_user_id: string };
+        Returns: boolean;
+      };
+      log_bankroll_transaction: {
+        Args: {
+          p_user_id: string;
+          p_type: string;
+          p_amount: number;
+          p_bet_id?: string;
+        };
+        Returns: undefined;
+      };
       place_bet: {
+        Args: {
+          p_user_id: string;
+          p_game_id: string;
+          p_bet_type: Database['public']['Enums']['bet_type'];
+          p_bet_details: Json;
+          p_stake: number;
+          p_odds: number;
+          p_expires_at: string;
+          p_is_tail?: boolean;
+          p_is_fade?: boolean;
+          p_original_pick_id?: string;
+        };
+        Returns: string;
+      };
+      place_bet_with_bankroll_check: {
         Args: {
           p_user_id: string;
           p_game_id: string;

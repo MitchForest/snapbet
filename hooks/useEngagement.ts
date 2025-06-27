@@ -25,7 +25,7 @@ interface EngagementData {
     tail: number;
     fade: number;
   };
-  userReaction: string | null;
+  userReactions: string[];
   userAction: 'tail' | 'fade' | null;
 }
 
@@ -52,7 +52,7 @@ function generateMockReactions(hash: number): Array<{ emoji: string; count: numb
 export function useEngagement(postId: string, postType?: PostType): EngagementData {
   // Use real hooks for comments and reactions
   const { comments } = useComments(postId);
-  const { reactions, userReaction } = useReactions(postId);
+  const { reactions, userReactions } = useReactions(postId);
 
   // State for tail/fade counts
   const [tailCount, setTailCount] = useState(0);
@@ -155,7 +155,7 @@ export function useEngagement(postId: string, postType?: PostType): EngagementDa
     tailCount,
     fadeCount,
     animatedCounts,
-    userReaction,
+    userReactions,
     userAction,
   };
 }

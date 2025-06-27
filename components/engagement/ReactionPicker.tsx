@@ -79,17 +79,7 @@ export function ReactionPicker({ onSelect, currentReaction, style }: ReactionPic
   return (
     <View style={[styles.container, style]}>
       <View style={styles.row}>
-        {AVAILABLE_REACTIONS.slice(0, 3).map((emoji) => (
-          <ReactionButton
-            key={emoji}
-            emoji={emoji}
-            isSelected={currentReaction === emoji}
-            onPress={() => handleSelect(emoji)}
-          />
-        ))}
-      </View>
-      <View style={styles.row}>
-        {AVAILABLE_REACTIONS.slice(3, 6).map((emoji) => (
+        {AVAILABLE_REACTIONS.map((emoji) => (
           <ReactionButton
             key={emoji}
             emoji={emoji}

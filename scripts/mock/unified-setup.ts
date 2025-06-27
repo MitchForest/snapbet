@@ -55,14 +55,47 @@ const ALLOWED_EMOJIS = ['🔥', '💰', '💯', '🎯'];
 
 // Get user by username
 async function getUserByUsername(username: string): Promise<User | null> {
+  console.log(`🔍 Looking up user: ${username}`);
+
   const { data: user, error } = await supabase
     .from('users')
     .select('*')
     .eq('username', username)
     .single();
 
-  if (error || !user) {
+  if (error) {
+    console.error(`❌ Error looking up user:`, error.message);
+
+    // Try to list some available usernames
+    const { data: users } = await supabase
+      .from('users')
+      .select('username')
+      .eq('is_mock', false)
+      .limit(5);
+
+    if (users && users.length > 0) {
+      console.log('\n📋 Available non-mock usernames:');
+      users.forEach((u) => console.log(`   - ${u.username}`));
+    }
+
+    return null;
+  }
+
+  if (!user) {
     console.error(`❌ User with username "${username}" not found`);
+
+    // Try to list some available usernames
+    const { data: users } = await supabase
+      .from('users')
+      .select('username')
+      .eq('is_mock', false)
+      .limit(5);
+
+    if (users && users.length > 0) {
+      console.log('\n📋 Available non-mock usernames:');
+      users.forEach((u) => console.log(`   - ${u.username}`));
+    }
+
     return null;
   }
 
@@ -204,8 +237,13 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
     .filter((u) => ['sharp-bettor', 'live-bettor'].includes(u.mock_personality_id || ''))
     .slice(0, 5);
 
+  // Calculate days since start of week (Monday)
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sunday is 0, so it's 6 days since Monday
+
   for (const hotUser of hotBettors) {
-    // Create 5-8 bets in the last 7 days with 70%+ win rate
+    // Create 5-8 bets settled THIS WEEK with 70%+ win rate
     const betCount = Math.floor(Math.random() * 4) + 5;
     const winCount = Math.floor(betCount * (0.7 + Math.random() * 0.2));
 
@@ -213,7 +251,10 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
       const game = games[Math.floor(Math.random() * games.length)];
       const isWin = i < winCount;
       const betId = crypto.randomUUID();
-      const daysAgo = Math.floor(Math.random() * 7) + 1;
+
+      // Ensure bets are settled within current week (0 to daysSinceMonday days ago)
+      const daysAgo = Math.floor(Math.random() * (daysSinceMonday + 1));
+      const hoursAgo = daysAgo * 24 + Math.floor(Math.random() * 24); // Add some hour variation
 
       bets.push({
         id: betId,
@@ -229,8 +270,45 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
         potential_win: 1818,
         actual_win: isWin ? 3818 : 0,
         status: isWin ? ('won' as const) : ('lost' as const),
-        settled_at: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString(),
-        created_at: new Date(Date.now() - (daysAgo + 1) * 24 * 60 * 60 * 1000).toISOString(),
+        settled_at: new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - (hoursAgo + 1) * 60 * 60 * 1000).toISOString(),
+      });
+    }
+  }
+
+  // Create additional hot bettors to ensure we have enough
+  console.log('  🔥 Creating additional hot bettors...');
+  const additionalHotBettors = mockUsers
+    .filter((u) => ['contrarian', 'sharp-bettor'].includes(u.mock_personality_id || ''))
+    .slice(5, 10); // Get 5 more users
+
+  for (const hotUser of additionalHotBettors) {
+    // Create exactly 5-6 bets this week with high win rate
+    const betCount = Math.floor(Math.random() * 2) + 5;
+    const winCount = Math.floor(betCount * (0.75 + Math.random() * 0.15));
+
+    for (let i = 0; i < betCount; i++) {
+      const game = games[Math.floor(Math.random() * games.length)];
+      const isWin = i < winCount;
+      const betId = crypto.randomUUID();
+
+      // All bets settled within current week
+      const daysAgo = Math.floor(Math.random() * (daysSinceMonday + 1));
+      const hoursAgo = daysAgo * 24 + Math.floor(Math.random() * 12);
+
+      bets.push({
+        id: betId,
+        user_id: hotUser.id,
+        game_id: game.id,
+        bet_type: ['spread', 'moneyline'][Math.floor(Math.random() * 2)] as 'spread' | 'moneyline',
+        bet_details: { team: game.home_team },
+        stake: 1500,
+        odds: -110,
+        potential_win: 1364,
+        actual_win: isWin ? 2864 : 0,
+        status: isWin ? ('won' as const) : ('lost' as const),
+        settled_at: new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - (hoursAgo + 2) * 60 * 60 * 1000).toISOString(),
       });
     }
   }
@@ -240,15 +318,15 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
   const fadeGods = mockUsers.filter((u) => u.mock_personality_id === 'fade-material').slice(0, 3);
 
   for (const fadeGod of fadeGods) {
-    // Create mostly losing bets
-    const betCount = 6;
-    const winCount = 1;
+    // Create 10-15 bets with mostly losses (< 40% win rate)
+    const betCount = Math.floor(Math.random() * 6) + 10; // 10-15 bets
+    const winCount = Math.floor(betCount * (0.2 + Math.random() * 0.15)); // 20-35% win rate
 
     for (let i = 0; i < betCount; i++) {
       const game = games[Math.floor(Math.random() * games.length)];
       const isWin = i < winCount;
       const betId = crypto.randomUUID();
-      const daysAgo = Math.floor(Math.random() * 7) + 1;
+      const daysAgo = Math.floor(Math.random() * 14) + 1; // Spread over 2 weeks
 
       bets.push({
         id: betId,
@@ -311,8 +389,12 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
 
   // Update bankroll stats for all these users
   console.log('  💰 Updating bankroll stats...');
-  for (const user of [...hotBettors, ...fadeGods, ...risingStars]) {
-    const userBets = bets.filter((b) => b.user_id === user.id);
+  
+  // Get all unique user IDs from bets
+  const uniqueUserIds = [...new Set(bets.map(b => b.user_id))];
+  
+  for (const userId of uniqueUserIds) {
+    const userBets = bets.filter((b) => b.user_id === userId);
     const wins = userBets.filter((b) => b.status === 'won').length;
     const losses = userBets.filter((b) => b.status === 'lost').length;
     const totalWagered = userBets.reduce((sum, b) => sum + b.stake, 0);
@@ -327,7 +409,7 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
         total_won: totalWon,
         balance: 10000 + totalWon - totalWagered,
       })
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
   }
 
   // Create recent posts with higher engagement for trending
@@ -490,7 +572,7 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
 
   console.log(`  ✅ Added ${reactions.length} reactions, ${comments.length} comments`);
   console.log(
-    `  ✅ Created ${hotBettors.length} hot bettors, ${fadeGods.length} fade gods, and ${risingStars.length} rising stars`
+    `  ✅ Created ${hotBettors.length + additionalHotBettors.length} hot bettors, ${fadeGods.length} fade gods, and ${risingStars.length} rising stars`
   );
 }
 
@@ -712,22 +794,52 @@ async function setupMockEcosystem() {
 
   // Get username from command line
   const usernameArg = process.argv.find((arg) => arg.startsWith('--username='));
-  if (!usernameArg) {
+  const skipUserArg = process.argv.includes('--skip-user');
+
+  if (!usernameArg && !skipUserArg) {
     console.error('❌ Please provide username: --username=YOUR_USERNAME');
-    console.error('Example: bun run mock:setup --username=mitchforest');
+    console.error('   Or use --skip-user to create mock content without a real user');
+    console.error('\nExample: bun run scripts/mock/unified-setup.ts --username=mitchforest');
+    console.error('         bun run scripts/mock/unified-setup.ts --skip-user');
     process.exit(1);
   }
 
-  const username = usernameArg.split('=')[1];
-
   try {
-    // Get user
-    const user = await getUserByUsername(username);
-    if (!user) {
-      process.exit(1);
-    }
+    let userId: string;
 
-    console.log(`✅ Found user: ${username} (${user.id})\n`);
+    if (skipUserArg) {
+      console.log('⚠️  Running in skip-user mode - creating mock content only\n');
+      // Use the first mock user as a placeholder
+      const { data: firstMockUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('is_mock', true)
+        .limit(1)
+        .single();
+
+      if (!firstMockUser) {
+        console.error(
+          '❌ No mock users found. Please run: bun run scripts/mock/generators/users.ts'
+        );
+        process.exit(1);
+      }
+
+      userId = firstMockUser.id;
+    } else {
+      const username = usernameArg!.split('=')[1];
+
+      // Get user
+      const user = await getUserByUsername(username);
+      if (!user) {
+        console.log('\n🔧 Would you like to create this user? Run:');
+        console.log(`   bun run scripts/mock/unified-setup.ts --skip-user`);
+        console.log('   to create mock content without a specific user\n');
+        process.exit(1);
+      }
+
+      console.log(`✅ Found user: ${username} (${user.id})\n`);
+      userId = user.id;
+    }
 
     // Get mock users
     const mockUsers = await getMockUsers();
@@ -738,23 +850,33 @@ async function setupMockEcosystem() {
     console.log(`✅ Found ${games.length} upcoming games\n`);
 
     // Create all content and relationships
-    await createFollowRelationships(user.id, mockUsers);
+    if (!skipUserArg) {
+      await createFollowRelationships(userId, mockUsers);
+      await createNotifications(userId, mockUsers);
+    }
+
     await createStories(mockUsers);
-    await createPostsWithEngagement(user.id, mockUsers, games);
-    await createGroupChats(user.id, mockUsers);
-    await createDirectChats(user.id, mockUsers);
-    await createNotifications(user.id, mockUsers);
+    await createPostsWithEngagement(userId, mockUsers, games);
+    await createGroupChats(userId, mockUsers);
+
+    if (!skipUserArg) {
+      await createDirectChats(userId, mockUsers);
+    }
 
     console.log('\n✅ Mock ecosystem setup complete!');
     console.log('\n📋 What was created:');
-    console.log(`  • ${CONFIG.social.followsFromMocks} mock users following you`);
-    console.log(`  • You following ${CONFIG.social.userFollowsMocks} mock users`);
+    if (!skipUserArg) {
+      console.log(`  • ${CONFIG.social.followsFromMocks} mock users following you`);
+      console.log(`  • You following ${CONFIG.social.userFollowsMocks} mock users`);
+    }
     console.log(`  • ${CONFIG.posts.stories} active stories`);
     console.log(`  • ${CONFIG.posts.recent} recent posts with reactions and comments`);
     console.log(`  • ${CONFIG.posts.picks} pick posts with tail/fade actions`);
     console.log(`  • ${CONFIG.chats.groups.length} group chats with active conversations`);
-    console.log(`  • ${CONFIG.chats.directChats} direct message conversations`);
-    console.log(`  • ${CONFIG.notifications.recent} recent notifications`);
+    if (!skipUserArg) {
+      console.log(`  • ${CONFIG.chats.directChats} direct message conversations`);
+      console.log(`  • ${CONFIG.notifications.recent} recent notifications`);
+    }
     console.log('\n🚀 Your app should now have a vibrant, interactive community!');
   } catch (error) {
     console.error('❌ Setup failed:', error);

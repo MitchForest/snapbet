@@ -14,7 +14,7 @@ The mock ecosystem now has three stages to demonstrate all features of the app:
 bun run mock:setup --username=YOUR_USERNAME
 
 # Example:
-bun run mock:setup --username=mitchforest
+bun run mock:setup --username=MitchForest
 ```
 
 This creates:

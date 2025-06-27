@@ -9,6 +9,7 @@ import {
   Platform,
   Pressable,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { BaseSheet } from './BaseSheet';
 import { CommentItem } from '../display/CommentItem';
@@ -66,105 +67,115 @@ export function CommentSheet({ postId, isVisible, onClose }: CommentSheetProps) 
     );
   };
 
+  // Wrap in Modal to ensure it renders outside any lists
   return (
-    <BaseSheet
-      isVisible={isVisible}
-      onClose={onClose}
-      height="70%"
-      keyboardAvoidingEnabled
-      disableContentWrapper // Add this to prevent nested scrolling issues
+    <Modal
+      visible={isVisible}
+      transparent
+      animationType="none"
+      onRequestClose={onClose}
+      statusBarTranslucent
     >
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Comments {total > 0 && `(${total})`}</Text>
-          <Pressable onPress={onClose} style={styles.closeButton}>
-            <Text style={styles.closeText}>✕</Text>
-          </Pressable>
-        </View>
-
-        {/* Comments List */}
-        {isLoading && comments.length === 0 ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.primary} />
+      <BaseSheet
+        isVisible={isVisible}
+        onClose={onClose}
+        height="70%"
+        keyboardAvoidingEnabled={false}
+        disableContentWrapper={false}
+      >
+        <View style={styles.container}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.title}>Comments {total > 0 && `(${total})`}</Text>
+            <Pressable onPress={onClose} style={styles.closeButton}>
+              <Text style={styles.closeText}>✕</Text>
+            </Pressable>
           </View>
-        ) : (
-          <FlatList
-            data={comments}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <CommentItem
-                comment={item}
-                onDelete={
-                  user && item.user_id === user.id ? () => handleDelete(item.id) : undefined
-                }
-              />
-            )}
-            contentContainerStyle={styles.listContent}
-            onEndReached={loadMore}
-            onEndReachedThreshold={0.5}
-            ListFooterComponent={renderFooter}
-            ListEmptyComponent={
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyIcon}>💬</Text>
-                <Text style={styles.emptyTitle}>No comments yet</Text>
-                <Text style={styles.emptyText}>Be the first to share your thoughts!</Text>
-              </View>
-            }
-          />
-        )}
 
-        {/* Comment Composer */}
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={0}
-        >
-          <View style={[styles.composer, { paddingBottom: insets.bottom || 16 }]}>
-            <View style={styles.inputContainer}>
-              <TextInput
-                ref={inputRef}
-                style={styles.input}
-                placeholder="Add a comment..."
-                placeholderTextColor={Colors.text.tertiary}
-                value={comment}
-                onChangeText={setComment}
-                multiline
-                maxLength={300} // Allow slight overflow for UX
-                onSubmitEditing={handleSubmit}
-                returnKeyType="send"
-                editable={!isAdding}
-              />
-              <View style={styles.inputActions}>
-                <Text style={[styles.charCount, isOverLimit && styles.charCountError]}>
-                  {remainingChars}
-                </Text>
-                <Pressable
-                  onPress={handleSubmit}
-                  disabled={!comment.trim() || isOverLimit || isAdding}
-                  style={[
-                    styles.sendButton,
-                    (!comment.trim() || isOverLimit || isAdding) && styles.sendButtonDisabled,
-                  ]}
-                >
-                  {isAdding ? (
-                    <ActivityIndicator size="small" color={Colors.white} />
-                  ) : (
-                    <Text
-                      style={[
-                        styles.sendText,
-                        (!comment.trim() || isOverLimit) && styles.sendTextDisabled,
-                      ]}
-                    >
-                      Send
-                    </Text>
-                  )}
-                </Pressable>
+          {/* Comments List */}
+          {isLoading && comments.length === 0 ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
+          ) : (
+            <FlatList
+              data={comments}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <CommentItem
+                  comment={item}
+                  onDelete={
+                    user && item.user_id === user.id ? () => handleDelete(item.id) : undefined
+                  }
+                />
+              )}
+              contentContainerStyle={styles.listContent}
+              onEndReached={loadMore}
+              onEndReachedThreshold={0.5}
+              ListFooterComponent={renderFooter}
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyIcon}>💬</Text>
+                  <Text style={styles.emptyTitle}>No comments yet</Text>
+                  <Text style={styles.emptyText}>Be the first to share your thoughts!</Text>
+                </View>
+              }
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+
+          {/* Comment Composer */}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={0}
+          >
+            <View style={[styles.composer, { paddingBottom: insets.bottom || 16 }]}>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  ref={inputRef}
+                  style={styles.input}
+                  placeholder="Add a comment..."
+                  placeholderTextColor={Colors.text.tertiary}
+                  value={comment}
+                  onChangeText={setComment}
+                  multiline
+                  maxLength={300} // Allow slight overflow for UX
+                  onSubmitEditing={handleSubmit}
+                  returnKeyType="send"
+                  editable={!isAdding}
+                />
+                <View style={styles.inputActions}>
+                  <Text style={[styles.charCount, isOverLimit && styles.charCountError]}>
+                    {remainingChars}
+                  </Text>
+                  <Pressable
+                    onPress={handleSubmit}
+                    disabled={!comment.trim() || isOverLimit || isAdding}
+                    style={[
+                      styles.sendButton,
+                      (!comment.trim() || isOverLimit || isAdding) && styles.sendButtonDisabled,
+                    ]}
+                  >
+                    {isAdding ? (
+                      <ActivityIndicator size="small" color={Colors.white} />
+                    ) : (
+                      <Text
+                        style={[
+                          styles.sendText,
+                          (!comment.trim() || isOverLimit) && styles.sendTextDisabled,
+                        ]}
+                      >
+                        Send
+                      </Text>
+                    )}
+                  </Pressable>
+                </View>
               </View>
             </View>
-          </View>
-        </KeyboardAvoidingView>
-      </View>
-    </BaseSheet>
+          </KeyboardAvoidingView>
+        </View>
+      </BaseSheet>
+    </Modal>
   );
 }
 

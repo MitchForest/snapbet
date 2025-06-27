@@ -55,9 +55,10 @@ export function useStoryReactions(storyId: string): UseStoryReactionsResult {
 
       // Load user's reaction if logged in
       if (user) {
-        const userEmoji = await reactionService.getUserReaction(storyId, user.id, true);
-        setUserReaction(userEmoji);
-        previousUserReaction.current = userEmoji;
+        const userEmojis = await reactionService.getUserReactions(storyId, user.id, true);
+        // For stories, we still want single reaction behavior, so take the first one
+        setUserReaction(userEmojis.length > 0 ? userEmojis[0] : null);
+        previousUserReaction.current = userEmojis.length > 0 ? userEmojis[0] : null;
       }
     } catch (err) {
       console.error('Failed to load story reactions:', err);

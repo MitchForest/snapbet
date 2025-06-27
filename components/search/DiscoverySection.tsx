@@ -169,12 +169,19 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
+    paddingRight: 32,
   },
   cardWrapper: {
-    width: 280,
+    width: 320,
     marginRight: 12,
     borderRadius: 12,
     overflow: 'hidden',
+    backgroundColor: Colors.surface,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   errorContainer: {
     height: 100,

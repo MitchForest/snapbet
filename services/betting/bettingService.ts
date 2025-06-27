@@ -46,7 +46,7 @@ class BettingService {
       const betDetails = this.prepareBetDetails(input, game);
 
       // Use the database function to place the bet
-      const { data, error } = await supabase.rpc('place_bet', {
+      const { data, error } = await supabase.rpc('place_bet_with_bankroll_check', {
         p_user_id: user.id,
         p_game_id: input.gameId,
         p_bet_type: input.betType,

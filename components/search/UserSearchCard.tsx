@@ -21,7 +21,12 @@ export function UserSearchCard({ user, isFollowing = false, onFollowChange }: Us
     router.push(`/profile/${user.username}`);
   };
 
-  const formatStats = () => {
+  const formatStats = (): string => {
+    // Check for custom stats (for trending users)
+    if ('customStats' in user && user.customStats) {
+      return String(user.customStats);
+    }
+
     if (!user.total_bets || user.total_bets === 0) {
       return 'No bets yet';
     }
@@ -43,18 +48,28 @@ export function UserSearchCard({ user, isFollowing = false, onFollowChange }: Us
           fallback={user.username?.[0]?.toUpperCase() || '?'}
         />
         <View style={styles.info}>
-          <View style={styles.nameRow}>
-            <Text style={styles.username}>@{user.username}</Text>
-            {user.display_name && <Text style={styles.displayName}>{user.display_name}</Text>}
+          <View style={styles.nameContainer}>
+            <Text style={styles.username} numberOfLines={1}>
+              @{user.username}
+            </Text>
+            {user.display_name && (
+              <Text style={styles.displayName} numberOfLines={1}>
+                {user.display_name}
+              </Text>
+            )}
           </View>
-          <Text style={styles.stats}>{formatStats()}</Text>
+          <Text style={styles.stats} numberOfLines={1}>
+            {formatStats()}
+          </Text>
         </View>
-        <FollowButton
-          userId={user.id}
-          isFollowing={isFollowing}
-          size="small"
-          onFollowChange={(newFollowState) => onFollowChange?.(user.id, newFollowState)}
-        />
+        <View style={styles.buttonContainer}>
+          <FollowButton
+            userId={user.id}
+            isFollowing={isFollowing}
+            size="small"
+            onFollowChange={(newFollowState) => onFollowChange?.(user.id, newFollowState)}
+          />
+        </View>
       </View>
     </Pressable>
   );
@@ -75,11 +90,11 @@ const styles = StyleSheet.create({
   info: {
     flex: 1,
     marginLeft: 12,
+    marginRight: 12,
   },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  nameContainer: {
+    flexDirection: 'column',
+    gap: 2,
   },
   username: {
     fontSize: 14,
@@ -87,12 +102,15 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
   },
   displayName: {
-    fontSize: 14,
+    fontSize: 12,
     color: Colors.text.secondary,
   },
   stats: {
     fontSize: 12,
     color: Colors.text.secondary,
-    marginTop: 2,
+    marginTop: 4,
+  },
+  buttonContainer: {
+    flexShrink: 0,
   },
 });

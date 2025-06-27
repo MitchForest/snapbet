@@ -10,7 +10,6 @@ import { Avatar } from '@/components/common/Avatar';
 import { CommentSheet } from '@/components/engagement/sheets/CommentSheet';
 import { ReportModal } from '@/components/moderation/ReportModal';
 import { PostOptionsMenu } from '@/components/content/PostOptionsMenu';
-import { useEngagement } from '@/hooks/useEngagement';
 import { toastService } from '@/services/toastService';
 import { TailFadeButtons } from '@/components/engagement/buttons/TailFadeButtons';
 import { useReactions } from '@/hooks/useReactions';
@@ -41,28 +40,27 @@ export function PostCard({ post, onPress }: PostCardProps) {
   const [showReportModal, setShowReportModal] = useState(false);
   const [showHiddenContent, setShowHiddenContent] = useState(false);
 
-  // Get engagement data
-  const engagement = useEngagement(post.id, post.post_type);
-  const { toggleReaction } = useReactions(post.id);
+  // Get engagement data including reactions
+  const { reactions, userReactions, toggleReaction } = useReactions(post.id);
 
   // Check if post is auto-hidden due to reports
   const isAutoHidden = post.report_count && post.report_count >= 3 && !showHiddenContent;
 
-  // Create reaction counts map
+  // Create reaction counts map from the reactions data
   const reactionCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     // Initialize all reactions with 0
     AVAILABLE_REACTIONS.forEach((emoji) => {
       counts[emoji] = 0;
     });
-    // Update with actual counts
-    engagement.reactions.forEach((reaction) => {
+    // Update with actual counts from reactions
+    reactions.forEach((reaction) => {
       if (counts[reaction.emoji] !== undefined) {
         counts[reaction.emoji] = reaction.count;
       }
     });
     return counts;
-  }, [engagement.reactions]);
+  }, [reactions]);
 
   const handleMediaPress = () => {
     if (post.media_type === 'video') {
@@ -172,14 +170,14 @@ export function PostCard({ post, onPress }: PostCardProps) {
                 onPress={() => setShowComments(true)}
               />
 
-              {/* Reaction buttons - always show all 6 */}
+              {/* Reaction buttons - always show all 4 */}
               {AVAILABLE_REACTIONS.map((emoji) => (
                 <EngagementPill
                   key={emoji}
                   icon={emoji}
                   count={reactionCounts[emoji]}
                   onPress={() => handleReactionPress(emoji)}
-                  isActive={engagement.userReaction === emoji}
+                  isActive={userReactions.includes(emoji)}
                 />
               ))}
             </View>
@@ -198,21 +196,24 @@ export function PostCard({ post, onPress }: PostCardProps) {
         )}
       </Pressable>
 
-      {/* Comment Sheet */}
-      <CommentSheet
-        postId={post.id}
-        isVisible={showComments}
-        onClose={() => setShowComments(false)}
-      />
+      {/* Modals and Sheets - Rendered outside of the list item */}
+      {showComments && (
+        <CommentSheet
+          postId={post.id}
+          isVisible={showComments}
+          onClose={() => setShowComments(false)}
+        />
+      )}
 
-      {/* Report Modal */}
-      <ReportModal
-        isVisible={showReportModal}
-        onClose={() => setShowReportModal(false)}
-        contentType="post"
-        contentId={post.id}
-        contentOwnerName={post.user?.username}
-      />
+      {showReportModal && (
+        <ReportModal
+          isVisible={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          contentType="post"
+          contentId={post.id}
+          contentOwnerName={post.user?.username}
+        />
+      )}
     </>
   );
 }

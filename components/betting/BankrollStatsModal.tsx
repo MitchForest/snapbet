@@ -1,5 +1,14 @@
-import React from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Animated,
+  Dimensions,
+  TouchableWithoutFeedback,
+} from 'react-native';
 import { Colors, OpacityColors } from '@/theme';
 import { useBankrollStats } from '@/hooks/useBankroll';
 import { formatCentsToCurrency, formatTimeUntilReset } from '@/utils/bankroll/calculations';
@@ -10,100 +19,177 @@ interface BankrollStatsModalProps {
   onClose: () => void;
 }
 
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+
 export function BankrollStatsModal({ isOpen, onClose }: BankrollStatsModalProps) {
   const { data: stats, isLoading } = useBankrollStats();
+  const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+  const [isVisible, setIsVisible] = React.useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (isOpen) {
+      setIsVisible(true);
+      // Animate in
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(translateY, {
+          toValue: 0,
+          damping: 20,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      // Animate out
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: SCREEN_HEIGHT,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setIsVisible(false);
+      });
+    }
+  }, [isOpen, opacity, translateY]);
+
+  if (!isVisible) return null;
+
+  // Calculate safe values with defaults
+  const weeklyPL = stats ? stats.weeklyPL : 0;
+  const weeklyPLPercent = stats ? stats.weeklyPLPercent : 0;
+  const winCount = stats ? stats.winCount || 0 : 0;
+  const lossCount = stats ? stats.lossCount || 0 : 0;
 
   return (
-    <Modal visible={isOpen} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.container}>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <View style={styles.content}>
-              {/* Header */}
-              <View style={styles.header}>
-                <Text style={styles.title}>Bankroll Details</Text>
-                <TouchableOpacity onPress={onClose}>
-                  <Text style={styles.closeButton}>✕</Text>
-                </TouchableOpacity>
-              </View>
+    <View style={StyleSheet.absoluteFillObject} pointerEvents={isOpen ? 'auto' : 'none'}>
+      {/* Backdrop */}
+      <TouchableWithoutFeedback onPress={onClose}>
+        <Animated.View
+          style={[
+            styles.backdrop,
+            {
+              opacity,
+            },
+          ]}
+        />
+      </TouchableWithoutFeedback>
 
-              {isLoading ? (
-                <Text style={styles.loading}>Loading...</Text>
-              ) : stats ? (
-                <>
-                  {/* Current Balance Section */}
-                  <View style={styles.section}>
-                    <StatRow
-                      label="Current Balance"
-                      value={formatCentsToCurrency(stats.currentBalance)}
-                    />
-                    <StatRow
-                      label="Pending Bets"
-                      value={`-${formatCentsToCurrency(stats.pendingBets)}`}
-                      color={Colors.text.secondary}
-                    />
-                    <View style={styles.separator} />
-                    <StatRow
-                      label="Available to Bet"
-                      value={formatCentsToCurrency(stats.available)}
-                      bold
-                    />
-                  </View>
+      {/* Bottom Sheet */}
+      <Animated.View
+        style={[
+          styles.container,
+          {
+            transform: [{ translateY }],
+          },
+        ]}
+      >
+        <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+          <View style={styles.content}>
+            {/* Drag Handle */}
+            <View style={styles.dragHandle} />
 
-                  {/* Weekly Performance */}
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>This Week</Text>
-                    <StatRow
-                      label="Started With"
-                      value={formatCentsToCurrency(stats.weeklyDeposit)}
-                    />
-                    <StatRow
-                      label="Profit/Loss"
-                      value={`${stats.weeklyPL >= 0 ? '+' : ''}${formatCentsToCurrency(stats.weeklyPL)}`}
-                      color={
-                        stats.weeklyPL > 0
-                          ? Colors.success
-                          : stats.weeklyPL < 0
-                            ? Colors.error
-                            : Colors.text.secondary
-                      }
-                    />
-                    <StatRow
-                      label="ROI"
-                      value={`${stats.weeklyPLPercent.toFixed(1)}%`}
-                      color={
-                        stats.weeklyPLPercent > 0
-                          ? Colors.success
-                          : stats.weeklyPLPercent < 0
-                            ? Colors.error
-                            : Colors.text.secondary
-                      }
-                    />
-                  </View>
-
-                  {/* Reset Info */}
-                  <View style={styles.section}>
-                    <Text style={styles.resetInfo}>
-                      Resets {format(stats.nextReset, 'EEEE')} at midnight (
-                      {formatTimeUntilReset(stats.nextReset)})
-                    </Text>
-                    {stats.referralBonus > 0 && (
-                      <Text style={styles.bonusInfo}>
-                        +{formatCentsToCurrency(stats.referralBonus)} weekly from referrals
-                      </Text>
-                    )}
-                  </View>
-                </>
-              ) : (
-                <Text style={styles.error}>Failed to load bankroll data</Text>
-              )}
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.title}>Bankroll Details</Text>
+              <TouchableOpacity
+                onPress={onClose}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={styles.closeButton}>✕</Text>
+              </TouchableOpacity>
             </View>
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
+
+            {isLoading ? (
+              <Text style={styles.loading}>Loading...</Text>
+            ) : stats ? (
+              <>
+                {/* Current Balance Section */}
+                <View style={styles.section}>
+                  <StatRow
+                    label="Current Balance"
+                    value={formatCentsToCurrency(stats.currentBalance)}
+                  />
+                  <StatRow
+                    label="Pending Bets"
+                    value={`-${formatCentsToCurrency(stats.pendingBets)}`}
+                    color={Colors.text.secondary}
+                  />
+                  <View style={styles.separator} />
+                  <StatRow
+                    label="Available to Bet"
+                    value={formatCentsToCurrency(stats.available)}
+                    bold
+                  />
+                </View>
+
+                {/* Weekly Performance */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>This Week</Text>
+                  <StatRow
+                    label="Win/Loss"
+                    value={`${winCount}-${lossCount}`}
+                    color={
+                      winCount > lossCount
+                        ? Colors.success
+                        : winCount < lossCount
+                          ? Colors.error
+                          : Colors.text.secondary
+                    }
+                  />
+                  <StatRow
+                    label="Profit/Loss"
+                    value={`${weeklyPL >= 0 ? '+' : ''}${formatCentsToCurrency(weeklyPL)}`}
+                    color={
+                      weeklyPL > 0
+                        ? Colors.success
+                        : weeklyPL < 0
+                          ? Colors.error
+                          : Colors.text.secondary
+                    }
+                  />
+                  <StatRow
+                    label="ROI"
+                    value={`${weeklyPLPercent.toFixed(1)}%`}
+                    color={
+                      weeklyPLPercent > 0
+                        ? Colors.success
+                        : weeklyPLPercent < 0
+                          ? Colors.error
+                          : Colors.text.secondary
+                    }
+                  />
+                </View>
+
+                {/* Reset Info */}
+                <View style={styles.section}>
+                  <Text style={styles.resetInfo}>
+                    Resets {format(stats.nextReset, 'EEEE')} at midnight (
+                    {formatTimeUntilReset(stats.nextReset)})
+                  </Text>
+                  {stats.referralBonus > 0 && (
+                    <Text style={styles.bonusInfo}>
+                      +{formatCentsToCurrency(stats.referralBonus)} weekly from referrals
+                    </Text>
+                  )}
+                </View>
+              </>
+            ) : (
+              <Text style={styles.error}>Failed to load bankroll data</Text>
+            )}
+          </View>
+        </ScrollView>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -128,20 +214,31 @@ function StatRow({ label, value, color, bold }: StatRowProps) {
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: OpacityColors.overlay.light,
-    justifyContent: 'flex-end',
   },
   container: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: Colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '80%',
+    maxHeight: SCREEN_HEIGHT * 0.8,
     paddingBottom: 20,
   },
   content: {
     padding: 20,
+  },
+  dragHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: Colors.border.light,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
   },
   header: {
     flexDirection: 'row',
