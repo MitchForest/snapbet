@@ -1388,6 +1388,10 @@ export type Database = {
         Args: { stake: number; odds: number }
         Returns: number
       }
+      calculate_potential_win: {
+        Args: { stake: number; odds: number }
+        Returns: number
+      }
       calculate_referral_bonus: {
         Args: { user_id: string }
         Returns: number
@@ -1403,6 +1407,10 @@ export type Database = {
       cleanup_old_job_executions: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      create_dm_chat: {
+        Args: { other_user_id: string }
+        Returns: string
       }
       create_group_chat: {
         Args: {

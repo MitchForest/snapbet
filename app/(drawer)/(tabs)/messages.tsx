@@ -47,9 +47,9 @@ export default function MessagesScreen() {
   }, [router]);
 
   // Start new chat
-  const handleStartChat = useCallback(() => {
-    router.push('/search');
-  }, [router]);
+  const handleStartChat = () => {
+    router.push('/start-chat');
+  };
 
   // Create new group
   const handleCreateGroup = useCallback(() => {

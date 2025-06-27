@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text } from '@tamagui/core';
 import { TextInput, Image, Pressable, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MemberSelector } from './MemberSelector';
 import { Colors } from '@/theme';
 import { GroupCreationData } from '@/types/messaging';
@@ -14,6 +15,7 @@ interface GroupCreationFlowProps {
 type Step = 'members' | 'details';
 
 export const GroupCreationFlow: React.FC<GroupCreationFlowProps> = ({ onComplete, onCancel }) => {
+  const insets = useSafeAreaInsets();
   const [currentStep, setCurrentStep] = useState<Step>('members');
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [groupName, setGroupName] = useState('');
@@ -86,13 +88,15 @@ export const GroupCreationFlow: React.FC<GroupCreationFlowProps> = ({ onComplete
     <View flex={1} backgroundColor="$background">
       {/* Header */}
       <View
+        paddingTop={insets.top}
         paddingHorizontal="$4"
-        paddingVertical="$3"
+        paddingBottom="$3"
         flexDirection="row"
         alignItems="center"
         justifyContent="space-between"
         borderBottomWidth={1}
         borderBottomColor="$borderColor"
+        backgroundColor="$background"
       >
         <Pressable onPress={handleBack}>
           <Text fontSize="$4" color="$primary">

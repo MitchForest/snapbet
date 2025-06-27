@@ -143,6 +143,7 @@ export function MessageInput({ onSendMessage, onTyping, chatExpiration }: Messag
             returnKeyType="send"
             editable={!isSending}
             blurOnSubmit={false}
+            onSubmitEditing={handleSend}
           />
         </View>
 

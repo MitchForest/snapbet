@@ -178,66 +178,17 @@ class ChatService {
    */
   async getOrCreateDMChat(userId: string, otherUserId: string): Promise<string | null> {
     try {
-      // First, check if a DM already exists between these users
-      const { data: userChats } = await supabase
-        .from('chat_members')
-        .select('chat_id')
-        .eq('user_id', userId);
+      // Use the database function to handle chat creation with proper permissions
+      const { data, error } = await supabase.rpc('create_dm_chat' as any, {
+        other_user_id: otherUserId,
+      });
 
-      const { data: otherUserChats } = await supabase
-        .from('chat_members')
-        .select('chat_id')
-        .eq('user_id', otherUserId);
-
-      if (!userChats || !otherUserChats) {
-        throw new Error('Failed to fetch chat members');
+      if (error) {
+        console.error('Error creating DM chat:', error);
+        throw error;
       }
 
-      // Find common chat IDs
-      const userChatIds = userChats.map((c) => c.chat_id);
-      const otherUserChatIds = otherUserChats.map((c) => c.chat_id);
-      const commonChatIds = userChatIds.filter((id) => otherUserChatIds.includes(id));
-
-      // Check if any of these chats are DMs
-      if (commonChatIds.length > 0) {
-        const { data: chats } = await supabase
-          .from('chats')
-          .select('id, chat_type')
-          .in('id', commonChatIds)
-          .eq('chat_type', 'dm');
-
-        if (chats && chats.length > 0) {
-          return chats[0].id;
-        }
-      }
-
-      // No existing DM found, create a new one
-      const { data: newChat, error: createError } = await supabase
-        .from('chats')
-        .insert({
-          chat_type: 'dm',
-          created_by: userId,
-        })
-        .select()
-        .single();
-
-      if (createError || !newChat) {
-        console.error('Error creating DM chat:', createError);
-        throw createError;
-      }
-
-      // Add both users as members
-      const { error: membersError } = await supabase.from('chat_members').insert([
-        { chat_id: newChat.id, user_id: userId, role: 'member' },
-        { chat_id: newChat.id, user_id: otherUserId, role: 'member' },
-      ]);
-
-      if (membersError) {
-        console.error('Error adding chat members:', membersError);
-        throw membersError;
-      }
-
-      return newChat.id;
+      return data as string;
     } catch (error) {
       console.error('Failed to get or create DM:', error);
       toastService.showError('Failed to start conversation');

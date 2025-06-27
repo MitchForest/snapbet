@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text } from '@tamagui/core';
-import { TextInput, ActivityIndicator, Pressable, StyleSheet, Switch } from 'react-native';
+import { TextInput, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { Avatar } from '@/components/common/Avatar';
 import { getFollowingIds } from '@/services/api/followUser';
@@ -46,12 +46,18 @@ export const MemberSelector: React.FC<MemberSelectorProps> = ({
         const followingIds = await getFollowingIds();
 
         if (followingIds.length > 0) {
-          const { data } = await supabase
+          let query = supabase
             .from('users')
             .select('id, username, display_name, avatar_url')
             .in('id', followingIds)
-            .not('id', 'in', `(${blockedUserIds.join(',')})`)
             .order('username');
+
+          // Only add the not-in filter if there are blocked users
+          if (blockedUserIds.length > 0) {
+            query = query.not('id', 'in', `(${blockedUserIds.join(',')})`);
+          }
+
+          const { data } = await query;
 
           if (data) {
             // Filter out users with null usernames
@@ -79,13 +85,19 @@ export const MemberSelector: React.FC<MemberSelectorProps> = ({
 
       setIsSearching(true);
       try {
-        const { data } = await supabase
+        let query = supabase
           .from('users')
           .select('id, username, display_name, avatar_url')
           .ilike('username', `%${searchQuery}%`)
           .not('id', 'eq', currentUser?.id)
-          .not('id', 'in', `(${blockedUserIds.join(',')})`)
           .limit(20);
+
+        // Only add the not-in filter if there are blocked users
+        if (blockedUserIds.length > 0) {
+          query = query.not('id', 'in', `(${blockedUserIds.join(',')})`);
+        }
+
+        const { data } = await query;
 
         if (data) {
           // Filter out users with null usernames
@@ -124,20 +136,22 @@ export const MemberSelector: React.FC<MemberSelectorProps> = ({
       return (
         <Pressable
           onPress={() => !isDisabled && toggleUser(item.id)}
-          style={[styles.userItem, isDisabled && styles.disabledItem]}
+          style={({ pressed }) => [
+            styles.userItem,
+            isDisabled && styles.disabledItem,
+            pressed && styles.userItemPressed,
+          ]}
         >
           <View flexDirection="row" alignItems="center" gap="$3">
-            <Switch
-              value={isSelected}
-              disabled={isDisabled}
-              onValueChange={() => {
-                if (!isDisabled) {
-                  toggleUser(item.id);
-                }
-              }}
-              trackColor={{ false: Colors.gray[300], true: Colors.primary }}
-              thumbColor={Colors.white}
-            />
+            <View
+              style={[
+                styles.checkbox,
+                isSelected && styles.checkboxSelected,
+                isDisabled && styles.checkboxDisabled,
+              ]}
+            >
+              {isSelected && <Text style={styles.checkmark}>✓</Text>}
+            </View>
             <Avatar
               src={item.avatar_url || undefined}
               fallback={item.username[0].toUpperCase()}
@@ -247,6 +261,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
+  userItemPressed: {
+    backgroundColor: Colors.gray[100],
+  },
   disabledItem: {
     opacity: 0.5,
   },
@@ -254,5 +271,28 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: Colors.text.primary,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.gray[300],
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.white,
+  },
+  checkboxSelected: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  checkboxDisabled: {
+    backgroundColor: Colors.gray[100],
+    borderColor: Colors.gray[200],
+  },
+  checkmark: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

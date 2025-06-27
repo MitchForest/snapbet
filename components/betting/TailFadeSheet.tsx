@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, Modal } from 'react-native';
 import { BaseSheet } from '@/components/engagement/sheets/BaseSheet';
 import { Bet } from '@/services/betting/types';
 import { Game } from '@/types/database-helpers';
@@ -40,6 +40,15 @@ export function TailFadeSheet({
   const [game, setGame] = useState<Game | null>(null);
 
   const isLoading = isTailing || isFading;
+
+  // Debug logging
+  useEffect(() => {
+    if (isOpen && originalBet) {
+      console.log('[TailFadeSheet] Original bet:', originalBet);
+      console.log('[TailFadeSheet] Original bet ID:', originalBet.id);
+      console.log('[TailFadeSheet] Original post:', originalPost);
+    }
+  }, [isOpen, originalBet, originalPost]);
 
   const fetchUserBankroll = useCallback(async () => {
     if (!user) return;
@@ -102,7 +111,16 @@ export function TailFadeSheet({
   }, [originalBet]);
 
   const handleConfirm = useCallback(async () => {
-    if (!originalBet || !originalPost || !action || !stake) return;
+    if (!originalBet || !originalPost || !action || !stake) {
+      console.error('[TailFadeSheet] Missing required data:', {
+        originalBet: !!originalBet,
+        originalBetId: originalBet?.id,
+        originalPost: !!originalPost,
+        action,
+        stake,
+      });
+      return;
+    }
 
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -112,6 +130,8 @@ export function TailFadeSheet({
       stake,
       action,
     };
+
+    console.log('[TailFadeSheet] Submitting with input:', input);
 
     if (action === 'tail') {
       await tailPick(input);
@@ -131,123 +151,132 @@ export function TailFadeSheet({
       ? "You'll ride with them on this pick. Win or lose together!"
       : "You're betting against them. May the best bettor win!";
 
+  // Wrap in Modal to ensure it renders at the app level
   return (
-    <BaseSheet
-      isVisible={isOpen}
-      onClose={onClose}
-      height="70%"
-      showDragIndicator={true}
-      enableSwipeToClose={true}
+    <Modal
+      visible={isOpen}
+      transparent
+      animationType="none"
+      onRequestClose={onClose}
+      statusBarTranslucent
     >
-      <View style={styles.container}>
-        <Text style={styles.title}>
-          {action === 'tail' ? 'Tail' : 'Fade'} @{originalUser.username}?
-        </Text>
-
-        {/* Original Bet Details */}
-        <View style={styles.betDetailsContainer}>
-          <Text style={styles.betDetailsLabel}>
-            {originalUser.display_name || originalUser.username}&apos;s Bet
+      <BaseSheet
+        isVisible={isOpen}
+        onClose={onClose}
+        height="70%"
+        showDragIndicator={true}
+        enableSwipeToClose={true}
+      >
+        <View style={styles.container}>
+          <Text style={styles.title}>
+            {action === 'tail' ? 'Tail' : 'Fade'} @{originalUser.username}?
           </Text>
-          <Text style={styles.betDetailsText}>
-            {formatBetDetails(originalBet)} ({formatOdds(originalBet.odds)})
-          </Text>
-          <Text style={styles.betDetailsSubtext}>
-            ${originalBet.stake / 100} → Win: ${originalBet.potential_win / 100}
-          </Text>
-        </View>
 
-        {/* Stake Selection */}
-        <View style={styles.stakeContainer}>
-          <Text style={styles.stakeLabel}>Your Stake:</Text>
+          {/* Original Bet Details */}
+          <View style={styles.betDetailsContainer}>
+            <Text style={styles.betDetailsLabel}>
+              {originalUser.display_name || originalUser.username}&apos;s Bet
+            </Text>
+            <Text style={styles.betDetailsText}>
+              {formatBetDetails(originalBet)} ({formatOdds(originalBet.odds)})
+            </Text>
+            <Text style={styles.betDetailsSubtext}>
+              ${originalBet.stake / 100} → Win: ${originalBet.potential_win / 100}
+            </Text>
+          </View>
 
-          {!showCustomInput ? (
-            <View style={styles.quickAmountsContainer}>
-              {quickAmounts.map((amount) => (
+          {/* Stake Selection */}
+          <View style={styles.stakeContainer}>
+            <Text style={styles.stakeLabel}>Your Stake:</Text>
+
+            {!showCustomInput ? (
+              <View style={styles.quickAmountsContainer}>
+                {quickAmounts.map((amount) => (
+                  <Pressable
+                    key={amount}
+                    style={[
+                      styles.quickAmountButton,
+                      stake === amount && { backgroundColor: actionColor },
+                    ]}
+                    onPress={() => {
+                      setStake(amount);
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.quickAmountText,
+                        stake === amount && styles.quickAmountTextActive,
+                      ]}
+                    >
+                      ${amount / 100}
+                      {amount === originalBet.stake && ' (match)'}
+                    </Text>
+                  </Pressable>
+                ))}
                 <Pressable
-                  key={amount}
-                  style={[
-                    styles.quickAmountButton,
-                    stake === amount && { backgroundColor: actionColor },
-                  ]}
+                  style={[styles.quickAmountButton, styles.customButton]}
                   onPress={() => {
-                    setStake(amount);
+                    setShowCustomInput(true);
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   }}
                 >
-                  <Text
-                    style={[
-                      styles.quickAmountText,
-                      stake === amount && styles.quickAmountTextActive,
-                    ]}
-                  >
-                    ${amount / 100}
-                    {amount === originalBet.stake && ' (match)'}
-                  </Text>
+                  <Text style={styles.quickAmountText}>Custom</Text>
                 </Pressable>
-              ))}
-              <Pressable
-                style={[styles.quickAmountButton, styles.customButton]}
-                onPress={() => {
-                  setShowCustomInput(true);
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }}
-              >
-                <Text style={styles.quickAmountText}>Custom</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <StakeInput
-              value={stake}
-              onChange={setStake}
-              maxAmount={availableBankroll}
-              quickAmounts={[25, 50, 100]}
-            />
-          )}
-        </View>
+              </View>
+            ) : (
+              <StakeInput
+                value={stake}
+                onChange={setStake}
+                maxAmount={availableBankroll}
+                quickAmounts={[25, 50, 100]}
+              />
+            )}
+          </View>
 
-        {/* Insufficient Funds Warning */}
-        {stake > availableBankroll && (
-          <Text style={styles.warningText}>
-            Insufficient funds (Available: ${availableBankroll / 100})
-          </Text>
-        )}
-
-        {/* Payout Display */}
-        {stake > 0 && game && (
-          <PayoutDisplay
-            stake={stake}
-            odds={originalBet.odds}
-            potentialWin={originalBet.potential_win}
-          />
-        )}
-
-        {/* Action Message */}
-        <Text style={styles.actionMessage}>
-          {actionText} {actionEmoji}
-        </Text>
-
-        {/* Confirm Button */}
-        <Pressable
-          style={[
-            styles.confirmButton,
-            { backgroundColor: actionColor },
-            (!stake || stake < 500 || stake > availableBankroll || isLoading) &&
-              styles.confirmButtonDisabled,
-          ]}
-          onPress={handleConfirm}
-          disabled={!stake || stake < 500 || stake > availableBankroll || isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text style={styles.confirmButtonText}>
-              Confirm {action === 'tail' ? 'Tail' : 'Fade'} - ${stake / 100}
+          {/* Insufficient Funds Warning */}
+          {stake > availableBankroll && (
+            <Text style={styles.warningText}>
+              Insufficient funds (Available: ${availableBankroll / 100})
             </Text>
           )}
-        </Pressable>
-      </View>
-    </BaseSheet>
+
+          {/* Payout Display */}
+          {stake > 0 && game && (
+            <PayoutDisplay
+              stake={stake}
+              odds={originalBet.odds}
+              potentialWin={originalBet.potential_win}
+            />
+          )}
+
+          {/* Action Message */}
+          <Text style={styles.actionMessage}>
+            {actionText} {actionEmoji}
+          </Text>
+
+          {/* Confirm Button */}
+          <Pressable
+            style={[
+              styles.confirmButton,
+              { backgroundColor: actionColor },
+              (!stake || stake < 500 || stake > availableBankroll || isLoading) &&
+                styles.confirmButtonDisabled,
+            ]}
+            onPress={handleConfirm}
+            disabled={!stake || stake < 500 || stake > availableBankroll || isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={styles.confirmButtonText}>
+                Confirm {action === 'tail' ? 'Tail' : 'Fade'} - ${stake / 100}
+              </Text>
+            )}
+          </Pressable>
+        </View>
+      </BaseSheet>
+    </Modal>
   );
 }
 

@@ -11,56 +11,59 @@ interface BetPickOverlayProps {
   bet: Bet & { game?: Game };
   onTail?: () => void;
   onFade?: () => void;
+  userAction?: 'tail' | 'fade';
 }
 
-export function BetPickOverlay({ bet, onTail, onFade }: BetPickOverlayProps) {
+export function BetPickOverlay({ bet, onTail, onFade, userAction }: BetPickOverlayProps) {
   const game = bet.game;
 
-  // Parse bet_details JSON
-  const betDetails = bet.bet_details as {
-    team?: string;
-    line?: number;
-    total_type?: 'over' | 'under';
+  const handleTail = () => {
+    if (onTail) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      onTail();
+    }
   };
 
-  // Format the bet selection - clean and simple
-  const formatBetSelection = () => {
-    switch (bet.bet_type) {
-      case 'spread': {
-        const line = betDetails.line || 0;
-        const lineStr = line !== 0 ? ` ${line > 0 ? '+' : ''}${line}` : '';
-        return `${betDetails.team}${lineStr}`;
-      }
-      case 'total': {
-        const line = betDetails.line || 0;
-        return `${betDetails.total_type?.toUpperCase()} ${line}`;
-      }
-      case 'moneyline':
-        return betDetails.team || '';
-      default:
-        return '';
+  const handleFade = () => {
+    if (onFade) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      onFade();
     }
   };
 
   const formatGameTime = () => {
     if (!game) return '';
-    const date = new Date(game.commence_time);
-    const today = new Date();
-    const tomorrow = new Date(today);
+    const gameDate = new Date(game.commence_time);
+    const now = new Date();
+    const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    const displayHours = hours % 12 || 12;
-    const time = `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
-
-    if (date.toDateString() === today.toDateString()) {
-      return `Tonight ${time}`;
-    } else if (date.toDateString() === tomorrow.toDateString()) {
-      return `Tomorrow ${time}`;
+    if (gameDate.toDateString() === now.toDateString()) {
+      return 'Today';
+    } else if (gameDate.toDateString() === tomorrow.toDateString()) {
+      return 'Tomorrow';
     } else {
-      return `${date.toLocaleDateString('en-US', { weekday: 'short' })} ${time}`;
+      return gameDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+  };
+
+  const formatBetSelection = () => {
+    const details = bet.bet_details as any;
+    
+    if (!details) return '';
+    
+    switch (bet.bet_type) {
+      case 'spread':
+        if (!details.team || details.line === undefined) return '';
+        const spread = details.line > 0 ? `+${details.line}` : details.line;
+        return `${details.team} ${spread}`;
+      case 'total':
+        if (!details.total_type || details.line === undefined) return '';
+        return `${details.total_type === 'over' ? 'Over' : 'Under'} ${details.line}`;
+      case 'moneyline':
+        return details.team || '';
+      default:
+        return '';
     }
   };
 
@@ -68,23 +71,13 @@ export function BetPickOverlay({ bet, onTail, onFade }: BetPickOverlayProps) {
   const stake = Math.round(bet.stake / 100);
   const toWin = Math.round(bet.potential_win / 100);
 
-  const handleTail = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onTail?.();
-  };
-
-  const handleFade = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onFade?.();
-  };
-
   return (
     <Stack
-      backgroundColor={Colors.black + '99'} // 60% opacity - less dark
+      backgroundColor={Colors.black + '99'} // 60% opacity
       padding="$4"
       borderRadius="$4"
-      gap="$3"
-      width="100%"
+      gap="$1"
+      minWidth={200}
     >
       {/* Header */}
       <Text color={Colors.gray[400]} fontSize="$3" fontWeight="500">
@@ -101,8 +94,17 @@ export function BetPickOverlay({ bet, onTail, onFade }: BetPickOverlayProps) {
         {formatOdds(bet.odds)} • ${stake} to win ${toWin}
       </Text>
 
-      {/* Tail/Fade buttons */}
-      {onTail && onFade && (
+      {/* Action Buttons or Status */}
+      {userAction ? (
+        <View style={[
+          styles.statusBadge,
+          userAction === 'tail' ? styles.tailedBadge : styles.fadedBadge
+        ]}>
+          <Text style={styles.statusText}>
+            {userAction === 'tail' ? 'TAILED!' : 'FADED!'}
+          </Text>
+        </View>
+      ) : onTail && onFade ? (
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={[styles.button, styles.tailButton]}
@@ -120,7 +122,7 @@ export function BetPickOverlay({ bet, onTail, onFade }: BetPickOverlayProps) {
             <Text style={styles.buttonText}>FADE</Text>
           </TouchableOpacity>
         </View>
-      )}
+      ) : null}
     </Stack>
   );
 }
@@ -128,16 +130,14 @@ export function BetPickOverlay({ bet, onTail, onFade }: BetPickOverlayProps) {
 const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 4,
+    gap: 8,
+    marginTop: 12,
   },
   button: {
     flex: 1,
     paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 16,
+    borderRadius: 6,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   tailButton: {
     backgroundColor: Colors.success,
@@ -146,6 +146,25 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.error,
   },
   buttonText: {
+    color: Colors.white,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  statusBadge: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignSelf: 'center',
+    marginTop: 12,
+  },
+  tailedBadge: {
+    backgroundColor: Colors.success,
+  },
+  fadedBadge: {
+    backgroundColor: Colors.error,
+  },
+  statusText: {
     color: Colors.white,
     fontSize: 12,
     fontWeight: '700',

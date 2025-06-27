@@ -9,6 +9,7 @@ import { Avatar } from '@/components/common/Avatar';
 import { BetPickOverlay } from '@/components/overlays/BetPickOverlay';
 import { BetOutcomeOverlay } from '@/components/overlays/BetOutcomeOverlay';
 import { TailFadeSheet } from '@/components/betting/TailFadeSheet';
+import { useUserPickAction } from '@/hooks/useTailFade';
 
 import { CommentSheet } from '@/components/engagement/sheets/CommentSheet';
 import { ReportModal } from '@/components/moderation/ReportModal';
@@ -42,6 +43,9 @@ export function PostCard({ post, onPress }: PostCardProps) {
   const [showReportModal, setShowReportModal] = useState(false);
   const [showHiddenContent, setShowHiddenContent] = useState(false);
   const [tailFadeAction, setTailFadeAction] = useState<'tail' | 'fade' | null>(null);
+
+  // Get user's existing action on this post
+  const { data: userAction } = useUserPickAction(post.id);
 
   // Get engagement data including reactions
   const { reactions, userReactions, toggleReaction } = useReactions(post.id);
@@ -85,11 +89,15 @@ export function PostCard({ post, onPress }: PostCardProps) {
   };
 
   const handleTail = () => {
-    setTailFadeAction('tail');
+    if (!userAction) {
+      setTailFadeAction('tail');
+    }
   };
 
   const handleFade = () => {
-    setTailFadeAction('fade');
+    if (!userAction) {
+      setTailFadeAction('fade');
+    }
   };
 
   return (
@@ -157,7 +165,12 @@ export function PostCard({ post, onPress }: PostCardProps) {
               {/* Bet Overlays */}
               {post.post_type === PostType.PICK && post.bet && (
                 <View style={styles.overlayContainer}>
-                  <BetPickOverlay bet={post.bet} onTail={handleTail} onFade={handleFade} />
+                  <BetPickOverlay 
+                    bet={post.bet} 
+                    onTail={handleTail} 
+                    onFade={handleFade}
+                    userAction={userAction?.action_type}
+                  />
                 </View>
               )}
 

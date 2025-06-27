@@ -1,8 +1,9 @@
 import React from 'react';
-import { Stack, Text } from '@tamagui/core';
+import { Stack, Text, View } from '@tamagui/core';
 import { Colors } from '@/theme';
 import { Bet } from '@/services/betting/types';
 import { Game } from '@/types/database-helpers';
+import { formatOdds } from '@/utils/betting/oddsCalculator';
 
 interface BetOutcomeOverlayProps {
   bet: Bet & { game?: Game };
@@ -23,7 +24,7 @@ export function BetOutcomeOverlay({ bet }: BetOutcomeOverlayProps) {
     total_type?: 'over' | 'under';
   };
 
-  // Format the bet selection
+  // Format the bet selection - clean and simple
   const formatBetSelection = () => {
     switch (bet.bet_type) {
       case 'spread': {
@@ -42,6 +43,28 @@ export function BetOutcomeOverlay({ bet }: BetOutcomeOverlayProps) {
     }
   };
 
+  const formatGameTime = () => {
+    if (!game) return '';
+    const date = new Date(game.commence_time);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    const time = `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+
+    if (date.toDateString() === today.toDateString()) {
+      return `Tonight ${time}`;
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return `Tomorrow ${time}`;
+    } else {
+      return `${date.toLocaleDateString('en-US', { weekday: 'short' })} ${time}`;
+    }
+  };
+
   const getResultAmount = () => {
     if (isPush) return 0;
     if (isWin && bet.actual_win !== null) {
@@ -53,44 +76,55 @@ export function BetOutcomeOverlay({ bet }: BetOutcomeOverlayProps) {
   const resultAmount = getResultAmount();
   const betTypeLabel = bet.bet_type.toUpperCase();
   const displayAmount = Math.abs(Math.round(resultAmount / 100));
-
-  // Format score if available
-  const formatScore = () => {
-    if (!game || game.away_score === null || game.home_score === null) return '';
-    // Use team abbreviations if available, otherwise first 3 letters
-    const awayAbbr = game.away_team.substring(0, 3).toUpperCase();
-    const homeAbbr = game.home_team.substring(0, 3).toUpperCase();
-    return `${awayAbbr} ${game.away_score}-${game.home_score} ${homeAbbr}`;
-  };
+  const stake = Math.round(bet.stake / 100);
+  const toWin = Math.round(bet.potential_win / 100);
 
   return (
     <Stack
-      backgroundColor={Colors.black + 'E6'} // 90% opacity
+      backgroundColor={Colors.black + '99'} // 60% opacity - matching pick overlay
       padding="$4"
       borderRadius="$4"
-      gap="$3"
       width="100%"
+      flexDirection="row"
+      justifyContent="space-between"
+      alignItems="stretch"
     >
-      {/* Header with bet type and result */}
-      <Text color={Colors.gray[400]} fontSize="$3" fontWeight="500">
-        {betTypeLabel} • {resultText} {resultEmoji}
-      </Text>
+      {/* Left side - same as pick overlay */}
+      <Stack flex={1} gap="$3">
+        {/* Header */}
+        <Text color={Colors.gray[400]} fontSize="$3" fontWeight="500">
+          {betTypeLabel} • {formatGameTime()}
+        </Text>
 
-      {/* Profit/Loss amount - main focus */}
-      <Text color={resultColor} fontSize="$8" fontWeight="800" lineHeight="$8">
-        {resultAmount > 0 ? '+' : resultAmount === 0 ? '' : '-'}${displayAmount}
-      </Text>
-
-      {/* Bet details and score */}
-      <Stack gap="$1">
-        <Text color={Colors.gray[300]} fontSize="$4">
+        {/* Main bet selection */}
+        <Text color={Colors.white} fontSize="$7" fontWeight="700" lineHeight="$7">
           {formatBetSelection()}
         </Text>
-        {formatScore() && (
-          <Text color={Colors.gray[400]} fontSize="$3">
-            Final: {formatScore()}
+
+        {/* Odds and stake */}
+        <Text color={Colors.gray[300]} fontSize="$4">
+          {formatOdds(bet.odds)} • ${stake} to win ${toWin}
+        </Text>
+      </Stack>
+
+      {/* Right side - result info */}
+      <Stack alignItems="center" justifyContent="center" gap="$2" paddingLeft="$4">
+        {/* Result badge */}
+        <View
+          backgroundColor={resultColor}
+          paddingHorizontal="$3"
+          paddingVertical="$1"
+          borderRadius="$2"
+        >
+          <Text color={Colors.white} fontSize="$2" fontWeight="700" letterSpacing={0.5}>
+            {resultText} {resultEmoji}
           </Text>
-        )}
+        </View>
+
+        {/* Big profit/loss */}
+        <Text color={resultColor} fontSize="$8" fontWeight="800">
+          {resultAmount > 0 ? '+' : resultAmount === 0 ? '' : '-'}${displayAmount}
+        </Text>
       </Stack>
     </Stack>
   );

@@ -33,8 +33,8 @@ const CONFIG = {
     stories: 15, // Active stories
   },
   social: {
-    followsFromMocks: 15, // Mock users following the user
-    userFollowsMocks: 25, // User follows these mock users
+    followsFromMocks: 15, // Mock users following the input user
+    userFollowsMocks: 25, // Input user following mock users
   },
   engagement: {
     reactionsPerPost: { min: 3, max: 8 },
@@ -431,7 +431,9 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
   console.log('  📈 Creating trending posts...');
   for (let i = 0; i < CONFIG.posts.recent; i++) {
     const user = mockUsers[i % mockUsers.length];
-    const postTime = new Date(Date.now() - i * 6 * 60 * 1000); // Space out by 6 minutes
+    // Make sure posts are recent (within last 24 hours for trending picks)
+    const hoursAgo = Math.floor(Math.random() * 20) + 1; // 1-20 hours ago
+    const postTime = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
     const game = games[i % games.length]; // Rotate through available games
 
     const isPickPost = i < CONFIG.posts.picks;
@@ -439,7 +441,7 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
     const postData: Post = {
       id: crypto.randomUUID(),
       user_id: user.id,
-      created_at: new Date().toISOString(),
+      created_at: postTime.toISOString(),
       expires_at: new Date(postTime.getTime() + 24 * 60 * 60 * 1000).toISOString(),
       media_type: 'photo',
       media_url: '',
@@ -486,11 +488,76 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
       postData.post_type = 'content';
     }
 
-    postData.media_url = mockMediaUrls.reaction[i % mockMediaUrls.reaction.length];
+    // Randomly select media URL from different categories based on post type
+    if (isPickPost) {
+      // For pick posts, use thinking or positive GIFs
+      const categories = [mockMediaUrls.thinking, mockMediaUrls.positive];
+      const selectedCategory = categories[Math.floor(Math.random() * categories.length)];
+      postData.media_url = selectedCategory[Math.floor(Math.random() * selectedCategory.length)];
+    } else {
+      // For regular posts, use various reaction types
+      const allMediaUrls = [
+        ...mockMediaUrls.celebration,
+        ...mockMediaUrls.positive,
+        ...mockMediaUrls.frustration,
+        ...mockMediaUrls.thinking,
+        ...mockMediaUrls.wild,
+        ...mockMediaUrls.reaction,
+      ];
+      postData.media_url = allMediaUrls[Math.floor(Math.random() * allMediaUrls.length)];
+    }
     postData.media_type = 'photo';
 
     posts.push(postData);
+  }
 
+  // Insert all data - IMPORTANT: Insert posts BEFORE pick_actions for triggers to work
+  if (bets.length > 0) {
+    const { error } = await supabase.from('bets').insert(bets);
+    if (error) console.error('Error creating bets:', error);
+  }
+
+  if (posts.length > 0) {
+    const { error } = await supabase.from('posts').insert(posts);
+    if (error) console.error('Error creating posts:', error);
+  }
+
+  // Create pick actions for trending picks (tails and fades)
+  const pickPosts = posts.filter(p => p.post_type === 'pick').slice(0, 10); // Top 10 pick posts
+  
+  for (const pickPost of pickPosts) {
+    // Create 2-5 tail/fade actions per pick
+    const actionCount = Math.floor(Math.random() * 4) + 2;
+    const tailingUsers = mockUsers
+      .filter(u => u.id !== pickPost.user_id)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, actionCount);
+    
+    for (const tailer of tailingUsers) {
+      // 70% chance to tail, 30% to fade
+      const isTail = Math.random() > 0.3;
+      pickActions.push({
+        post_id: pickPost.id!,
+        user_id: tailer.id,
+        action_type: isTail ? 'tail' : 'fade',
+      });
+    }
+  }
+
+  // Insert pick actions AFTER posts are created
+  if (pickActions.length > 0) {
+    console.log(`  📊 Attempting to create ${pickActions.length} pick actions...`);
+    const { data: pickData, error: pickError } = await supabase.from('pick_actions').insert(pickActions).select();
+    if (pickError) {
+      console.error('❌ Error creating pick actions:', pickError);
+      console.error('Sample pick action:', JSON.stringify(pickActions[0], null, 2));
+    } else {
+      console.log(`  ✅ Successfully created ${pickData?.length || 0} pick actions`);
+    }
+  }
+
+  // Create reactions and comments
+  for (const post of posts) {
     // Generate engagement for this post
     const reactionCount =
       Math.floor(
@@ -506,13 +573,13 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
 
     // Add reactions
     const reactingUsers = mockUsers
-      .filter((u) => u.id !== user.id)
+      .filter((u) => u.id !== post.user_id)
       .sort(() => Math.random() - 0.5)
       .slice(0, reactionCount);
 
     for (const reactor of reactingUsers) {
       reactions.push({
-        post_id: postData.id!,
+        post_id: post.id!,
         user_id: reactor.id,
         emoji: ALLOWED_EMOJIS[Math.floor(Math.random() * ALLOWED_EMOJIS.length)],
       });
@@ -520,59 +587,22 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
 
     // Add comments
     const commentingUsers = mockUsers
-      .filter((u) => u.id !== user.id)
+      .filter((u) => u.id !== post.user_id)
       .sort(() => Math.random() - 0.5)
       .slice(0, commentCount);
 
     for (const commenter of commentingUsers) {
-      const commenterPersonality = getPersonalityFromBehavior(commenter.mock_personality_id);
-      const templates =
-        messageTemplates[commenterPersonality as keyof typeof messageTemplates] ||
-        messageTemplates['degen'];
+      const personality = getPersonalityFromBehavior(commenter.mock_personality_id || '');
+      const templates = messageTemplates[personality as keyof typeof messageTemplates];
+      const content = getRandomTemplate(templates?.reaction || ["Let's go!"]);
 
       comments.push({
-        post_id: postData.id!,
+        post_id: post.id!,
         user_id: commenter.id,
-        content: getRandomTemplate(templates.reaction || templates.greeting),
-        created_at: new Date(postTime.getTime() + Math.random() * 30 * 60 * 1000).toISOString(),
+        content: content,
       });
     }
-
-    // Add pick actions for pick posts - more tails for trending
-    if (isPickPost) {
-      const isTrending = i < 3; // First 3 picks are trending
-      const tailCount = isTrending
-        ? Math.floor(Math.random() * 10) + 15 // 15-25 tails for trending
-        : Math.floor(
-            Math.random() *
-              (CONFIG.engagement.tailsPerPick.max - CONFIG.engagement.tailsPerPick.min)
-          ) + CONFIG.engagement.tailsPerPick.min;
-
-      const tailingUsers = mockUsers
-        .filter((u) => u.id !== user.id)
-        .sort(() => Math.random() - 0.5)
-        .slice(0, tailCount);
-
-      for (const tailer of tailingUsers) {
-        const action = Math.random() > 0.7 ? 'fade' : 'tail';
-        pickActions.push({
-          post_id: postData.id!,
-          user_id: tailer.id,
-          action_type: action as 'tail' | 'fade',
-        });
-      }
-    }
   }
-
-  // Insert all data
-  if (bets.length > 0) {
-    const { error } = await supabase.from('bets').insert(bets);
-    if (error) console.error('Error creating bets:', error);
-  }
-
-  const { error: postError } = await supabase.from('posts').insert(posts);
-  if (postError) console.error('Error creating posts:', postError);
-  else console.log(`  ✅ Created ${posts.length} posts`);
 
   const { error: reactionError } = await supabase.from('reactions').insert(reactions);
   if (reactionError) console.error('Error creating reactions:', reactionError);
@@ -580,12 +610,8 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
   const { error: commentError } = await supabase.from('comments').insert(comments);
   if (commentError) console.error('Error creating comments:', commentError);
 
-  if (pickActions.length > 0) {
-    const { error: pickError } = await supabase.from('pick_actions').insert(pickActions);
-    if (pickError) console.error('Error creating pick actions:', pickError);
-  }
-
   console.log(`  ✅ Added ${reactions.length} reactions, ${comments.length} comments`);
+  console.log(`  ✅ Created ${pickActions.length} pick actions (tails/fades)`);
   console.log(
     `  ✅ Created ${hotBettors.length + additionalHotBettors.length} hot bettors, ${fadeGods.length} fade gods, and ${risingStars.length} rising stars`
   );
@@ -633,7 +659,9 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
       created_at: new Date(new Date(bet.settled_at!).getTime() + 10 * 60 * 1000).toISOString(), // 10 mins after settlement
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       media_type: 'photo',
-      media_url: isWin ? mockMediaUrls.celebration[0] : mockMediaUrls.reaction[0],
+      media_url: isWin 
+        ? mockMediaUrls.celebration[Math.floor(Math.random() * mockMediaUrls.celebration.length)]
+        : mockMediaUrls.frustration[Math.floor(Math.random() * mockMediaUrls.frustration.length)],
       post_type: 'outcome',
       settled_bet_id: bet.id,
     };
@@ -687,6 +715,21 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
 async function createGroupChats(userId: string, mockUsers: MockUser[]) {
   console.log('💬 Creating group chats...');
 
+  // First, clean up any existing group chats with these names to avoid duplicates
+  for (const chatName of CONFIG.chats.groups) {
+    const { data: existingChats } = await supabase
+      .from('chats')
+      .select('id')
+      .eq('name', chatName)
+      .eq('chat_type', 'group');
+
+    if (existingChats && existingChats.length > 1) {
+      // Keep only the first one, delete the rest
+      const chatsToDelete = existingChats.slice(1).map(c => c.id);
+      await supabase.from('chats').delete().in('id', chatsToDelete);
+    }
+  }
+
   for (const chatName of CONFIG.chats.groups) {
     // Check if chat exists
     let { data: chat } = await supabase
@@ -712,27 +755,33 @@ async function createGroupChats(userId: string, mockUsers: MockUser[]) {
       chat = newChat;
     }
 
-    // Add members
+    // Prepare all members to add at once
     const memberCount = Math.floor(Math.random() * 8) + 8; // 8-15 members
-    const members = [userId, ...mockUsers.slice(0, memberCount).map((u) => u.id)];
+    const selectedMockUsers = mockUsers.slice(0, memberCount);
+    const allMemberIds = [userId, ...selectedMockUsers.map((u) => u.id)];
+    
+    // Add all members in a single batch to avoid system messages
+    const membersToInsert = allMemberIds.map(memberId => ({
+      chat_id: chat.id,
+      user_id: memberId,
+      role: (memberId === mockUsers[0].id ? 'admin' : 'member') as 'admin' | 'member',
+    }));
 
-    for (const memberId of members) {
-      await supabase.from('chat_members').upsert(
-        {
-          chat_id: chat.id,
-          user_id: memberId,
-          role: memberId === mockUsers[0].id ? 'admin' : 'member',
-        },
-        { onConflict: 'chat_id,user_id' }
-      );
-    }
+    await supabase.from('chat_members').upsert(membersToInsert, { 
+      onConflict: 'chat_id,user_id',
+      ignoreDuplicates: true 
+    });
 
-    // Add recent messages
+    // Add recent messages AFTER all members are added
     const messageCount = Math.floor(Math.random() * 15) + 10;
     const messages = [];
+    
+    // Start messages 30 minutes after chat creation to ensure system messages appear first
+    const chatCreatedAt = chat.created_at || new Date().toISOString();
+    const firstMessageTime = new Date(chatCreatedAt).getTime() + 30 * 60 * 1000; // 30 minutes after chat creation
 
     for (let i = 0; i < messageCount; i++) {
-      const sender = members[Math.floor(Math.random() * members.length)];
+      const sender = allMemberIds[Math.floor(Math.random() * allMemberIds.length)];
       const senderUser = sender === userId ? null : mockUsers.find((u) => u.id === sender);
 
       if (!senderUser && sender === userId) continue; // Skip user's messages for now
@@ -753,14 +802,14 @@ async function createGroupChats(userId: string, mockUsers: MockUser[]) {
         chat_id: chat.id,
         sender_id: sender,
         content,
-        created_at: new Date(Date.now() - (messageCount - i) * 5 * 60 * 1000).toISOString(),
+        created_at: new Date(firstMessageTime + i * 5 * 60 * 1000).toISOString(), // Space messages 5 minutes apart
       });
     }
 
     const { error: msgError } = await supabase.from('messages').insert(messages);
     if (msgError) console.error('Error creating messages:', msgError);
 
-    console.log(`  ✅ Created/updated "${chatName}" with ${members.length} members`);
+    console.log(`  ✅ Created/updated "${chatName}" with ${allMemberIds.length} members`);
   }
 }
 
@@ -769,17 +818,45 @@ async function createDirectChats(userId: string, mockUsers: MockUser[]) {
   console.log('📱 Creating direct message chats...');
 
   const dmPartners = mockUsers.sort(() => Math.random() - 0.5).slice(0, CONFIG.chats.directChats);
+  let createdCount = 0;
 
   for (const partner of dmPartners) {
-    // Create or get DM chat
-    const { data: existingChat } = await supabase
-      .from('chats')
-      .select('*, chat_members!inner(*)')
-      .eq('chat_type', 'dm')
-      .eq('chat_members.user_id', userId);
+    // Check if DM already exists between these two users
+    // First get all chats where the partner is a member
+    const { data: partnerChats } = await supabase
+      .from('chat_members')
+      .select('chat_id')
+      .eq('user_id', partner.id);
+    
+    let existingDM = null;
+    if (partnerChats && partnerChats.length > 0) {
+      // Now check if user is also in any of those chats
+      const partnerChatIds = partnerChats.map(c => c.chat_id);
+      const { data: userInSameChat } = await supabase
+        .from('chat_members')
+        .select('chat_id')
+        .eq('user_id', userId)
+        .in('chat_id', partnerChatIds);
+      
+      if (userInSameChat && userInSameChat.length > 0) {
+        // Check if it's a DM chat
+        const { data: dmChat } = await supabase
+          .from('chats')
+          .select('id')
+          .eq('id', userInSameChat[0].chat_id)
+          .eq('chat_type', 'dm')
+          .single();
+        
+        if (dmChat) {
+          existingDM = [{ chat_id: dmChat.id }];
+        }
+      }
+    }
 
-    let chat;
-    if (!existingChat || existingChat.length === 0) {
+    let chatId;
+    
+    if (!existingDM || existingDM.length === 0) {
+      // Create new DM chat
       const { data: newChat, error } = await supabase
         .from('chats')
         .insert({
@@ -789,33 +866,61 @@ async function createDirectChats(userId: string, mockUsers: MockUser[]) {
         .select()
         .single();
 
-      if (error || !newChat) continue;
-      chat = newChat;
+      if (error || !newChat) {
+        console.error('Error creating DM chat:', error);
+        continue;
+      }
+      
+      chatId = newChat.id;
 
-      // Add both members
-      await supabase.from('chat_members').insert([
-        { chat_id: chat.id, user_id: userId, role: 'member' },
-        { chat_id: chat.id, user_id: partner.id, role: 'member' },
+      // Add BOTH members at the same time - this is critical for DMs
+      const { error: memberError } = await supabase.from('chat_members').insert([
+        { chat_id: chatId, user_id: userId, role: 'member' },
+        { chat_id: chatId, user_id: partner.id, role: 'member' },
       ]);
+
+      if (memberError) {
+        console.error('Error adding DM members:', memberError);
+        // Clean up the chat if member addition failed
+        await supabase.from('chats').delete().eq('id', chatId);
+        continue;
+      }
+    } else {
+      chatId = existingDM[0].chat_id;
     }
 
-    // Add some messages
+    // Add some messages with varied conversation flow
     const messageCount = Math.floor(Math.random() * 8) + 3;
     const messages = [];
-    const chatId = chat?.id || (existingChat && existingChat[0].id);
-
-    if (!chatId) continue; // Skip if no chat ID
-
+    
+    // Create a more natural conversation flow
+    let lastSender = Math.random() > 0.5 ? partner.id : userId;
+    
     for (let i = 0; i < messageCount; i++) {
-      const isFromPartner = Math.random() > 0.3;
+      // 70% chance to continue with same sender (more natural conversation flow)
+      if (Math.random() > 0.7) {
+        lastSender = lastSender === partner.id ? userId : partner.id;
+      }
+      
+      const isFromPartner = lastSender === partner.id;
       const personality = getPersonalityFromBehavior(partner.mock_personality_id);
       const templates =
         messageTemplates[personality as keyof typeof messageTemplates] || messageTemplates['degen'];
 
+      // Vary message types based on position in conversation
+      let content;
+      if (i === 0) {
+        content = getRandomTemplate(templates.greeting);
+      } else if (i === messageCount - 1) {
+        content = getRandomTemplate(templates.reaction || templates.discussion);
+      } else {
+        content = getRandomTemplate(templates.discussion || templates.reaction);
+      }
+
       messages.push({
         chat_id: chatId,
-        sender_id: isFromPartner ? partner.id : userId,
-        content: getRandomTemplate(templates.greeting),
+        sender_id: lastSender,
+        content,
         created_at: new Date(Date.now() - (messageCount - i) * 60 * 60 * 1000).toISOString(),
       });
     }
@@ -823,10 +928,11 @@ async function createDirectChats(userId: string, mockUsers: MockUser[]) {
     if (messages.length > 0) {
       const { error: msgError } = await supabase.from('messages').insert(messages);
       if (msgError) console.error('Error creating DM messages:', msgError);
+      else createdCount++;
     }
   }
 
-  console.log(`  ✅ Created ${dmPartners.length} direct message conversations`);
+  console.log(`  ✅ Created ${createdCount} direct message conversations`);
 }
 
 // Create notifications
@@ -864,20 +970,23 @@ async function createNotifications(userId: string, mockUsers: MockUser[]) {
 
   // Tail notification
   const mockPostId = crypto.randomUUID();
+  const tailActor = mockUsers[Math.floor(Math.random() * 5)];
   notifications.push({
     user_id: userId,
     type: 'tail',
     data: {
-      actorId: mockUsers[0].id,
-      actorUsername: mockUsers[0].username,
+      actorId: tailActor.id,
+      actorUsername: tailActor.username,
       postId: mockPostId,
       betId: crypto.randomUUID(),
       amount: 100,
+      title: `${tailActor.username} tailed your pick`,
     },
     created_at: new Date(now - 90 * 60 * 1000).toISOString(),
   });
 
   // Message notification
+  const messageChat = CONFIG.chats.groups[Math.floor(Math.random() * CONFIG.chats.groups.length)];
   notifications.push({
     user_id: userId,
     type: 'message',
@@ -885,8 +994,8 @@ async function createNotifications(userId: string, mockUsers: MockUser[]) {
       chatId: crypto.randomUUID(),
       senderId: mockUsers[1].id,
       senderUsername: mockUsers[1].username,
-      preview: 'You have 3 new messages in NBA Degens 🏀',
-      title: 'New messages in NBA Degens 🏀',
+      preview: `You have 3 new messages in ${messageChat}`,
+      title: `New messages in ${messageChat}`,
     },
     created_at: new Date(now - 45 * 60 * 1000).toISOString(),
   });
