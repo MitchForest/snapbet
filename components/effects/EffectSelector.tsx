@@ -1,10 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { ScrollView, Pressable, StyleSheet } from 'react-native';
-import { Stack, Text, View } from '@tamagui/core';
+import { ScrollView, Pressable, StyleSheet, View as RNView } from 'react-native';
+import { Text, View } from '@tamagui/core';
 import * as Haptics from 'expo-haptics';
 import { useEffects } from '@/hooks/useEffects';
 import { EffectCategory, EmojiEffect } from '@/types/effects';
-import { Colors } from '@/theme';
+import { Colors, OpacityColors } from '@/theme';
 
 interface EffectSelectorProps {
   onSelectEffect: (effectId: string | null) => void;
@@ -23,6 +23,12 @@ const CATEGORIES: { id: EffectCategory | 'all'; label: string; emoji: string }[]
 ];
 
 const styles = StyleSheet.create({
+  container: {
+    height: 400,
+    backgroundColor: OpacityColors.overlay.dark,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
   categoryScroll: {
     maxHeight: 60,
     flexGrow: 0,
@@ -33,16 +39,16 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: 'center',
   },
+  effectsScrollView: {
+    flex: 1,
+  },
   effectsContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 80,
+    paddingBottom: 20,
   },
   categoryButton: {
     marginRight: 8,
-  },
-  scrollView: {
-    flex: 1,
   },
   effectsGrid: {
     flexDirection: 'row',
@@ -52,6 +58,12 @@ const styles = StyleSheet.create({
   effectButton: {
     marginBottom: 12,
     marginHorizontal: 6,
+  },
+  badgeSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: OpacityColors.overlay.lighter,
   },
 });
 
@@ -89,27 +101,15 @@ export function EffectSelector({
   }, []);
 
   return (
-    <Stack
-      flex={1}
-      maxHeight={400}
-      backgroundColor="rgba(0, 0, 0, 0.9)"
-      borderTopLeftRadius="$4"
-      borderTopRightRadius="$4"
-      paddingBottom="$2"
-    >
+    <RNView style={styles.container}>
       {/* Badge Count Display */}
-      <View
-        paddingHorizontal="$4"
-        paddingVertical="$3"
-        borderBottomWidth={1}
-        borderBottomColor="rgba(255, 255, 255, 0.1)"
-      >
+      <RNView style={styles.badgeSection}>
         <Text fontSize="$3" color="rgba(255, 255, 255, 0.8)" textAlign="center">
           {weeklyBadgeCount === 0
             ? 'Unlock effects by earning weekly badges'
             : `${weeklyBadgeCount} badge${weeklyBadgeCount === 1 ? '' : 's'} earned this week`}
         </Text>
-      </View>
+      </RNView>
 
       {/* Category Filter */}
       <ScrollView
@@ -149,12 +149,12 @@ export function EffectSelector({
       <ScrollView
         showsVerticalScrollIndicator={true}
         contentContainerStyle={styles.effectsContent}
-        style={styles.scrollView}
+        style={styles.effectsScrollView}
         bounces={true}
         scrollEventThrottle={16}
         nestedScrollEnabled={true}
       >
-        <View style={styles.effectsGrid}>
+        <RNView style={styles.effectsGrid}>
           {effects.map((effect) => {
             const isSelected = effect.id === currentEffectId;
             const isLocked = !effect.isUnlocked;
@@ -213,8 +213,8 @@ export function EffectSelector({
               </Pressable>
             );
           })}
-        </View>
+        </RNView>
       </ScrollView>
-    </Stack>
+    </RNView>
   );
 }

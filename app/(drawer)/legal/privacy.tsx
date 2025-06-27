@@ -1,15 +1,21 @@
 import React from 'react';
 import { View, Text } from '@tamagui/core';
-import { ScrollView } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Colors } from '@/theme';
+
+const styles = StyleSheet.create({
+  scrollViewContent: {
+    paddingBottom: 40,
+  },
+});
 
 export default function PrivacyPolicyScreen() {
   return (
     <View flex={1} backgroundColor={Colors.background}>
       <ScreenHeader title="Privacy Policy" />
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={styles.scrollViewContent}>
         <View padding="$4">
           <Text fontSize={12} color="$textSecondary" marginBottom="$4">
             Last Updated: January 1, 2024

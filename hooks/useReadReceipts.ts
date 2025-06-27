@@ -80,16 +80,13 @@ export function useReadReceipts({ chatId: _chatId, onMessagesRead }: UseReadRece
 
   // For React Native, we'll use a simpler approach
   // The parent component will call this when messages become visible
-  const observeMessage = useCallback(
-    (messageId: string, element: unknown) => {
-      // In React Native, we don't need to observe DOM elements
-      // This is kept for API compatibility but does nothing
-    },
-    []
-  );
+  const observeMessage = useCallback((_messageId: string, _element: unknown) => {
+    // In React Native, we don't need to observe DOM elements
+    // This is kept for API compatibility but does nothing
+  }, []);
 
   // Unobserve message
-  const unobserveMessage = useCallback((messageId: string) => {
+  const unobserveMessage = useCallback((_messageId: string) => {
     // In React Native, we don't need to unobserve DOM elements
     // This is kept for API compatibility but does nothing
   }, []);

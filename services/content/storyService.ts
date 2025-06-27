@@ -3,7 +3,7 @@ import { PostType, StoryWithType } from '@/types/content';
 
 interface CreateStoryParams {
   media_url: string;
-  media_type: 'photo' | 'video';
+  media_type: 'photo' | 'video' | 'gif';
   thumbnail_url?: string;
   caption?: string;
   effect_id?: string;

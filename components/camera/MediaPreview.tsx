@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { View, Text } from '@tamagui/core';
 import {
   Image,
@@ -9,10 +9,11 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Animated,
 } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '@/theme';
+import { Colors, OpacityColors } from '@/theme';
 import { CapturedMedia } from '@/hooks/useCamera';
 import { compressPhoto, validateVideoSize } from '@/services/media/compression';
 import { formatFileSize } from '@/utils/media/helpers';
@@ -23,6 +24,10 @@ import { OverlayContainer } from '@/components/overlays/OverlayContainer';
 import { CaptionInput } from '@/components/creation/CaptionInput';
 import { ShareDestination } from '@/components/creation/ShareDestination';
 import { ExpirationInfo } from '@/components/creation/ExpirationInfo';
+import ViewShot from 'react-native-view-shot';
+import { EffectSelector } from '@/components/effects/EffectSelector';
+import { MaterialIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 export interface ShareOptions {
   shareToFeed: boolean;
@@ -53,11 +58,15 @@ export function MediaPreview({
   const [shareToStory, setShareToStory] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [caption, setCaption] = useState(suggestedCaption);
+  const [selectedEffectId, setSelectedEffectId] = useState<string | null>(media.effectId || null);
+  const [effectsPanelOpen, setEffectsPanelOpen] = useState(false);
+  const effectsPanelAnimation = useRef(new Animated.Value(0)).current;
+  const viewShotRef = useRef<ViewShot>(null);
 
   // Get the selected effect if any
   const selectedEffect = useMemo(() => {
-    return media.effectId ? getEffectById(media.effectId) : null;
-  }, [media.effectId]);
+    return selectedEffectId ? getEffectById(selectedEffectId) : null;
+  }, [selectedEffectId]);
 
   // Initialize video player - always call the hook, conditionally pass the source
   const player = useVideoPlayer(media.type === 'video' ? media.uri : null, (player) => {
@@ -66,6 +75,20 @@ export function MediaPreview({
       player.play();
     }
   });
+
+  // Animate effects panel
+  React.useEffect(() => {
+    Animated.timing(effectsPanelAnimation, {
+      toValue: effectsPanelOpen ? 1 : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [effectsPanelOpen, effectsPanelAnimation]);
+
+  const toggleEffectsPanel = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setEffectsPanelOpen(!effectsPanelOpen);
+  };
 
   const handleNext = async () => {
     // Validate at least one share option is selected
@@ -79,11 +102,24 @@ export function MediaPreview({
     try {
       let finalUri = media.uri;
 
+      // If effects are applied and it's a photo/gif, capture the ViewShot
+      if (
+        selectedEffectId &&
+        (media.type === 'photo' || media.type === 'gif') &&
+        viewShotRef.current?.capture
+      ) {
+        try {
+          finalUri = await viewShotRef.current.capture();
+        } catch (error) {
+          console.error('Failed to capture with effects, using original:', error);
+        }
+      }
+
       // Process media based on type
-      if (media.type === 'photo') {
-        // Compress photo
-        finalUri = await compressPhoto(media.uri);
-      } else {
+      if (media.type === 'photo' || media.type === 'gif') {
+        // Compress photo/gif
+        finalUri = await compressPhoto(finalUri);
+      } else if (media.type === 'video') {
         // Validate video size
         const { valid, size } = await validateVideoSize(media.uri);
         if (!valid) {
@@ -146,24 +182,70 @@ export function MediaPreview({
 
       {/* Media Display */}
       <View flex={1} backgroundColor="black" position="relative">
-        <OverlayContainer postType={postType}>
-          {media.type === 'photo' ? (
-            <Image source={{ uri: media.uri }} style={styles.media} resizeMode="contain" />
-          ) : media.type === 'video' && player ? (
-            <VideoView
-              player={player}
-              style={styles.media}
-              nativeControls={true}
-              contentFit="contain"
-            />
-          ) : null}
+        <ViewShot
+          ref={viewShotRef}
+          style={StyleSheet.absoluteFillObject}
+          options={{ format: 'jpg', quality: 0.9 }}
+        >
+          <OverlayContainer postType={postType}>
+            {media.type === 'photo' || media.type === 'gif' ? (
+              <Image source={{ uri: media.uri }} style={styles.media} resizeMode="contain" />
+            ) : media.type === 'video' && player ? (
+              <VideoView
+                player={player}
+                style={styles.media}
+                nativeControls={true}
+                contentFit="contain"
+              />
+            ) : null}
 
-          {/* Effect Overlay */}
-          {selectedEffect && (
-            <EmojiEffectsManager effect={selectedEffect} isActive={true} performanceTier="medium" />
-          )}
-        </OverlayContainer>
+            {/* Effect Overlay */}
+            {selectedEffect && (media.type === 'photo' || media.type === 'gif') && (
+              <EmojiEffectsManager
+                effect={selectedEffect}
+                isActive={true}
+                performanceTier="medium"
+              />
+            )}
+          </OverlayContainer>
+        </ViewShot>
+
+        {/* Effects Button - only for photos and gifs */}
+        {(media.type === 'photo' || media.type === 'gif') && (
+          <Pressable
+            onPress={toggleEffectsPanel}
+            style={[styles.effectsButton, effectsPanelOpen && styles.effectsButtonActive]}
+          >
+            <MaterialIcons name="auto-awesome" size={24} color={Colors.white} />
+          </Pressable>
+        )}
       </View>
+
+      {/* Effect Selector Panel */}
+      {effectsPanelOpen && (
+        <Pressable style={styles.effectsOverlay} onPress={() => setEffectsPanelOpen(false)} />
+      )}
+
+      <Animated.View
+        style={[
+          styles.effectSelectorContainer,
+          {
+            transform: [
+              {
+                translateY: effectsPanelAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [400, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <View style={styles.effectsHandle}>
+          <View style={styles.effectsHandleBar} />
+        </View>
+        <EffectSelector onSelectEffect={setSelectedEffectId} currentEffectId={selectedEffectId} />
+      </Animated.View>
 
       {/* Bottom Options */}
       <View style={[styles.bottomContainer, { paddingBottom: insets.bottom + 20 }]}>
@@ -243,6 +325,47 @@ const styles = StyleSheet.create({
   },
   media: {
     flex: 1,
+  },
+  effectsButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.camera.controlsBackground,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  effectsButtonActive: {
+    backgroundColor: Colors.primary,
+  },
+  effectsOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: OpacityColors.overlay.light,
+    zIndex: 3,
+  },
+  effectSelectorContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 4,
+  },
+  effectsHandle: {
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: OpacityColors.overlay.dark,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  effectsHandleBar: {
+    width: 40,
+    height: 4,
+    backgroundColor: OpacityColors.overlay.lighter,
+    borderRadius: 2,
   },
   bottomContainer: {
     backgroundColor: Colors.surface,

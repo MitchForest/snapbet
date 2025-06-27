@@ -6,11 +6,50 @@ import {
   Platform,
   TextInput,
   TouchableOpacity,
+  StyleSheet,
 } from 'react-native';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Colors } from '@/theme';
 import { toastService } from '@/services/toastService';
 import { router } from 'expo-router';
+
+const styles = StyleSheet.create({
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    paddingBottom: 40,
+  },
+  subjectInput: {
+    backgroundColor: Colors.surface,
+    height: 44,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    color: Colors.text.primary,
+    borderWidth: 1,
+    borderColor: Colors.border.default,
+  },
+  messageInput: {
+    backgroundColor: Colors.surface,
+    minHeight: 120,
+    padding: 16,
+    borderRadius: 8,
+    color: Colors.text.primary,
+    borderWidth: 1,
+    borderColor: Colors.border.default,
+    textAlignVertical: 'top',
+  },
+  submitButton: {
+    backgroundColor: Colors.primary,
+    height: 48,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  submitButtonDisabled: {
+    opacity: 0.5,
+  },
+});
 
 export default function ContactSupportScreen() {
   const [subject, setSubject] = useState('');
@@ -39,9 +78,9 @@ export default function ContactSupportScreen() {
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
+        style={styles.keyboardAvoidingView}
       >
-        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+        <ScrollView contentContainerStyle={styles.scrollViewContent}>
           <View padding="$4">
             {/* Contact Info Section */}
             <View
@@ -102,15 +141,7 @@ export default function ContactSupportScreen() {
                   value={subject}
                   onChangeText={setSubject}
                   placeholder="Brief description of your issue"
-                  style={{
-                    backgroundColor: Colors.surface,
-                    height: 44,
-                    paddingHorizontal: 16,
-                    borderRadius: 8,
-                    color: Colors.text.primary,
-                    borderWidth: 1,
-                    borderColor: Colors.border.default,
-                  }}
+                  style={styles.subjectInput}
                   placeholderTextColor={Colors.text.tertiary}
                 />
               </View>
@@ -126,16 +157,7 @@ export default function ContactSupportScreen() {
                   placeholder="Please describe your issue in detail..."
                   multiline
                   numberOfLines={6}
-                  style={{
-                    backgroundColor: Colors.surface,
-                    minHeight: 120,
-                    padding: 16,
-                    borderRadius: 8,
-                    color: Colors.text.primary,
-                    borderWidth: 1,
-                    borderColor: Colors.border.default,
-                    textAlignVertical: 'top',
-                  }}
+                  style={styles.messageInput}
                   placeholderTextColor={Colors.text.tertiary}
                 />
               </View>
@@ -161,14 +183,11 @@ export default function ContactSupportScreen() {
               <TouchableOpacity
                 onPress={handleSubmit}
                 disabled={isSubmitting || !subject.trim() || !message.trim()}
-                style={{
-                  backgroundColor: Colors.primary,
-                  height: 48,
-                  borderRadius: 8,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  opacity: isSubmitting || !subject.trim() || !message.trim() ? 0.5 : 1,
-                }}
+                style={[
+                  styles.submitButton,
+                  (isSubmitting || !subject.trim() || !message.trim()) &&
+                    styles.submitButtonDisabled,
+                ]}
               >
                 <Text color="white" fontWeight="600">
                   {isSubmitting ? 'Submitting...' : 'Submit Ticket'}

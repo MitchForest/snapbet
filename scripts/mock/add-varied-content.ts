@@ -37,10 +37,7 @@ async function addVariedContent() {
   console.log('🚀 Adding varied content to mock ecosystem...\n');
 
   // Get mock users
-  const { data: mockUsers } = await supabase
-    .from('users')
-    .select('*')
-    .eq('is_mock', true);
+  const { data: mockUsers } = await supabase.from('users').select('*').eq('is_mock', true);
 
   if (!mockUsers || mockUsers.length === 0) {
     console.error('❌ No mock users found');
@@ -72,10 +69,12 @@ async function addVariedContent() {
     return;
   }
 
-  const completedGames = games.filter(g => g.status === 'completed');
-  const upcomingGames = games.filter(g => g.status === 'scheduled');
+  const completedGames = games.filter((g) => g.status === 'completed');
+  const upcomingGames = games.filter((g) => g.status === 'scheduled');
 
-  console.log(`📊 Found ${mockUsers.length} mock users, ${completedGames.length} completed games, ${upcomingGames.length} upcoming games\n`);
+  console.log(
+    `📊 Found ${mockUsers.length} mock users, ${completedGames.length} completed games, ${upcomingGames.length} upcoming games\n`
+  );
 
   // 1. Create active pick posts with varied stakes
   console.log('🎯 Creating active pick posts with varied stakes...');
@@ -89,12 +88,15 @@ async function addVariedContent() {
 
     const betId = crypto.randomUUID();
     const postId = crypto.randomUUID();
-    const betType = ['spread', 'moneyline', 'total'][Math.floor(Math.random() * 3)] as any;
+    const betType = ['spread', 'moneyline', 'total'][Math.floor(Math.random() * 3)] as
+      | 'spread'
+      | 'moneyline'
+      | 'total';
     const team = Math.random() > 0.5 ? game.home_team : game.away_team;
     const stake = getRandomStake();
     const odds = getRandomOdds();
 
-    let betDetails: any = { team };
+    let betDetails: { team?: string; line?: number; total_type?: 'over' | 'under' } = { team };
     let caption = '';
 
     if (betType === 'spread') {
@@ -120,7 +122,7 @@ async function addVariedContent() {
       stake,
       odds,
       potential_win: calculatePotentialWin(stake, odds),
-      status: 'pending',
+      status: 'pending' as const,
       created_at: new Date(Date.now() - i * 30 * 60 * 1000).toISOString(),
     });
 
@@ -128,11 +130,11 @@ async function addVariedContent() {
     activePicks.push({
       id: postId,
       user_id: user.id,
-      post_type: 'pick',
+      post_type: 'pick' as const,
       bet_id: betId,
       caption,
       media_url: `https://images.unsplash.com/photo-${1504450758481 + i}-e1b6e0c2b8a2?w=800&h=800&fit=crop`,
-      media_type: 'photo',
+      media_type: 'photo' as const,
       tail_count: Math.floor(Math.random() * 20),
       fade_count: Math.floor(Math.random() * 5),
       reaction_count: Math.floor(Math.random() * 30),
@@ -155,7 +157,9 @@ async function addVariedContent() {
     const betId = crypto.randomUUID();
     const outcomePostId = crypto.randomUUID();
     const isWin = Math.random() > 0.4; // 60% win rate
-    const betType = ['spread', 'moneyline'][Math.floor(Math.random() * 2)] as any;
+    const betType = ['spread', 'moneyline'][Math.floor(Math.random() * 2)] as
+      | 'spread'
+      | 'moneyline';
     const team = Math.random() > 0.5 ? game.home_team : game.away_team;
     const stake = getRandomStake();
     const odds = getRandomOdds();
@@ -172,7 +176,7 @@ async function addVariedContent() {
       odds,
       potential_win: potentialWin,
       actual_win: isWin ? potentialWin : -stake,
-      status: isWin ? 'won' : 'lost',
+      status: (isWin ? 'won' : 'lost') as 'won' | 'lost',
       settled_at: new Date(Date.now() - (i + 1) * 2 * 60 * 60 * 1000).toISOString(),
       created_at: new Date(Date.now() - (i + 24) * 60 * 60 * 1000).toISOString(),
     });
@@ -195,14 +199,16 @@ async function addVariedContent() {
     outcomePosts.push({
       id: outcomePostId,
       user_id: user.id,
-      post_type: 'outcome',
+      post_type: 'outcome' as const,
       bet_id: betId,
-      caption: isWin 
+      caption: isWin
         ? winCaption[Math.floor(Math.random() * winCaption.length)]
         : lossCaption[Math.floor(Math.random() * lossCaption.length)],
       media_url: `https://images.unsplash.com/photo-${1574629867962 + i}-e1b6e0c2b8a2?w=800&h=800&fit=crop`,
-      media_type: 'photo',
-      reaction_count: isWin ? Math.floor(Math.random() * 50) + 20 : Math.floor(Math.random() * 20) + 5,
+      media_type: 'photo' as const,
+      reaction_count: isWin
+        ? Math.floor(Math.random() * 50) + 20
+        : Math.floor(Math.random() * 20) + 5,
       comment_count: Math.floor(Math.random() * 15),
       created_at: new Date(Date.now() - i * 60 * 60 * 1000).toISOString(),
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
@@ -245,7 +251,7 @@ async function addVariedContent() {
 
     // Add members including real user
     const memberCount = Math.floor(Math.random() * 15) + 10;
-    const members = [realUser.id, ...mockUsers.slice(0, memberCount).map(u => u.id)];
+    const members = [realUser.id, ...mockUsers.slice(0, memberCount).map((u) => u.id)];
 
     for (const memberId of members) {
       await supabase.from('chat_members').insert({
@@ -271,8 +277,10 @@ async function addVariedContent() {
     for (let i = 0; i < 25; i++) {
       const sender = members[Math.floor(Math.random() * members.length)];
       const template = messageTemplates[Math.floor(Math.random() * messageTemplates.length)];
-      const team = ['Lakers', 'Celtics', 'Chiefs', 'Bills', 'Yankees', 'Dodgers'][Math.floor(Math.random() * 6)];
-      
+      const team = ['Lakers', 'Celtics', 'Chiefs', 'Bills', 'Yankees', 'Dodgers'][
+        Math.floor(Math.random() * 6)
+      ];
+
       messages.push({
         chat_id: chat.id,
         sender_id: sender,
@@ -324,7 +332,7 @@ async function addVariedContent() {
       const isFromDmUser = Math.random() > 0.4;
       const template = dmTemplates[Math.floor(Math.random() * dmTemplates.length)];
       const team = ['Lakers', 'Celtics', 'Chiefs', 'Bills'][Math.floor(Math.random() * 4)];
-      
+
       messages.push({
         chat_id: chat.id,
         sender_id: isFromDmUser ? dmUser.id : realUser.id,
@@ -366,7 +374,7 @@ async function addVariedContent() {
   // Update bankrolls for users with settled bets
   console.log('\n💰 Updating bankrolls...');
   const userBetTotals = new Map();
-  
+
   for (const bet of settledBets) {
     if (!userBetTotals.has(bet.user_id)) {
       userBetTotals.set(bet.user_id, { wins: 0, losses: 0, profit: 0 });

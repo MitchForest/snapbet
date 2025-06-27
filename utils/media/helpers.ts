@@ -1,13 +1,17 @@
-export function generateFileName(type: 'photo' | 'video'): string {
+export function generateFileName(type: 'photo' | 'video' | 'gif'): string {
   const timestamp = Date.now();
   const uuid = Math.random().toString(36).substring(2, 9);
-  const extension = type === 'photo' ? 'jpg' : 'mp4';
+  const extension = type === 'photo' ? 'jpg' : type === 'gif' ? 'gif' : 'mp4';
   return `${timestamp}-${uuid}.${extension}`;
 }
 
-export function getMediaType(uri: string): 'photo' | 'video' {
+export function getMediaType(uri: string): 'photo' | 'video' | 'gif' {
   const lowercaseUri = uri.toLowerCase();
   const videoExtensions = ['.mp4', '.mov', '.avi', '.m4v'];
+
+  if (lowercaseUri.endsWith('.gif')) {
+    return 'gif';
+  }
 
   return videoExtensions.some((ext) => lowercaseUri.includes(ext)) ? 'video' : 'photo';
 }

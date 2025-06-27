@@ -124,7 +124,7 @@ export default function ChatScreen() {
       const visibleMessageIds = viewableItems
         .filter((item) => item.isViewable && item.item)
         .map((item) => item.item.id);
-      
+
       if (visibleMessageIds.length > 0) {
         handleVisibleMessagesChange(visibleMessageIds, messages);
       }
@@ -145,11 +145,7 @@ export default function ChatScreen() {
         !isOwn && (index === 0 || messages[index - 1]?.sender_id !== item.sender_id);
 
       return (
-        <View
-          key={item.id}
-          data-message-id={item.id}
-          data-sender-id={item.sender_id}
-        >
+        <View key={item.id} data-message-id={item.id} data-sender-id={item.sender_id}>
           <ChatBubble
             message={item}
             isOwn={isOwn}

@@ -6,7 +6,7 @@ import { Colors } from '@/theme';
 
 interface MediaDisplayProps {
   url: string;
-  type: 'photo' | 'video';
+  type: 'photo' | 'video' | 'gif';
   isVisible?: boolean;
   onPress?: () => void;
 }
@@ -41,7 +41,7 @@ export function MediaDisplay({ url, type, isVisible = true, onPress }: MediaDisp
     }
   }, [isVisible, player, type]);
 
-  if (type === 'photo') {
+  if (type === 'photo' || type === 'gif') {
     return (
       <View style={styles.container}>
         {imageLoading && !imageError && (
@@ -54,7 +54,7 @@ export function MediaDisplay({ url, type, isVisible = true, onPress }: MediaDisp
           <View style={styles.errorContainer}>
             <Text fontSize="$6">🖼️</Text>
             <Text color="$textSecondary" fontSize="$3" marginTop="$2">
-              Failed to load image
+              Failed to load {type === 'gif' ? 'GIF' : 'image'}
             </Text>
           </View>
         ) : (

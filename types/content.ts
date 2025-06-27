@@ -87,7 +87,7 @@ export interface PostWithType {
   user_id: string;
   post_type: PostType;
   media_url: string;
-  media_type: 'photo' | 'video';
+  media_type: 'photo' | 'video' | 'gif';
   thumbnail_url: string | null;
   caption: string | null;
   effect_id: string | null;
@@ -113,7 +113,7 @@ export interface PostWithType {
 
 export interface CreatePostParams {
   media_url: string;
-  media_type: 'photo' | 'video';
+  media_type: 'photo' | 'video' | 'gif';
   thumbnail_url?: string;
   caption?: string;
   effect_id?: string;
@@ -128,7 +128,7 @@ export interface StoryWithType {
   user_id: string;
   story_content_type: string | null;
   media_url: string;
-  media_type: 'photo' | 'video';
+  media_type: 'photo' | 'video' | 'gif';
   caption: string | null;
   created_at: string | null;
   expires_at: string;

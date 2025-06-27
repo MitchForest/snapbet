@@ -18,31 +18,30 @@ const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey);
 type Tables = Database['public']['Tables'];
 type Post = Tables['posts']['Insert'];
 type Bet = Tables['bets']['Insert'];
-type Game = Tables['games']['Row'];
 type User = Tables['users']['Row'] & { mock_personality_id: string };
 
 // Enhanced configuration
 const ENHANCED_CONFIG = {
   posts: {
-    activePicks: 30,      // Active bet posts
-    settledPicks: 25,     // Settled bet posts with outcomes
-    reactions: 20,        // Pure reaction/discussion posts
-    celebrations: 15,     // Win celebration posts
-    commiserations: 10,   // Loss posts
+    activePicks: 30, // Active bet posts
+    settledPicks: 25, // Settled bet posts with outcomes
+    reactions: 20, // Pure reaction/discussion posts
+    celebrations: 15, // Win celebration posts
+    commiserations: 10, // Loss posts
   },
   bets: {
     stakes: {
-      small: [100, 200, 300, 500],           // Conservative bets
-      medium: [1000, 1500, 2000, 2500],      // Standard bets
-      large: [5000, 7500, 10000],            // Big bets
-      yolo: [15000, 20000, 25000],           // YOLO bets
+      small: [100, 200, 300, 500], // Conservative bets
+      medium: [1000, 1500, 2000, 2500], // Standard bets
+      large: [5000, 7500, 10000], // Big bets
+      yolo: [15000, 20000, 25000], // YOLO bets
     },
     distribution: {
-      small: 0.3,    // 30% small bets
-      medium: 0.5,   // 50% medium bets
-      large: 0.15,   // 15% large bets
-      yolo: 0.05,    // 5% YOLO bets
-    }
+      small: 0.3, // 30% small bets
+      medium: 0.5, // 50% medium bets
+      large: 0.15, // 15% large bets
+      yolo: 0.05, // 5% YOLO bets
+    },
   },
   chats: {
     groups: [
@@ -63,24 +62,32 @@ const ENHANCED_CONFIG = {
     reactionsPerPost: { min: 5, max: 25 },
     commentsPerPost: { min: 2, max: 8 },
     tailsPerPick: { min: 3, max: 20 },
-  }
+  },
 };
 
 // Get a random stake based on distribution
 function getRandomStake(): number {
   const rand = Math.random();
   let category: keyof typeof ENHANCED_CONFIG.bets.stakes;
-  
+
   if (rand < ENHANCED_CONFIG.bets.distribution.small) {
     category = 'small';
-  } else if (rand < ENHANCED_CONFIG.bets.distribution.small + ENHANCED_CONFIG.bets.distribution.medium) {
+  } else if (
+    rand <
+    ENHANCED_CONFIG.bets.distribution.small + ENHANCED_CONFIG.bets.distribution.medium
+  ) {
     category = 'medium';
-  } else if (rand < ENHANCED_CONFIG.bets.distribution.small + ENHANCED_CONFIG.bets.distribution.medium + ENHANCED_CONFIG.bets.distribution.large) {
+  } else if (
+    rand <
+    ENHANCED_CONFIG.bets.distribution.small +
+      ENHANCED_CONFIG.bets.distribution.medium +
+      ENHANCED_CONFIG.bets.distribution.large
+  ) {
     category = 'large';
   } else {
     category = 'yolo';
   }
-  
+
   const stakes = ENHANCED_CONFIG.bets.stakes[category];
   return stakes[Math.floor(Math.random() * stakes.length)];
 }
@@ -96,7 +103,9 @@ function calculatePotentialWin(stake: number, odds: number): number {
 
 // Get random odds
 function getRandomOdds(): number {
-  const commonOdds = [-110, -105, -115, -120, -130, -140, -150, 100, 110, 120, 130, 140, 150, 160, 170, 180, 200];
+  const commonOdds = [
+    -110, -105, -115, -120, -130, -140, -150, 100, 110, 120, 130, 140, 150, 160, 170, 180, 200,
+  ];
   return commonOdds[Math.floor(Math.random() * commonOdds.length)];
 }
 
@@ -118,10 +127,7 @@ async function enhanceContent() {
   console.log('🚀 Enhancing mock content with more variety...\n');
 
   // Get mock users and games
-  const { data: mockUsers } = await supabase
-    .from('users')
-    .select('*')
-    .eq('is_mock', true);
+  const { data: mockUsers } = await supabase.from('users').select('*').eq('is_mock', true);
 
   const { data: games } = await supabase
     .from('games')
@@ -137,8 +143,8 @@ async function enhanceContent() {
 
   console.log(`📊 Found ${mockUsers.length} mock users and ${games.length} games\n`);
 
-  const completedGames = games.filter(g => g.status === 'completed');
-  const upcomingGames = games.filter(g => g.status === 'scheduled');
+  const completedGames = games.filter((g) => g.status === 'completed');
+  const upcomingGames = games.filter((g) => g.status === 'scheduled');
 
   // Get the main user
   const { data: mainUser } = await supabase
@@ -156,9 +162,22 @@ async function enhanceContent() {
   // Create various types of posts
   const posts: Post[] = [];
   const bets: Bet[] = [];
-  const reactions: any[] = [];
-  const comments: any[] = [];
-  const pickActions: any[] = [];
+  const reactions: Array<{
+    post_id: string;
+    user_id: string;
+    emoji: string;
+  }> = [];
+  const comments: Array<{
+    post_id: string;
+    user_id: string;
+    content: string;
+    created_at: string;
+  }> = [];
+  const pickActions: Array<{
+    post_id: string;
+    user_id: string;
+    action_type: 'tail' | 'fade';
+  }> = [];
 
   // 1. Create active pick posts (pending bets)
   console.log('🎲 Creating active pick posts...');
@@ -169,14 +188,24 @@ async function enhanceContent() {
 
     const betId = crypto.randomUUID();
     const postId = crypto.randomUUID();
-    const betType = ['spread', 'moneyline', 'total'][Math.floor(Math.random() * 3)] as 'spread' | 'moneyline' | 'total';
+    const betType = ['spread', 'moneyline', 'total'][Math.floor(Math.random() * 3)] as
+      | 'spread'
+      | 'moneyline'
+      | 'total';
     const team = Math.random() > 0.5 ? game.home_team : game.away_team;
     const stake = getRandomStake();
     const odds = getRandomOdds();
-    
-    let betDetails: any = { team };
+
+    const betDetails: {
+      team?: string;
+      spread?: string;
+      total_type?: 'over' | 'under';
+      line?: number;
+    } = {
+      team,
+    };
     let templateKey = 'normal';
-    
+
     if (betType === 'spread') {
       betDetails.spread = (Math.random() * 14 - 7).toFixed(1);
       templateKey = Math.random() > 0.5 ? 'normal' : 'confident';
@@ -201,7 +230,11 @@ async function enhanceContent() {
     });
 
     // Create post
-    const template = getRandomTemplate(postTemplates['pick-share'][templateKey] || postTemplates['pick-share'].normal);
+    const pickShareTemplates = postTemplates['pick-share'];
+    const template = getRandomTemplate(
+      pickShareTemplates[templateKey as keyof typeof pickShareTemplates] ||
+        pickShareTemplates.normal
+    );
     posts.push({
       id: postId,
       user_id: user.id,
@@ -246,12 +279,14 @@ async function enhanceContent() {
     const postId = crypto.randomUUID();
     const outcomePostId = crypto.randomUUID();
     const isWin = Math.random() > 0.45; // 55% win rate
-    const betType = ['spread', 'moneyline'][Math.floor(Math.random() * 2)] as 'spread' | 'moneyline';
+    const betType = ['spread', 'moneyline'][Math.floor(Math.random() * 2)] as
+      | 'spread'
+      | 'moneyline';
     const team = Math.random() > 0.5 ? game.home_team : game.away_team;
     const stake = getRandomStake();
     const odds = getRandomOdds();
     const potentialWin = calculatePotentialWin(stake, odds);
-    
+
     // Create settled bet
     bets.push({
       id: betId,
@@ -282,10 +317,10 @@ async function enhanceContent() {
     });
 
     // Create outcome post
-    const outcomeTemplates = isWin 
-      ? postTemplates['outcome'].win 
-      : postTemplates['outcome'].loss;
-    
+    const outcomeTemplates = isWin
+      ? postTemplates['outcome-positive'].normal
+      : postTemplates['outcome-negative'].normal;
+
     posts.push({
       id: outcomePostId,
       user_id: user.id,
@@ -304,13 +339,17 @@ async function enhanceContent() {
     });
 
     // Add reactions to outcome post
-    const reactionCount = isWin ? Math.floor(Math.random() * 20) + 10 : Math.floor(Math.random() * 10) + 5;
+    const reactionCount = isWin
+      ? Math.floor(Math.random() * 20) + 10
+      : Math.floor(Math.random() * 10) + 5;
     for (let j = 0; j < reactionCount; j++) {
       const reactor = mockUsers[Math.floor(Math.random() * mockUsers.length)];
       reactions.push({
         post_id: outcomePostId,
         user_id: reactor.id,
-        emoji: isWin ? ['🔥', '💰', '🎯', '👏'][Math.floor(Math.random() * 4)] : ['😢', '💔', '😤', '🤝'][Math.floor(Math.random() * 4)],
+        emoji: isWin
+          ? ['🔥', '💰', '🎯', '👏'][Math.floor(Math.random() * 4)]
+          : ['😢', '💔', '😤', '🤝'][Math.floor(Math.random() * 4)],
       });
     }
   }
@@ -321,8 +360,10 @@ async function enhanceContent() {
     const user = mockUsers[i % mockUsers.length] as User;
     const postId = crypto.randomUUID();
     const templates = postTemplates['reaction'];
-    const mood = ['exciting', 'frustrated', 'analytical'][Math.floor(Math.random() * 3)] as keyof typeof templates;
-    
+    const mood = ['exciting', 'frustrated', 'analytical'][
+      Math.floor(Math.random() * 3)
+    ] as keyof typeof templates;
+
     posts.push({
       id: postId,
       user_id: user.id,
@@ -349,7 +390,7 @@ async function enhanceContent() {
 
   // Insert all the data
   console.log('\n📤 Inserting enhanced content...');
-  
+
   if (bets.length > 0) {
     const { error } = await supabase.from('bets').insert(bets);
     if (error) console.error('Error inserting bets:', error);
@@ -382,7 +423,8 @@ async function enhanceContent() {
 
   // Create additional group chats
   console.log('\n💬 Creating additional group chats...');
-  for (const chatName of ENHANCED_CONFIG.chats.groups.slice(3)) { // Skip first 3 (already exist)
+  for (const chatName of ENHANCED_CONFIG.chats.groups.slice(3)) {
+    // Skip first 3 (already exist)
     const { data: chat, error } = await supabase
       .from('chats')
       .insert({
@@ -397,7 +439,7 @@ async function enhanceContent() {
 
     // Add members
     const memberCount = Math.floor(Math.random() * 10) + 10;
-    const members = [mainUser.id, ...mockUsers.slice(0, memberCount).map((u: any) => u.id)];
+    const members = [mainUser.id, ...mockUsers.slice(0, memberCount).map((u) => u.id)];
 
     for (const memberId of members) {
       await supabase.from('chat_members').insert({
@@ -428,7 +470,7 @@ async function enhanceContent() {
   const dmCount = ENHANCED_CONFIG.chats.directChats - 5; // Subtract existing
   for (let i = 0; i < dmCount; i++) {
     const partner = mockUsers[i + 5]; // Skip first 5 (already have DMs)
-    
+
     const { data: chat, error } = await supabase
       .from('chats')
       .insert({
@@ -472,4 +514,4 @@ async function enhanceContent() {
   console.log(`  • Mix of wins and losses with outcome posts`);
 }
 
-enhanceContent().catch(console.error); 
+enhanceContent().catch(console.error);

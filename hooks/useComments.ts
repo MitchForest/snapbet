@@ -98,6 +98,7 @@ export function useComments(postId: string): UseCommentsResult {
         content,
         created_at: new Date().toISOString(),
         deleted_at: null,
+        report_count: null,
         user: {
           id: user.id,
           username: userProfile?.username || 'Anonymous',

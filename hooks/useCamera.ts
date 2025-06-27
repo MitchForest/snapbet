@@ -6,7 +6,7 @@ import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 
 export interface CapturedMedia {
   uri: string;
-  type: 'photo' | 'video';
+  type: 'photo' | 'video' | 'gif';
   width?: number;
   height?: number;
   duration?: number;
@@ -144,9 +144,16 @@ export function useCamera(): UseCameraReturn {
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
+
+        // Detect GIF files by checking the URI extension
+        let mediaType: 'photo' | 'video' | 'gif' = asset.type === 'video' ? 'video' : 'photo';
+        if (asset.type === 'image' && asset.uri.toLowerCase().endsWith('.gif')) {
+          mediaType = 'gif';
+        }
+
         setCapturedMedia({
           uri: asset.uri,
-          type: asset.type === 'video' ? 'video' : 'photo',
+          type: mediaType,
           width: asset.width,
           height: asset.height,
           duration: asset.duration || undefined,
