@@ -3,7 +3,7 @@ import { gameService } from '@/services/games/gameService';
 import { updateUserBadges } from '@/services/badges/badgeService';
 import { calculateBetOutcome } from '@/utils/betting/outcomeCalculator';
 import { Bet, BetWithGame } from './types';
-import { Game } from '@/types/database';
+import { Game } from '@/types/database-helpers';
 
 export interface SettlementResult {
   settledCount: number;

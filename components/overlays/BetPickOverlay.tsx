@@ -2,7 +2,7 @@ import React from 'react';
 import { Stack, Text } from '@tamagui/core';
 import { Colors } from '@/theme';
 import { Bet } from '@/services/betting/types';
-import { Game } from '@/types/database';
+import { Game } from '@/types/database-helpers';
 import { formatOdds } from '@/utils/betting/oddsCalculator';
 
 interface BetPickOverlayProps {

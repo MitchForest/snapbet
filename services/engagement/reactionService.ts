@@ -1,5 +1,5 @@
 import { supabase } from '@/services/supabase/client';
-import { Reaction } from '@/types/database';
+import { Reaction } from '@/types/database-helpers';
 import { AVAILABLE_REACTIONS, ReactionEmoji } from '@/utils/constants/reactions';
 
 export type AllowedReaction = ReactionEmoji;

@@ -2,10 +2,11 @@ import React from 'react';
 import { View, Text, Stack } from '@tamagui/core';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors } from '@/theme';
-import { Game } from '@/types/database';
+import { Game } from '@/types/database-helpers';
 import { BetType, BetSelection, TeamSelection, TotalSelection } from '@/stores/betSlipStore';
 import { getTeamByFullName } from '@/data/teams';
 import * as Haptics from 'expo-haptics';
+import { getOddsData } from '@/types/betting';
 
 interface TeamSelectorProps {
   game: Game;
@@ -15,7 +16,8 @@ interface TeamSelectorProps {
 }
 
 export function TeamSelector({ game, betType, selected, onChange }: TeamSelectorProps) {
-  const odds = game.odds_data?.bookmakers?.[0]?.markets;
+  const oddsData = getOddsData(game.odds_data);
+  const odds = oddsData?.bookmakers?.[0]?.markets;
   if (!odds) return null;
 
   const handleSelection = async (selection: BetSelection) => {
@@ -120,7 +122,8 @@ export function TeamSelector({ game, betType, selected, onChange }: TeamSelector
   }
 
   // Total (Over/Under)
-  if (betType === 'total' && odds.totals) {
+  if (betType === 'total' && odds?.totals) {
+    const totals = odds.totals;
     return (
       <Stack flexDirection="row" gap={16} marginBottom={20}>
         {/* Over */}
@@ -135,7 +138,7 @@ export function TeamSelector({ game, betType, selected, onChange }: TeamSelector
           onPress={() =>
             handleSelection({
               totalType: 'over',
-              line: odds.totals.line,
+              line: totals.line,
             } as TotalSelection)
           }
         >
@@ -143,10 +146,10 @@ export function TeamSelector({ game, betType, selected, onChange }: TeamSelector
             OVER
           </Text>
           <Text fontSize={16} color={Colors.text.secondary} marginTop={4}>
-            {odds.totals.line}
+            {totals.line}
           </Text>
           <Text fontSize={14} fontWeight="500" color={Colors.primary} marginTop={8}>
-            {formatOdds(odds.totals.over)}
+            {formatOdds(totals.over)}
           </Text>
         </TouchableOpacity>
 
@@ -162,7 +165,7 @@ export function TeamSelector({ game, betType, selected, onChange }: TeamSelector
           onPress={() =>
             handleSelection({
               totalType: 'under',
-              line: odds.totals.line,
+              line: totals.line,
             } as TotalSelection)
           }
         >
@@ -170,10 +173,10 @@ export function TeamSelector({ game, betType, selected, onChange }: TeamSelector
             UNDER
           </Text>
           <Text fontSize={16} color={Colors.text.secondary} marginTop={4}>
-            {odds.totals.line}
+            {totals.line}
           </Text>
           <Text fontSize={14} fontWeight="500" color={Colors.primary} marginTop={8}>
-            {formatOdds(odds.totals.under)}
+            {formatOdds(totals.under)}
           </Text>
         </TouchableOpacity>
       </Stack>

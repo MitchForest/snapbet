@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Game } from '@/types/database';
+import { Game } from '@/types/database-helpers';
 import { gameService, Sport } from '@/services/games/gameService';
 import * as Haptics from 'expo-haptics';
 

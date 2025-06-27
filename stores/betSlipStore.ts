@@ -1,7 +1,8 @@
 import { create } from 'zustand';
-import { Game } from '@/types/database';
+import { Game } from '@/types/database-helpers';
 import { bettingService } from '@/services/betting/bettingService';
 import { Storage, StorageKeys } from '@/services/storage/storageService';
+import { getOddsData } from '@/types/betting';
 
 export type BetType = 'spread' | 'total' | 'moneyline';
 
@@ -212,7 +213,8 @@ export const useBetSlipStore = create<BetSlipState>((set, get) => ({
     const state = get();
     if (!state.game || !state.selection) return 0;
 
-    const odds = state.game.odds_data?.bookmakers?.[0]?.markets;
+    const oddsData = getOddsData(state.game.odds_data);
+    const odds = oddsData?.bookmakers?.[0]?.markets;
     if (!odds) return 0;
 
     switch (state.betType) {
@@ -267,7 +269,8 @@ export const useBetSlipStore = create<BetSlipState>((set, get) => ({
 function getOddsForSelection(game: Game, betType: BetType, selection: BetSelection): number | null {
   if (!selection) return null;
 
-  const bookmaker = game.odds_data?.bookmakers?.[0];
+  const oddsData = getOddsData(game.odds_data);
+  const bookmaker = oddsData?.bookmakers?.[0];
   if (!bookmaker) return null;
 
   switch (betType) {

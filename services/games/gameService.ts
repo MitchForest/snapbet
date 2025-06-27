@@ -1,6 +1,6 @@
 import { supabase } from '@/services/supabase/client';
-import { Game } from '@/types/database';
-import { Json } from '@/types/supabase-generated';
+import { Game } from '@/types/database-helpers';
+import type { Json } from '@/types/database';
 import { Storage, StorageKeys, CacheUtils } from '@/services/storage/storageService';
 
 // Types

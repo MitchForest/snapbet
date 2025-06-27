@@ -3,8 +3,8 @@ import { eventEmitter, EngagementEvents } from '@/utils/eventEmitter';
 import { bettingService } from './bettingService';
 import { calculateFadeBet } from '@/utils/betting/oppositeCalculator';
 import { Bet, BetInput, BettingError, BetSelection } from './types';
-import { Game } from '@/types/database';
-import { Database } from '@/types/supabase-generated';
+import { Game } from '@/types/database-helpers';
+import { Database } from '@/types/database-helpers';
 import { toastService } from '@/services/toastService';
 
 type PickAction = Database['public']['Tables']['pick_actions']['Row'];

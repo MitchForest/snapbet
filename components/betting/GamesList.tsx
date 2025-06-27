@@ -3,7 +3,7 @@ import { View, Text } from '@tamagui/core';
 import { FlashList } from '@shopify/flash-list';
 import { RefreshControl, StyleSheet } from 'react-native';
 import { Colors } from '@/theme';
-import { Game } from '@/types/database';
+import { Game } from '@/types/database-helpers';
 import { GameCard } from './GameCard';
 import { useGames } from '@/hooks/useGames';
 import { Sport } from '@/services/games/gameService';

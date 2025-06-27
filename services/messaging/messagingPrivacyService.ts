@@ -2,7 +2,7 @@ import { supabase } from '@/services/supabase/client';
 import { blockService } from '@/services/moderation/blockService';
 import { Message, GroupMember, MessageReportReason } from '@/types/messaging';
 import { toastService } from '@/services/toastService';
-import { Database } from '@/types/supabase-generated';
+import { Database } from '@/types/database-helpers';
 
 // Type definitions from generated types
 type MessagePrivacySettingsInsert =

@@ -1,7 +1,7 @@
 import { supabase } from '@/services/supabase/client';
 import { eventEmitter, ModerationEvents } from '@/utils/eventEmitter';
 import { toastService } from '@/services/toastService';
-import type { Database } from '@/types/supabase-generated';
+import type { Database } from '@/types/database';
 
 // Types
 export type ReportReason = 'spam' | 'inappropriate' | 'harassment' | 'other';

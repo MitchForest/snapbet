@@ -9,7 +9,7 @@ import { useAuth } from './useAuth';
 import { toastService } from '@/services/toastService';
 import { BettingError } from '@/services/betting/types';
 import { eventEmitter, EngagementEvents } from '@/utils/eventEmitter';
-import { Database } from '@/types/supabase-generated';
+import { Database } from '@/types/database-helpers';
 
 type PickAction = Database['public']['Tables']['pick_actions']['Row'];
 

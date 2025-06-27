@@ -3,7 +3,7 @@ import { Text } from '@tamagui/core';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Bet } from '@/services/betting/types';
-import { Game } from '@/types/database';
+import { Game } from '@/types/database-helpers';
 import { useBetSharing } from '@/hooks/useBetSharing';
 import { PendingShareBet } from '@/types/content';
 import { Colors, OpacityColors } from '@/theme';

@@ -1,7 +1,7 @@
 import { supabase } from '@/services/supabase/client';
 import { gameService } from '@/services/games/gameService';
-import { Game } from '@/types/database';
-import { Json } from '@/types/supabase-generated';
+import { Game } from '@/types/database-helpers';
+import type { Json } from '@/types/database';
 import {
   Bet,
   BetInput,
@@ -11,6 +11,7 @@ import {
   ValidationResult,
   PayoutCalculation,
 } from './types';
+import { getOddsData } from '@/types/betting';
 
 class BettingService {
   // Place a new bet
@@ -234,7 +235,8 @@ class BettingService {
     }
 
     // Validate odds exist for bet type
-    const gameOdds = game.odds_data?.bookmakers?.[0]?.markets;
+    const oddsData = getOddsData(game.odds_data);
+    const gameOdds = oddsData?.bookmakers?.[0]?.markets;
     if (!gameOdds) {
       return { isValid: false, error: 'No odds available for this game' };
     }

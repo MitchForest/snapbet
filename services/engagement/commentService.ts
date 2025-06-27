@@ -1,5 +1,5 @@
 import { supabase } from '@/services/supabase/client';
-import { Comment } from '@/types/database';
+import { Comment } from '@/types/database-helpers';
 import { rateLimiter } from '@/utils/rateLimiter';
 
 const MAX_COMMENT_LENGTH = 280;

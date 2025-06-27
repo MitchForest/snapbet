@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { createClient } from '@supabase/supabase-js';
-import { Database } from '@/types/supabase-generated';
+import { Database } from '@/types/database-helpers';
 import { postTemplates, messageTemplates } from './templates';
 
 // Get environment variables

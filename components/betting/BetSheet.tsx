@@ -9,7 +9,7 @@ import { TeamSelector } from './TeamSelector';
 import { StakeInput } from './StakeInput';
 import { PayoutDisplay } from './PayoutDisplay';
 import { PlaceBetButton } from './PlaceBetButton';
-import { Game } from '@/types/database';
+import { Game } from '@/types/database-helpers';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { toastService } from '@/services/toastService';

@@ -1,9 +1,10 @@
 import { supabase } from '@/services/supabase';
 import { PostType, StoryWithType } from '@/types/content';
+import { MediaType } from '@/types/database-helpers';
 
 interface CreateStoryParams {
   media_url: string;
-  media_type: 'photo' | 'video' | 'gif';
+  media_type: MediaType;
   thumbnail_url?: string;
   caption?: string;
   effect_id?: string;

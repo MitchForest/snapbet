@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { BaseSheet } from '@/components/engagement/sheets/BaseSheet';
 import { Bet } from '@/services/betting/types';
-import { Game } from '@/types/database';
+import { Game } from '@/types/database-helpers';
 import { PostWithType } from '@/types/content';
 import { formatBetDetails, formatOdds } from '@/utils/betting/oppositeCalculator';
 import { StakeInput } from './StakeInput';

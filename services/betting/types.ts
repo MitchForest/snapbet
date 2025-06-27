@@ -1,4 +1,4 @@
-import { Database } from '@/types/supabase-generated';
+import { Database } from '@/types/database-helpers';
 
 // Re-export database types for convenience
 export type Bet = Database['public']['Tables']['bets']['Row'];

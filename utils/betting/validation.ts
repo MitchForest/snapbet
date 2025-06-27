@@ -1,5 +1,6 @@
 import { BetInput, ValidationResult } from '@/services/betting/types';
-import { Game } from '@/types/database';
+import { Game } from '@/types/database-helpers';
+import { getOddsData } from '@/types/betting';
 
 /**
  * Validate a bet input
@@ -29,7 +30,8 @@ export function validateBet(
   }
 
   // Validate odds exist for bet type
-  const gameOdds = game.odds_data?.bookmakers?.[0]?.markets;
+  const oddsData = getOddsData(game.odds_data);
+  const gameOdds = oddsData?.bookmakers?.[0]?.markets;
   if (!gameOdds) {
     return { isValid: false, error: 'Odds not available for this game' };
   }
@@ -82,7 +84,8 @@ export function isGameBettable(game: Game): boolean {
   }
 
   // Game must have odds
-  if (!game.odds_data?.bookmakers?.length) {
+  const oddsData = getOddsData(game.odds_data);
+  if (!oddsData?.bookmakers?.length) {
     return false;
   }
 

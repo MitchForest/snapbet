@@ -1,5 +1,5 @@
 import { Database } from './supabase';
-import { Game } from './database';
+import { Game } from './database-helpers';
 
 // Base database types
 type DbMessage = Database['public']['Tables']['messages']['Row'];

@@ -8,7 +8,7 @@
 
 import { supabase } from '../../supabase-client';
 import { generateMockGames } from '../data/games';
-import type { Json } from '../../../types/supabase-generated';
+import type { Json } from '../../../types/database';
 import {
   messageTemplates,
   postTemplates,

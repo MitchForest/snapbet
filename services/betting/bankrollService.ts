@@ -1,7 +1,7 @@
 import { supabase } from '@/services/supabase/client';
 import { bettingService } from './bettingService';
 import { DeviceEventEmitter } from 'react-native';
-import { Json } from '@/types/supabase-generated';
+import type { Json } from '@/types/database';
 
 // Extend the generated type to include weekly_deposit until types are regenerated
 export interface Bankroll {

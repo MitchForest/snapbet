@@ -2,7 +2,7 @@
 
 import { Command } from 'commander';
 import { createClient } from '@supabase/supabase-js';
-import type { Database, Json } from '@/types/supabase-generated';
+import type { Database, Json } from '@/types/database';
 
 // Get Supabase URL and service key from environment
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;

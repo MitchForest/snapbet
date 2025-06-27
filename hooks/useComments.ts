@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { commentService } from '@/services/engagement/commentService';
 import { subscriptionManager } from '@/services/realtime/subscriptionManager';
-import { Comment } from '@/types/database';
+import { Comment } from '@/types/database-helpers';
 import { useAuth } from '@/hooks/useAuth';
 import { useBlockedUsers } from '@/hooks/useBlockedUsers';
 import { toastService } from '@/services/toastService';

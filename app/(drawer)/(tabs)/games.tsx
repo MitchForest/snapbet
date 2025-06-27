@@ -5,7 +5,7 @@ import { GamesList } from '@/components/betting/GamesList';
 import { BetSheet } from '@/components/betting/BetSheet';
 import { BankrollBadge } from '@/components/betting/BankrollBadge';
 import { BankrollStatsModal } from '@/components/betting/BankrollStatsModal';
-import { Game } from '@/types/database';
+import { Game } from '@/types/database-helpers';
 
 export default function GamesScreen() {
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);

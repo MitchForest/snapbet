@@ -1,5 +1,6 @@
-import { Game } from '@/types/database';
+import { Game } from '@/types/database-helpers';
 import { Bet, BetType } from '@/services/betting/types';
+import { getOddsData } from '@/types/betting';
 
 interface BetInput {
   gameId: string;
@@ -104,14 +105,15 @@ export function getFadeMoneyline(
  */
 export function getFadeMoneylineOdds(original: Record<string, unknown>, game: Game): number {
   // Access the odds from the game data structure
-  const oddsData = game.odds_data?.bookmakers?.[0]?.markets?.h2h;
+  const oddsData = getOddsData(game.odds_data);
+  const h2h = oddsData?.bookmakers?.[0]?.markets?.h2h;
 
-  if (!oddsData) {
+  if (!h2h) {
     throw new Error('No odds data available for this game');
   }
 
   // Return opposite team's odds
-  return original.team === game.home_team ? oddsData.away : oddsData.home;
+  return original.team === game.home_team ? h2h.away : h2h.home;
 }
 
 /**

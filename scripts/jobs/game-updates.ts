@@ -2,7 +2,7 @@
 
 import { BaseJob, JobOptions, JobResult } from './types';
 import { supabase } from '@/services/supabase/client';
-import { Game } from '@/types/database';
+import { Game } from '@/types/database-helpers';
 
 export class GameUpdateJob extends BaseJob {
   constructor() {

@@ -2,11 +2,12 @@ import React, { memo } from 'react';
 import { View, Text, Stack } from '@tamagui/core';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors } from '@/theme';
-import { Game } from '@/types/database';
+import { Game } from '@/types/database-helpers';
 import { SportBadge } from './SportBadge';
 import { Storage, StorageKeys } from '@/services/storage/storageService';
 import * as Haptics from 'expo-haptics';
 import { getTeamById } from '@/data/teams';
+import { getOddsData } from '@/types/betting';
 
 interface GameCardProps {
   game: Game;
@@ -30,7 +31,8 @@ export const GameCard = memo(
     const timeString = formatGameTime(gameTime);
 
     // Get odds
-    const odds = game.odds_data?.bookmakers?.[0]?.markets;
+    const oddsData = getOddsData(game.odds_data);
+    const odds = oddsData?.bookmakers?.[0]?.markets;
     const spread = odds?.spreads;
     const total = odds?.totals;
     const moneyline = odds?.h2h;
