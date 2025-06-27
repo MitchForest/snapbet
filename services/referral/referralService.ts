@@ -1,5 +1,5 @@
 import { supabase } from '@/services/supabase/client';
-import { Storage } from '@/services/storage/storageService';
+import { Storage, isMMKVAvailable } from '@/services/storage/storageService';
 
 interface ReferralStats {
   totalReferrals: number;
@@ -272,6 +272,10 @@ export async function getReferredUsers(userId: string): Promise<ReferredUser[]> 
  */
 export async function storePendingReferralCode(code: string): Promise<void> {
   try {
+    if (!isMMKVAvailable()) {
+      console.log('[Referral] Skipping code storage - MMKV not available in debug mode');
+      return;
+    }
     Storage.general.set(REFERRAL_CODE_KEY, code.toUpperCase());
   } catch (error) {
     console.error('Error storing referral code:', error);
@@ -283,19 +287,17 @@ export async function storePendingReferralCode(code: string): Promise<void> {
  */
 export async function getPendingReferralCode(): Promise<string | null> {
   try {
-    // Check if we're in a context where MMKV can be used
-    // This will fail silently if MMKV isn't available (e.g., remote debugging)
+    if (!isMMKVAvailable()) {
+      console.log('[Referral] Skipping code retrieval - MMKV not available in debug mode');
+      return null;
+    }
+
     const code = Storage.general.get<string>(REFERRAL_CODE_KEY);
     if (code) {
       Storage.general.delete(REFERRAL_CODE_KEY);
     }
     return code;
   } catch (error) {
-    // Silently ignore MMKV errors during debugging
-    // The referral code feature will be skipped but auth will continue
-    if (error instanceof Error && error.message.includes('MMKV')) {
-      return null;
-    }
     console.error('Error getting pending referral code:', error);
     return null;
   }

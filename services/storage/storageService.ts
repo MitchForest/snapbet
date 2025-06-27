@@ -4,6 +4,15 @@ import { MMKV } from 'react-native-mmkv';
 // that is injected by React Native's JSI environment. This prevents type errors.
 declare const global: { nativeCallSyncHook: unknown };
 
+// --- MMKV Availability Check ---
+export const isMMKVAvailable = (): boolean => {
+  // Check if running in a remote debugger (where JSI is not available)
+  if (__DEV__ && typeof global.nativeCallSyncHook === 'undefined') {
+    return false;
+  }
+  return true;
+};
+
 // --- Lazy-loaded MMKV instances ---
 
 let feedStorageInstance: MMKV | null = null;
@@ -113,32 +122,64 @@ export const CacheUtils = {
 
 // --- Generic Storage Wrapper (restored for compatibility) ---
 // This wrapper mimics the old API, handling JSON parsing automatically.
-const createStorageWrapper = (storageInstance: MMKV) => ({
+const createStorageWrapper = (getStorage: () => MMKV) => ({
   get: <T>(key: string): T | null => {
-    const value = storageInstance.getString(key);
-    if (value) {
-      try {
-        return JSON.parse(value) as T;
-      } catch (e) {
-        console.error(`[Storage] Failed to parse JSON for key "${key}"`, e);
+    try {
+      const value = getStorage().getString(key);
+      if (value) {
+        try {
+          return JSON.parse(value) as T;
+        } catch (e) {
+          console.error(`[Storage] Failed to parse JSON for key "${key}"`, e);
+          return null;
+        }
+      }
+      return null;
+    } catch (error) {
+      // Handle MMKV access errors gracefully
+      if (error instanceof Error && error.message.includes('MMKV')) {
+        console.log('[Storage] MMKV not available in remote debugging mode');
         return null;
       }
+      throw error;
     }
-    return null;
   },
   set: (key: string, value: unknown): void => {
     try {
       const stringValue = JSON.stringify(value);
-      storageInstance.set(key, stringValue);
-    } catch (e) {
-      console.error(`[Storage] Failed to stringify value for key "${key}"`, e);
+      getStorage().set(key, stringValue);
+    } catch (error) {
+      // Handle MMKV access errors gracefully
+      if (error instanceof Error && error.message.includes('MMKV')) {
+        console.log('[Storage] MMKV not available in remote debugging mode');
+        return;
+      }
+      console.error(`[Storage] Failed to stringify value for key "${key}"`, error);
     }
   },
   delete: (key: string): void => {
-    storageInstance.delete(key);
+    try {
+      getStorage().delete(key);
+    } catch (error) {
+      // Handle MMKV access errors gracefully
+      if (error instanceof Error && error.message.includes('MMKV')) {
+        console.log('[Storage] MMKV not available in remote debugging mode');
+        return;
+      }
+      throw error;
+    }
   },
   clearAll: (): void => {
-    storageInstance.clearAll();
+    try {
+      getStorage().clearAll();
+    } catch (error) {
+      // Handle MMKV access errors gracefully
+      if (error instanceof Error && error.message.includes('MMKV')) {
+        console.log('[Storage] MMKV not available in remote debugging mode');
+        return;
+      }
+      throw error;
+    }
   },
 });
 
@@ -147,19 +188,19 @@ const createStorageWrapper = (storageInstance: MMKV) => ({
 // that the rest of the application code expects.
 export const Storage = {
   get general() {
-    return createStorageWrapper(getGeneralStorage());
+    return createStorageWrapper(getGeneralStorage);
   },
   get feed() {
-    return createStorageWrapper(getFeedStorage());
+    return createStorageWrapper(getFeedStorage);
   },
   get settings() {
-    return createStorageWrapper(getSettingsStorage());
+    return createStorageWrapper(getSettingsStorage);
   },
   get games() {
-    return createStorageWrapper(getGamesStorage());
+    return createStorageWrapper(getGamesStorage);
   },
   get betting() {
-    return createStorageWrapper(getGeneralStorage()); // Use general storage for betting
+    return createStorageWrapper(getGeneralStorage); // Use general storage for betting
   },
 };
 
@@ -208,7 +249,7 @@ const storageService = {
 
   // Generic storage wrapper (for backward compatibility)
   get storage() {
-    return createStorageWrapper(getAppStorage());
+    return createStorageWrapper(getAppStorage);
   },
 };
 

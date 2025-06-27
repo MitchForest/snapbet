@@ -34,17 +34,29 @@ class OfflineQueue {
   private processing = false;
   private netInfoUnsubscribe: (() => void) | null = null;
   private isConnected = true;
+  private initialized = false;
+  private cleanupTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
-    this.loadQueue();
+    // Don't initialize here - wait for first use
+  }
+
+  /**
+   * Initialize the queue lazily on first use
+   */
+  private async ensureInitialized() {
+    if (this.initialized) return;
+
+    this.initialized = true;
+    await this.loadQueue();
     this.setupNetworkListener();
-    this.cleanupExpiredMessages();
+    this.scheduleCleanup();
   }
 
   /**
    * Load queue from persistent storage
    */
-  private loadQueue() {
+  private async loadQueue() {
     try {
       const parsed = Storage.general.get<StoredQueue>(QUEUE_KEY);
       if (parsed) {
@@ -60,6 +72,12 @@ class OfflineQueue {
         console.log(`[OfflineQueue] Loaded ${this.queue.length} messages from storage`);
       }
     } catch (error) {
+      // Silently handle MMKV errors during debugging
+      if (error instanceof Error && error.message.includes('MMKV')) {
+        console.log('[OfflineQueue] Skipping queue load due to MMKV debugging limitation');
+        this.queue = [];
+        return;
+      }
       console.error('[OfflineQueue] Error loading queue:', error);
       this.queue = [];
     }
@@ -79,6 +97,11 @@ class OfflineQueue {
       // Update store with queue count
       useRealtimeStore.getState().setQueuedCount(this.queue.length);
     } catch (error) {
+      // Silently handle MMKV errors during debugging
+      if (error instanceof Error && error.message.includes('MMKV')) {
+        console.log('[OfflineQueue] Skipping queue save due to MMKV debugging limitation');
+        return;
+      }
       console.error('[OfflineQueue] Error saving queue:', error);
     }
   }
@@ -104,6 +127,15 @@ class OfflineQueue {
   }
 
   /**
+   * Schedule periodic cleanup
+   */
+  private scheduleCleanup() {
+    this.cleanupExpiredMessages();
+    // Schedule next cleanup in 1 hour
+    this.cleanupTimer = setTimeout(() => this.scheduleCleanup(), 60 * 60 * 1000);
+  }
+
+  /**
    * Add a message to the offline queue
    */
   async addToQueue(
@@ -113,6 +145,8 @@ class OfflineQueue {
     expirationHours: number = 24,
     priority: 'high' | 'normal' = 'high'
   ) {
+    await this.ensureInitialized();
+
     // Check queue size limit
     if (this.queue.length >= MAX_QUEUE_SIZE) {
       console.warn('[OfflineQueue] Queue full, dropping oldest message');
@@ -166,6 +200,8 @@ class OfflineQueue {
    * Process queued messages with retry logic
    */
   async processQueue() {
+    await this.ensureInitialized();
+
     if (this.processing || this.queue.length === 0 || !this.isConnected) {
       return;
     }
@@ -252,15 +288,14 @@ class OfflineQueue {
       );
       this.saveQueue();
     }
-
-    // Schedule next cleanup in 1 hour
-    setTimeout(() => this.cleanupExpiredMessages(), 60 * 60 * 1000);
   }
 
   /**
    * Get current queue status
    */
-  getQueueStatus() {
+  async getQueueStatus() {
+    await this.ensureInitialized();
+
     return {
       count: this.queue.length,
       isProcessing: this.processing,
@@ -273,6 +308,8 @@ class OfflineQueue {
    * Clear the entire queue
    */
   async clearQueue() {
+    await this.ensureInitialized();
+
     console.log('[OfflineQueue] Clearing queue');
     this.queue = [];
     await this.saveQueue();
@@ -282,6 +319,8 @@ class OfflineQueue {
    * Remove a specific message from the queue
    */
   async removeFromQueue(messageId: string) {
+    await this.ensureInitialized();
+
     const index = this.queue.findIndex((msg) => msg.id === messageId);
     if (index !== -1) {
       this.queue.splice(index, 1);
@@ -295,6 +334,10 @@ class OfflineQueue {
   cleanup() {
     if (this.netInfoUnsubscribe) {
       this.netInfoUnsubscribe();
+    }
+    if (this.cleanupTimer) {
+      clearTimeout(this.cleanupTimer);
+      this.cleanupTimer = null;
     }
   }
 }
