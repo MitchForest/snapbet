@@ -20,6 +20,7 @@ interface BaseSheetProps {
   showDragIndicator?: boolean;
   enableSwipeToClose?: boolean;
   keyboardAvoidingEnabled?: boolean;
+  disableContentWrapper?: boolean;
 }
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -33,6 +34,7 @@ export function BaseSheet({
   showDragIndicator = true,
   enableSwipeToClose = true,
   keyboardAvoidingEnabled = false,
+  disableContentWrapper = false,
 }: BaseSheetProps) {
   const insets = useSafeAreaInsets();
   const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
@@ -170,7 +172,17 @@ export function BaseSheet({
           },
         ]}
       >
-        {keyboardAvoidingEnabled ? (
+        {disableContentWrapper ? (
+          // For components with their own scrolling, don't wrap in additional containers
+          <>
+            {showDragIndicator && (
+              <View style={styles.dragIndicatorContainer} {...panResponder.panHandlers}>
+                <View style={styles.dragIndicator} />
+              </View>
+            )}
+            <View style={{ flex: 1, paddingBottom: insets.bottom }}>{children}</View>
+          </>
+        ) : keyboardAvoidingEnabled ? (
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={[styles.contentContainer, { paddingBottom: insets.bottom }]}

@@ -47,6 +47,7 @@ export const FollowCard: React.FC<FollowCardProps> = ({ user, isFollowing, onTog
         <Avatar
           src={user.avatar_url || undefined}
           size={48}
+          username={user.username}
           fallback={user.username[0].toUpperCase()}
         />
         <View style={styles.userInfo}>

@@ -67,7 +67,13 @@ export function CommentSheet({ postId, isVisible, onClose }: CommentSheetProps) 
   };
 
   return (
-    <BaseSheet isVisible={isVisible} onClose={onClose} height="70%" keyboardAvoidingEnabled>
+    <BaseSheet
+      isVisible={isVisible}
+      onClose={onClose}
+      height="70%"
+      keyboardAvoidingEnabled
+      disableContentWrapper // Add this to prevent nested scrolling issues
+    >
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>

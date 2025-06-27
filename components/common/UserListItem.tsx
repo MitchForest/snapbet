@@ -82,7 +82,7 @@ export const UserListItem: React.FC<UserListItemProps> = ({
         borderBottomWidth={1}
         borderBottomColor="$divider"
       >
-        <Avatar size={48} src={user.avatar_url} />
+        <Avatar size={48} src={user.avatar_url} username={user.username} />
 
         <View flex={1} marginLeft="$3">
           <View flexDirection="row" alignItems="center" gap="$2">

@@ -39,6 +39,7 @@ export function StoryControls({
           <Avatar
             size={32}
             src={story.user?.avatar_url || undefined}
+            username={story.user?.username || undefined}
             fallback={story.user?.username?.[0]?.toUpperCase()}
           />
           <View style={styles.userText}>

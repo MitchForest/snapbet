@@ -1,8 +1,8 @@
 import { supabase } from '@/services/supabase/client';
 import { Reaction } from '@/types/database';
+import { AVAILABLE_REACTIONS, ReactionEmoji } from '@/utils/constants/reactions';
 
-const ALLOWED_REACTIONS = ['🔥', '💰', '😂', '😭', '💯', '🎯'] as const;
-export type AllowedReaction = (typeof ALLOWED_REACTIONS)[number];
+export type AllowedReaction = ReactionEmoji;
 
 export interface ReactionSummary {
   emoji: string;
@@ -34,7 +34,7 @@ class ReactionService {
     isStory = false
   ): Promise<ToggleReactionResult> {
     // Validate emoji
-    if (!ALLOWED_REACTIONS.includes(emoji as AllowedReaction)) {
+    if (!AVAILABLE_REACTIONS.includes(emoji as AllowedReaction)) {
       throw new Error('Invalid reaction emoji');
     }
 

@@ -116,7 +116,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     <View paddingHorizontal="$4" paddingVertical="$4" backgroundColor="$surface">
       {/* Profile Info Row */}
       <View flexDirection="row" alignItems="center" marginBottom="$3">
-        <Avatar size={80} src={user.avatar_url || undefined} />
+        <Avatar size={80} src={user.avatar_url || undefined} username={user.username} />
         <View flex={1} marginLeft="$3">
           <View flexDirection="row" alignItems="center" gap="$2">
             <Text fontSize={24} fontWeight="600" color="$textPrimary">

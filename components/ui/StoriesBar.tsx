@@ -113,6 +113,7 @@ export const StoriesBar: React.FC = () => {
                   <Avatar
                     size={64}
                     src={story.avatar}
+                    username={story.username}
                     fallback={story.username?.[0]?.toUpperCase() || '?'}
                   />
                   {story.isLive && (

@@ -3,6 +3,7 @@ import { useComments } from './useComments';
 import { useReactions } from './useReactions';
 import { supabase } from '@/services/supabase/client';
 import { PostType } from '@/types/content';
+import { AVAILABLE_REACTIONS } from '@/utils/constants/reactions';
 
 interface EngagementData {
   comments: Array<{
@@ -29,19 +30,17 @@ interface EngagementData {
 }
 
 // Keep the mock data generator for posts that don't have real data yet
-const REACTIONS = ['🔥', '💰', '😂', '😭', '💯', '🎯'];
-
 function generateMockReactions(hash: number): Array<{ emoji: string; count: number }> {
   // Generate 2-4 reactions based on hash
   const numReactions = 2 + (hash % 3);
   const reactions: Array<{ emoji: string; count: number }> = [];
 
-  for (let i = 0; i < numReactions && i < REACTIONS.length; i++) {
-    const reactionIndex = (hash + i * 7) % REACTIONS.length;
+  for (let i = 0; i < numReactions && i < AVAILABLE_REACTIONS.length; i++) {
+    const reactionIndex = (hash + i * 7) % AVAILABLE_REACTIONS.length;
     const count = Math.max(1, (hash * (i + 1)) % 50);
 
     reactions.push({
-      emoji: REACTIONS[reactionIndex],
+      emoji: AVAILABLE_REACTIONS[reactionIndex],
       count,
     });
   }

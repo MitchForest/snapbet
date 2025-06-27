@@ -9,8 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Colors, OpacityColors } from '@/theme';
-
-const REACTIONS = ['🔥', '💰', '😂', '😭', '💯', '🎯'];
+import { AVAILABLE_REACTIONS } from '@/utils/constants/reactions';
 
 interface ReactionPickerProps {
   onSelect?: (emoji: string) => void;
@@ -80,7 +79,7 @@ export function ReactionPicker({ onSelect, currentReaction, style }: ReactionPic
   return (
     <View style={[styles.container, style]}>
       <View style={styles.row}>
-        {REACTIONS.slice(0, 3).map((emoji) => (
+        {AVAILABLE_REACTIONS.slice(0, 3).map((emoji) => (
           <ReactionButton
             key={emoji}
             emoji={emoji}
@@ -90,7 +89,7 @@ export function ReactionPicker({ onSelect, currentReaction, style }: ReactionPic
         ))}
       </View>
       <View style={styles.row}>
-        {REACTIONS.slice(3, 6).map((emoji) => (
+        {AVAILABLE_REACTIONS.slice(3, 6).map((emoji) => (
           <ReactionButton
             key={emoji}
             emoji={emoji}

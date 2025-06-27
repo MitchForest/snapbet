@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Colors } from '@/theme';
 import { UserWithStats } from '@/services/search/searchService';
 import { FollowButton } from '@/components/common/FollowButton';
+import { Avatar } from '@/components/common/Avatar';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
@@ -35,13 +36,11 @@ export function UserSearchCard({ user, isFollowing = false, onFollowChange }: Us
       style={({ pressed }) => [styles.container, { opacity: pressed ? 0.8 : 1 }]}
     >
       <View style={styles.content}>
-        <Image
-          source={{
-            uri:
-              user.avatar_url ||
-              `https://ui-avatars.com/api/?name=${user.username}&background=random`,
-          }}
-          style={styles.avatar}
+        <Avatar
+          src={user.avatar_url}
+          username={user.username}
+          size={40}
+          fallback={user.username?.[0]?.toUpperCase() || '?'}
         />
         <View style={styles.info}>
           <View style={styles.nameRow}>
@@ -72,12 +71,6 @@ const styles = StyleSheet.create({
   content: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.gray[200],
   },
   info: {
     flex: 1,

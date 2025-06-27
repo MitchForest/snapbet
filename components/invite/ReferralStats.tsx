@@ -106,6 +106,7 @@ export function ReferralStats({ stats, referredUsers }: ReferralStatsProps) {
                 >
                   <Avatar
                     src={user.avatar_url || undefined}
+                    username={user.username || undefined}
                     fallback={user.username?.charAt(0).toUpperCase() || '?'}
                     size={40}
                   />

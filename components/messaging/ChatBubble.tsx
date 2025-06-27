@@ -142,6 +142,7 @@ export function ChatBubble({
         {!isOwn && showAvatar && (
           <Avatar
             src={message.sender.avatar_url || undefined}
+            username={message.sender.username || undefined}
             fallback={message.sender.username?.[0]?.toUpperCase() || '?'}
             size={28}
           />

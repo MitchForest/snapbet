@@ -29,7 +29,12 @@ export function StoryCircle({
             !hasUnwatched && styles.watchedRing,
           ]}
         >
-          <Avatar size={64} src={avatarUrl || undefined} />
+          <Avatar
+            size={64}
+            src={avatarUrl || undefined}
+            username={username}
+            fallback={username?.[0]?.toUpperCase() || '?'}
+          />
           {isOwn && !hasUnwatched && (
             <View style={styles.addButton}>
               <Text style={styles.addIcon}>+</Text>
