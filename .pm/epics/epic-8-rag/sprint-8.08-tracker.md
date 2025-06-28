@@ -38,8 +38,9 @@
 2. Implement notification creation for consensus events
 3. Hook into bet placement flow
 4. Add consensus notification type to system
-5. Test with various consensus scenarios
-6. Ensure mock data includes consensus scenarios for demo
+5. Add AI visual indicators to consensus notifications
+6. Test with various consensus scenarios
+7. Ensure mock data includes consensus scenarios for demo
 
 ### Files to Create
 | File Path | Purpose | Status |
@@ -51,8 +52,9 @@
 |-----------|----------------|--------|
 | `services/betting/bettingService.ts` | Add consensus check after bet placement | NOT STARTED |
 | `services/notifications/notificationService.ts` | Handle consensus notification type in display | NOT STARTED |
-| `types/database.ts` | Add consensus to notification type enum | NOT STARTED |
-| `components/notifications/NotificationItem.tsx` | Add rendering for consensus notifications | NOT STARTED |
+| `types/database.ts` | Add 'consensus_alert' to notification_type enum (if not done in 8.01) | NOT STARTED |
+| `components/notifications/NotificationItem.tsx` | Add rendering for consensus notifications with tail/fade buttons | NOT STARTED |
+| `services/rag/consensusService.ts` | Hook into bet creation flow | NOT STARTED |
 
 ### Implementation Approach
 
@@ -149,7 +151,7 @@ export class ConsensusService {
         user_id: userId,
         type: 'consensus',
         data: {
-          title: 'Consensus Alert',
+          title: '🤖 Consensus Alert',
           body: message,
           bet_id: bet.id,
           game_id: bet.game_id,
@@ -230,7 +232,7 @@ export type NotificationType =
 // In getNotificationText method, add case for consensus
 case 'consensus':
   return {
-    title: 'Consensus Alert 🔥',
+    title: data.title || 'Consensus Alert 🔥',
     body: data.body || `Multiple people you follow made the same bet!`,
   };
 ```
@@ -255,7 +257,13 @@ if (notification.type === 'consensus') {
         </View>
         
         <YStack flex={1}>
-          <Text fontSize="$4" fontWeight="600">
+          <XStack alignItems="center" gap="$2">
+            <Text fontSize="$4" fontWeight="600">
+              {notification.data.title}
+            </Text>
+            <AIBadge variant="small" text="" />
+          </XStack>
+          <Text fontSize="$3" color="$textSecondary">
             {notification.data.title}
           </Text>
           <Text fontSize="$3" color="$textSecondary" numberOfLines={2}>

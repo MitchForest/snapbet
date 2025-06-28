@@ -142,6 +142,9 @@ export async function createPostsForMockUsers(
       const betDetails = generateBetDetails(betType, game);
       const stake = getRandomStake();
 
+      // Make first 5 pick posts within last 24 hours for trending
+      const hoursAgo = i < 5 ? Math.random() * 20 : (i + 1) * 45;
+
       const bet = {
         id: crypto.randomUUID(),
         user_id: user.id,
@@ -152,7 +155,7 @@ export async function createPostsForMockUsers(
         stake,
         potential_win: Math.floor((stake * 100) / 110),
         status: 'pending' as const,
-        created_at: new Date(Date.now() - i * 45 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString(),
       };
 
       await supabase.from('bets').insert(bet);

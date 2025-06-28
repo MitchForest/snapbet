@@ -51,7 +51,10 @@
 | `types/database.ts` | Add archived?: boolean to Post, Bet, Story, Message, Reaction, PickAction interfaces | NOT STARTED |
 | `types/database.ts` | Add embedding?: number[] to Post and Bet interfaces | NOT STARTED |
 | `types/database.ts` | Add profile_embedding?: number[], last_embedding_update?: string, favorite_teams?: string[] to User interface | NOT STARTED |
+| `types/database.ts` | Add 'consensus_alert' to notification_type enum | NOT STARTED |
+| `types/database.ts` | Add embedding_metadata table type definition | NOT STARTED |
 | `.env.example` | Add EXPO_PUBLIC_OPENAI_API_KEY and SUPABASE_SERVICE_KEY examples | NOT STARTED |
+| `package.json` | Ensure @supabase/supabase-js supports vector type | NOT STARTED |
 
 ### Implementation Approach
 

@@ -50,9 +50,10 @@
 ### Files to Modify  
 | File Path | Changes Needed | Status |
 |-----------|----------------|--------|
-| `services/feed/feedService.ts` | Integrate smart feed mixing when enabled | NOT STARTED |
+| `services/feed/feedService.ts` | Replace getFollowingFeed with hybrid 70/30 implementation | NOT STARTED |
 | `components/content/PostCard.tsx` | Add discovery badge for AI posts | NOT STARTED |
-| `hooks/useFeed.ts` | Ensure proper handling of mixed feed | NOT STARTED |
+| `hooks/useFeed.ts` | Handle isDiscovery flag on posts for UI differentiation | NOT STARTED |
+| `types/content.ts` | Add isDiscovery?: boolean to PostWithType interface | NOT STARTED |
 | `scripts/mock/orchestrators/setup.ts` | Add note about discovery posts appearing in feed | NOT STARTED |
 
 ### Implementation Approach
@@ -214,9 +215,12 @@ export class SmartFeedService {
         followingIndex++;
       }
       
-      // Add discovery post
+      // Add discovery post with flag
       if (discoveryIndex < discovery.length) {
-        mixed.push(discovery[discoveryIndex]);
+        mixed.push({
+          ...discovery[discoveryIndex],
+          isDiscovery: true
+        });
         discoveryIndex++;
       }
     }
@@ -242,19 +246,10 @@ interface DiscoveryBadgeProps {
 
 export function DiscoveryBadge({ similarity }: DiscoveryBadgeProps) {
   return (
-    <XStack 
-      backgroundColor={Colors.primary + '20'}
-      paddingHorizontal="$2"
-      paddingVertical="$1"
-      borderRadius="$1"
-      alignItems="center"
-      gap="$1"
-    >
-      <Ionicons name="sparkles" size={12} color={Colors.primary} />
-      <Text fontSize="$2" color={Colors.primary} fontWeight="500">
-        Suggested
-      </Text>
-    </XStack>
+    <AIBadge 
+      variant="small" 
+      text="Suggested" 
+    />
   );
 }
 ```

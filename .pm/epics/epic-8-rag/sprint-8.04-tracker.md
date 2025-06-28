@@ -48,6 +48,7 @@
 | `services/rag/ragService.ts` | Core OpenAI integration and caption generation | NOT STARTED |
 | `services/rag/embeddingPipeline.ts` | Embedding generation pipeline for all content types | NOT STARTED |
 | `services/rag/types.ts` | TypeScript types for RAG features | NOT STARTED |
+| `components/common/AIBadge.tsx` | Unified AI indicator component with sparkle icon | NOT STARTED |
 | `scripts/mock/generators/embeddings.ts` | Generate embeddings for mock archived content | NOT STARTED |
 
 ### Files to Modify  
@@ -333,6 +334,61 @@ export async function generateMockEmbeddings() {
 
 // Add to mock setup orchestrator after RAG demo scenarios
 await generateMockEmbeddings();
+```
+
+**Step 9: Create unified AI badge component**
+```typescript
+// components/common/AIBadge.tsx
+import React from 'react';
+import { View, Text, XStack } from 'tamagui';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors } from '@/theme';
+
+interface AIBadgeProps {
+  variant?: 'small' | 'medium' | 'large';
+  text?: string;
+  showTooltip?: boolean;
+}
+
+export function AIBadge({ 
+  variant = 'small', 
+  text = 'AI',
+  showTooltip = false 
+}: AIBadgeProps) {
+  const sizes = {
+    small: { icon: 12, text: 10, padding: '$1' },
+    medium: { icon: 16, text: 12, padding: '$2' },
+    large: { icon: 20, text: 14, padding: '$3' }
+  };
+  
+  const size = sizes[variant];
+  
+  return (
+    <XStack
+      backgroundColor="$purple9"
+      borderRadius="$2"
+      paddingHorizontal={size.padding}
+      paddingVertical={size.padding}
+      alignItems="center"
+      gap="$1"
+    >
+      <Ionicons 
+        name="sparkles" 
+        size={size.icon} 
+        color={Colors.white} 
+      />
+      {text && (
+        <Text 
+          fontSize={size.text} 
+          color="$white"
+          fontWeight="600"
+        >
+          {text}
+        </Text>
+      )}
+    </XStack>
+  );
+}
 ```
 
 ## Testing Performed

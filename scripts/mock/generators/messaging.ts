@@ -73,10 +73,8 @@ export async function createMessaging(userId: string, mockUsers: MockUser[]) {
     const chatId = crypto.randomUUID();
     const createdAt = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    const groupName =
-      MOCK_CONFIG.messaging.groupNames[
-        Math.floor(Math.random() * MOCK_CONFIG.messaging.groupNames.length)
-      ];
+    // Use index to ensure unique names
+    const groupName = MOCK_CONFIG.messaging.groupNames[i % MOCK_CONFIG.messaging.groupNames.length];
 
     chats.push({
       id: chatId,

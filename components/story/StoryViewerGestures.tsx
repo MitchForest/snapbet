@@ -71,7 +71,7 @@ export function StoryViewerGestures({
     })
     .onEnd((event) => {
       'worklet';
-      if (event.translationY > 100 && event.velocityY > 0) {
+      if (event.translationY > 50) {
         runOnJS(onSwipeDown)();
       } else {
         translateY.value = withSpring(0);

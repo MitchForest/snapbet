@@ -6,92 +6,125 @@
 
 import { supabase } from '../../supabase-client';
 import type { Database } from '@/types/database';
-import { mockUsers } from '../data/users';
+import { MOCK_CONFIG } from '../config';
 
 type Tables = Database['public']['Tables'];
 type User = Tables['users']['Row'];
 
+const personalities = Object.keys(MOCK_CONFIG.users.personalities);
+
 export async function generateMockUsers(): Promise<User[]> {
   console.log('👥 Creating mock users...');
 
-  // Check if users already exist
-  const { data: existingUsers } = await supabase
+  // Check if mock users already exist
+  const { data: existingUsers, error: checkError } = await supabase
     .from('users')
     .select('*')
-    .in(
-      'username',
-      mockUsers.map((u) => u.username)
-    );
+    .eq('is_mock', true)
+    .limit(MOCK_CONFIG.users.count);
 
-  if (existingUsers && existingUsers.length === mockUsers.length) {
+  if (checkError) {
+    console.error('Error checking for existing users:', checkError);
+    return [];
+  }
+
+  if (existingUsers && existingUsers.length === MOCK_CONFIG.users.count) {
     console.log(`  ⚠️  Found all ${existingUsers.length} mock users, using existing...`);
     return existingUsers;
   }
 
-  // Delete any partial existing users to start fresh
-  if (existingUsers && existingUsers.length > 0) {
-    console.log(
-      `  ⚠️  Found ${existingUsers.length} existing mock users, removing to start fresh...`
-    );
-    const existingIds = existingUsers.map((u) => u.id);
-    await supabase.from('users').delete().in('id', existingIds);
-  }
+  // Create new mock users
+  const mockUsersToCreate = [];
 
-  // Create users
-  const usersToCreate = mockUsers.map((user, index) => {
-    // Make some users very recent for "rising stars"
+  // Distribute personalities across users
+  const personalityDistribution = [
+    // First 5 users: Rising stars (new users created in last 3 days)
+    ...Array(5).fill('casual-carl'),
+    // Next 3 users: Hot bettors
+    ...Array(3).fill('sharp-steve'),
+    // Next 2 users: Fade-worthy users
+    'square-bob',
+    'public-pete',
+    // Next 2 users: Fade gods (they fade others)
+    'sharp-steve',
+    'sharp-steve',
+    // Fill the rest with varied personalities
+    ...Array(18)
+      .fill(null)
+      .map(() => personalities[Math.floor(Math.random() * personalities.length)]),
+  ];
+
+  for (let i = 0; i < MOCK_CONFIG.users.count; i++) {
+    const personality = personalityDistribution[i] as keyof typeof MOCK_CONFIG.users.personalities;
+    const personalityData = MOCK_CONFIG.users.personalities[personality];
+
+    // First 5 users created in last 3 days for rising star
+    // Next 5 users created in last week
+    // Rest created over last month
     let createdAt: Date;
-    if (index < 5) {
-      // First 5 users created in last 3 days
-      createdAt = new Date(Date.now() - Math.random() * 3 * 24 * 60 * 60 * 1000);
-    } else if (index < 10) {
-      // Next 5 users created in last week
-      createdAt = new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000);
+    if (i < 5) {
+      // Rising stars - created 1-3 days ago
+      const daysAgo = Math.random() * 2 + 1; // 1-3 days
+      createdAt = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
+    } else if (i < 10) {
+      // Recent users - created 4-7 days ago
+      const daysAgo = Math.random() * 3 + 4; // 4-7 days
+      createdAt = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
     } else {
-      // Rest created over last month
-      createdAt = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000);
+      // Older users - created 8-30 days ago
+      const daysAgo = Math.random() * 22 + 8; // 8-30 days
+      createdAt = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
     }
 
-    return {
+    const username = `${personalityData.usernamePrefix}${i + 1}`;
+
+    mockUsersToCreate.push({
       id: crypto.randomUUID(),
-      username: user.username,
-      display_name: user.display_name,
-      email: `${user.username}@snapbet-mock.com`,
-      avatar_url: user.avatar_url,
-      bio: user.bio,
-      favorite_team: user.favorite_team,
-      is_private: false,
-      is_mock: true, // Important: mark as mock users
-      mock_personality_id: user.personality,
-      oauth_id: `mock_${user.username}`,
+      username,
+      email: `${username}@snapbet.mock`,
+      display_name: `${personalityData.displayName} ${i + 1}`,
+      bio: personalityData.bio,
+      avatar_url: personalityData.avatar,
+      is_mock: true,
+      mock_personality_id: personality,
+      oauth_id: `mock_${username}`,
       oauth_provider: 'google' as const,
       created_at: createdAt.toISOString(),
-    };
-  });
+      updated_at: createdAt.toISOString(),
+    });
+  }
 
-  const { data: createdUsers, error } = await supabase.from('users').insert(usersToCreate).select();
+  // Insert all mock users
+  const { data: insertedUsers, error: insertError } = await supabase
+    .from('users')
+    .insert(mockUsersToCreate)
+    .select();
 
-  if (error) {
-    console.error('Error creating mock users:', error);
+  if (insertError) {
+    console.error('Error creating mock users:', insertError);
     return [];
   }
 
-  // Initialize bankrolls
-  if (createdUsers) {
-    const bankrolls = createdUsers.map((user) => ({
+  console.log(`  ✅ Created ${insertedUsers?.length || 0} mock users`);
+
+  // Create bankrolls for all mock users
+  if (insertedUsers && insertedUsers.length > 0) {
+    const bankrolls = insertedUsers.map((user) => ({
       user_id: user.id,
-      balance: 100000, // $1,000 (100000 cents)
+      balance: 100000, // $1,000 starting balance
       win_count: 0,
       loss_count: 0,
       total_wagered: 0,
       total_won: 0,
     }));
 
-    await supabase.from('bankrolls').insert(bankrolls);
+    const { error: bankrollError } = await supabase.from('bankrolls').insert(bankrolls);
+    if (bankrollError) {
+      console.error('Error creating bankrolls:', bankrollError);
+    }
   }
 
-  console.log(`  ✅ Created ${createdUsers?.length || 0} mock users`);
-  return createdUsers || [];
+  return insertedUsers || [];
 }
 
 // Run the seeder

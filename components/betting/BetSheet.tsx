@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Text, Stack } from '@tamagui/core';
+import { View, Text } from 'react-native';
 import { Switch, ScrollView } from 'react-native';
 import { BaseSheet } from '@/components/engagement/sheets/BaseSheet';
 import { Colors } from '@/theme';
@@ -169,22 +169,14 @@ export function BetSheet({ isVisible, onClose, game }: BetSheetProps) {
       enableSwipeToClose={!isPlacing}
     >
       <ScrollView>
-        <Stack flex={1} padding={16} gap={12}>
+        <View style={styles.container}>
           {/* Game Header */}
-          <Stack>
-            <Text
-              fontSize={18}
-              fontWeight="600"
-              color={Colors.text.primary}
-              textAlign="center"
-              marginBottom={4}
-            >
+          <View>
+            <Text style={styles.gameHeader}>
               {awayTeamAbbr} @ {homeTeamAbbr}
             </Text>
-            <Text fontSize={14} color={Colors.text.secondary} textAlign="center">
-              {formatGameTime(new Date(game.commence_time))}
-            </Text>
-          </Stack>
+            <Text style={styles.gameTime}>{formatGameTime(new Date(game.commence_time))}</Text>
+          </View>
 
           {/* Bet Type Tabs */}
           <BetTypeSelector selected={betType} onChange={setBetType} />
@@ -213,17 +205,8 @@ export function BetSheet({ isVisible, onClose, game }: BetSheetProps) {
           />
 
           {/* Share Toggle */}
-          <Stack
-            flexDirection="row"
-            alignItems="center"
-            justifyContent="space-between"
-            paddingVertical={12}
-            borderTopWidth={1}
-            borderTopColor={Colors.border.light}
-          >
-            <Text fontSize={16} color={Colors.text.primary}>
-              Share Pick to Feed
-            </Text>
+          <View style={styles.shareToggleContainer}>
+            <Text style={styles.shareToggleText}>Share Pick to Feed</Text>
             <Switch
               value={shareToFeed}
               onValueChange={toggleShareToFeed}
@@ -233,7 +216,7 @@ export function BetSheet({ isVisible, onClose, game }: BetSheetProps) {
               }}
               thumbColor={Colors.white}
             />
-          </Stack>
+          </View>
 
           {/* Place Bet Button */}
           <PlaceBetButton
@@ -242,7 +225,7 @@ export function BetSheet({ isVisible, onClose, game }: BetSheetProps) {
             isDisabled={!isValid}
             errorMessage={validationError}
           />
-        </Stack>
+        </View>
       </ScrollView>
     </BaseSheet>
   );
@@ -328,3 +311,35 @@ function formatGameTime(date: Date): string {
   const displayHours = hours % 12 || 12;
   return `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm} ET`;
 }
+
+const styles = {
+  container: {
+    flex: 1,
+    padding: 16,
+    gap: 12,
+  },
+  gameHeader: {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    color: Colors.text.primary,
+    textAlign: 'center' as const,
+    marginBottom: 4,
+  },
+  gameTime: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+    textAlign: 'center' as const,
+  },
+  shareToggleContainer: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border.light,
+  },
+  shareToggleText: {
+    fontSize: 16,
+    color: Colors.text.primary,
+  },
+};

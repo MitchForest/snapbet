@@ -330,3 +330,150 @@ export async function createFadeGodBets(mockUsers: MockUser[], games: Game[]) {
 
   return settledBets;
 }
+
+// Add function to create rising star patterns
+export async function createRisingStarBets(mockUsers: MockUser[], games: Game[]) {
+  console.log('⭐ Creating rising star betting patterns...');
+
+  const settledBets: SettledBet[] = [];
+
+  // Find users created in last 3 days (rising stars)
+  const threeDaysAgo = new Date();
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+  const risingStarUsers = mockUsers.filter((user) => {
+    const userCreatedAt = new Date(user.created_at || '');
+    return userCreatedAt > threeDaysAgo;
+  });
+
+  console.log(`  📊 Found ${risingStarUsers.length} users created in last 3 days`);
+
+  for (const user of risingStarUsers) {
+    // Each rising star needs at least 5 bets
+    for (let i = 0; i < 7; i++) {
+      // Give them 7 bets to ensure they qualify
+      const game = games[i % games.length];
+      const isWin = Math.random() > 0.4; // 60% win rate - they're doing well!
+      const stake = getRandomStake();
+
+      settledBets.push({
+        id: crypto.randomUUID(),
+        user_id: user.id,
+        game_id: game.id,
+        bet_type: ['spread', 'total', 'moneyline'][i % 3] as BetType,
+        bet_details: generateBetDetails(['spread', 'total', 'moneyline'][i % 3] as BetType, game),
+        stake: stake,
+        odds: -110,
+        potential_win: Math.floor((stake * 100) / 110),
+        actual_win: isWin ? stake + Math.floor((stake * 100) / 110) : 0,
+        status: isWin ? 'won' : 'lost',
+        created_at: new Date(Date.now() - (i + 1) * 4 * 60 * 60 * 1000).toISOString(),
+        settled_at: new Date(Date.now() - i * 4 * 60 * 60 * 1000).toISOString(),
+      });
+    }
+  }
+
+  if (settledBets.length > 0) {
+    const { error } = await supabase.from('bets').insert(settledBets);
+    if (error) {
+      console.error('Error creating rising star bets:', error);
+    } else {
+      console.log(`  ✅ Created ${settledBets.length} bets for rising stars`);
+    }
+  }
+
+  return settledBets;
+}
+
+// Add function to create actual fade bets for fade god badge
+export async function createSuccessfulFadeBets(mockUsers: MockUser[], games: Game[]) {
+  console.log('⚔️ Creating successful fade patterns...');
+
+  const fadeBets: Array<SettledBet & { is_fade: boolean; original_pick_id: string }> = [];
+
+  // Select 2 users to be fade gods (they successfully fade others)
+  const fadeGodCandidates = mockUsers.slice(10, 12);
+
+  for (const fadeGod of fadeGodCandidates) {
+    // Each fade god needs 3+ successful fades
+    for (let i = 0; i < 5; i++) {
+      // Give them 5 successful fades
+      const game = games[i % games.length];
+      const originalBetId = crypto.randomUUID();
+
+      fadeBets.push({
+        id: crypto.randomUUID(),
+        user_id: fadeGod.id,
+        game_id: game.id,
+        bet_type: 'spread',
+        bet_details: { team: game.away_team, line: 7.5 }, // Opposite of what was faded
+        stake: 2000,
+        odds: -110,
+        potential_win: 1818,
+        actual_win: 3818, // They won by fading!
+        status: 'won',
+        is_fade: true,
+        original_pick_id: originalBetId,
+        created_at: new Date(Date.now() - (i + 1) * 6 * 60 * 60 * 1000).toISOString(),
+        settled_at: new Date(Date.now() - i * 6 * 60 * 60 * 1000).toISOString(),
+      });
+    }
+  }
+
+  if (fadeBets.length > 0) {
+    const { error } = await supabase.from('bets').insert(fadeBets);
+    if (error) {
+      console.error('Error creating fade bets:', error);
+    } else {
+      console.log(`  ✅ Created ${fadeBets.length} successful fade bets`);
+    }
+  }
+
+  return fadeBets;
+}
+
+// Add function to create hot bettor patterns
+export async function createHotBettorBets(mockUsers: MockUser[], games: Game[]) {
+  console.log('🔥 Creating hot bettor patterns...');
+
+  const settledBets: SettledBet[] = [];
+
+  // Select users 5-8 to be hot bettors
+  const hotBettorUsers = mockUsers.slice(5, 8);
+
+  for (const user of hotBettorUsers) {
+    // Each hot bettor needs 5+ bets with 60%+ win rate
+    for (let i = 0; i < 8; i++) {
+      // Give them 8 bets
+      const game = games[i % games.length];
+      const isWin = i < 6; // 75% win rate (6 wins out of 8)
+      const stake = getRandomStake();
+
+      settledBets.push({
+        id: crypto.randomUUID(),
+        user_id: user.id,
+        game_id: game.id,
+        bet_type: ['spread', 'total', 'moneyline'][i % 3] as BetType,
+        bet_details: generateBetDetails(['spread', 'total', 'moneyline'][i % 3] as BetType, game),
+        stake: stake,
+        odds: -110,
+        potential_win: Math.floor((stake * 100) / 110),
+        actual_win: isWin ? stake + Math.floor((stake * 100) / 110) : 0,
+        status: isWin ? 'won' : 'lost',
+        created_at: new Date(Date.now() - (i + 1) * 12 * 60 * 60 * 1000).toISOString(),
+        settled_at: new Date(Date.now() - i * 12 * 60 * 60 * 1000).toISOString(),
+      });
+    }
+  }
+
+  if (settledBets.length > 0) {
+    const { error } = await supabase.from('bets').insert(settledBets);
+    if (error) {
+      console.error('Error creating hot bettor bets:', error);
+    } else {
+      console.log(`  ✅ Created ${settledBets.length} bets for hot bettors`);
+    }
+  }
+
+  return settledBets;
+}

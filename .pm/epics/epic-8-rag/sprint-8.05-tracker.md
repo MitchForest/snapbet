@@ -51,7 +51,9 @@
 |-----------|----------------|--------|
 | `components/creation/CaptionInput.tsx` | Add AI button to caption input area | NOT STARTED |
 | `services/rag/ragService.ts` | Implement generateCaption method with style learning | NOT STARTED |
-| Post creation screens | Integrate useAICaption hook where CaptionInput is used | NOT STARTED |
+| `app/(drawer)/camera/index.tsx` | Integrate useAICaption hook in camera flow | NOT STARTED |
+| `app/(drawer)/camera/preview.tsx` | Add AI caption option in preview screen | NOT STARTED |
+| `services/content/postService.ts` | Generate embedding after post creation | NOT STARTED |
 
 ### Implementation Approach
 
@@ -72,14 +74,19 @@ interface AICaptionButtonProps {
 export function AICaptionButton({ onPress, isGenerating, disabled }: AICaptionButtonProps) {
   return (
     <TouchableOpacity
-      style={[styles.button, disabled && styles.disabled]}
+      style={styles.button}
       onPress={onPress}
       disabled={disabled || isGenerating}
     >
       {isGenerating ? (
         <ActivityIndicator size="small" color={Colors.white} />
       ) : (
-        <Ionicons name="sparkles" size={20} color={Colors.white} />
+        <XStack alignItems="center" gap="$1">
+          <Ionicons name="sparkles" size={20} color={Colors.white} />
+          <Text color="$white" fontSize={14} fontWeight="600">
+            Generate
+          </Text>
+        </XStack>
       )}
     </TouchableOpacity>
   );

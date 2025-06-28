@@ -8,6 +8,44 @@ export const MOCK_CONFIG = {
     count: 30,
     followsFromMocks: 15,
     userFollowsMocks: 25,
+    personalities: {
+      'sharp-steve': {
+        usernamePrefix: 'sharp',
+        displayName: 'Sharp Steve',
+        bio: 'Advanced metrics only. Math > Emotions 📊',
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sharp',
+      },
+      'casual-carl': {
+        usernamePrefix: 'casual',
+        displayName: 'Casual Carl',
+        bio: "Just here for fun! Let's go team! 🎉",
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=casual',
+      },
+      'square-bob': {
+        usernamePrefix: 'square',
+        displayName: 'Square Bob',
+        bio: 'I always bet the favorites! 🏆',
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=square',
+      },
+      'public-pete': {
+        usernamePrefix: 'public',
+        displayName: 'Public Pete',
+        bio: 'If everyone likes it, I love it! 📺',
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=public',
+      },
+      'degen-dave': {
+        usernamePrefix: 'degen',
+        displayName: 'Degen Dave',
+        bio: 'All gas no brakes! Parlays only 🚀',
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=degen',
+      },
+      'fade-frank': {
+        usernamePrefix: 'fade',
+        displayName: 'Fade Frank',
+        bio: 'Fading the public since 2019 🎯',
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=fade',
+      },
+    },
   },
 
   content: {

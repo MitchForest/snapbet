@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, Text, Stack } from '@tamagui/core';
-import { TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors } from '@/theme';
 import { Game } from '@/types/database-helpers';
 import { BetType, BetSelection, TeamSelection, TotalSelection } from '@/stores/betSlipStore';
@@ -37,7 +36,7 @@ export function TeamSelector({ game, betType, selected, onChange }: TeamSelector
     const isSpread = betType === 'spread';
 
     return (
-      <Stack flexDirection="row" gap={16} marginBottom={20}>
+      <View style={styles.selectorContainer}>
         {/* Away Team */}
         <TouchableOpacity
           style={[
@@ -60,20 +59,16 @@ export function TeamSelector({ game, betType, selected, onChange }: TeamSelector
               { backgroundColor: awayTeam?.primaryColor || Colors.gray[300] },
             ]}
           >
-            <Text color={Colors.white} fontSize={16} fontWeight="700">
-              {awayTeamAbbr}
-            </Text>
+            <Text style={styles.teamLogoText}>{awayTeamAbbr}</Text>
           </View>
-          <Text fontSize={16} fontWeight="600" color={Colors.text.primary} marginTop={8}>
-            {awayTeamAbbr}
-          </Text>
+          <Text style={styles.teamName}>{awayTeamAbbr}</Text>
           {isSpread && spread && (
-            <Text fontSize={14} color={Colors.text.secondary}>
+            <Text style={styles.spreadText}>
               {spread.line && spread.line > 0 ? '+' : ''}
               {spread.line ? -spread.line : 0}
             </Text>
           )}
-          <Text fontSize={14} fontWeight="500" color={Colors.primary}>
+          <Text style={styles.oddsText}>
             {formatOdds(isSpread ? spread?.away || 0 : moneyline?.away || 0)}
           </Text>
         </TouchableOpacity>
@@ -100,24 +95,20 @@ export function TeamSelector({ game, betType, selected, onChange }: TeamSelector
               { backgroundColor: homeTeam?.primaryColor || Colors.gray[300] },
             ]}
           >
-            <Text color={Colors.white} fontSize={16} fontWeight="700">
-              {homeTeamAbbr}
-            </Text>
+            <Text style={styles.teamLogoText}>{homeTeamAbbr}</Text>
           </View>
-          <Text fontSize={16} fontWeight="600" color={Colors.text.primary} marginTop={8}>
-            {homeTeamAbbr}
-          </Text>
+          <Text style={styles.teamName}>{homeTeamAbbr}</Text>
           {isSpread && spread && (
-            <Text fontSize={14} color={Colors.text.secondary}>
+            <Text style={styles.spreadText}>
               {spread.line && spread.line > 0 ? '+' : ''}
               {spread.line || 0}
             </Text>
           )}
-          <Text fontSize={14} fontWeight="500" color={Colors.primary}>
+          <Text style={styles.oddsText}>
             {formatOdds(isSpread ? spread?.home || 0 : moneyline?.home || 0)}
           </Text>
         </TouchableOpacity>
-      </Stack>
+      </View>
     );
   }
 
@@ -125,7 +116,7 @@ export function TeamSelector({ game, betType, selected, onChange }: TeamSelector
   if (betType === 'total' && odds?.totals) {
     const totals = odds.totals;
     return (
-      <Stack flexDirection="row" gap={16} marginBottom={20}>
+      <View style={styles.selectorContainer}>
         {/* Over */}
         <TouchableOpacity
           style={[
@@ -142,15 +133,9 @@ export function TeamSelector({ game, betType, selected, onChange }: TeamSelector
             } as TotalSelection)
           }
         >
-          <Text fontSize={18} fontWeight="700" color={Colors.text.primary}>
-            OVER
-          </Text>
-          <Text fontSize={16} color={Colors.text.secondary} marginTop={4}>
-            {totals.line}
-          </Text>
-          <Text fontSize={14} fontWeight="500" color={Colors.primary} marginTop={8}>
-            {formatOdds(totals.over)}
-          </Text>
+          <Text style={styles.totalText}>OVER</Text>
+          <Text style={styles.totalLineText}>{totals.line}</Text>
+          <Text style={styles.totalOddsText}>{formatOdds(totals.over)}</Text>
         </TouchableOpacity>
 
         {/* Under */}
@@ -169,17 +154,11 @@ export function TeamSelector({ game, betType, selected, onChange }: TeamSelector
             } as TotalSelection)
           }
         >
-          <Text fontSize={18} fontWeight="700" color={Colors.text.primary}>
-            UNDER
-          </Text>
-          <Text fontSize={16} color={Colors.text.secondary} marginTop={4}>
-            {totals.line}
-          </Text>
-          <Text fontSize={14} fontWeight="500" color={Colors.primary} marginTop={8}>
-            {formatOdds(totals.under)}
-          </Text>
+          <Text style={styles.totalText}>UNDER</Text>
+          <Text style={styles.totalLineText}>{totals.line}</Text>
+          <Text style={styles.totalOddsText}>{formatOdds(totals.under)}</Text>
         </TouchableOpacity>
-      </Stack>
+      </View>
     );
   }
 
@@ -213,6 +192,11 @@ function formatOdds(odds: number): string {
 }
 
 const styles = StyleSheet.create({
+  selectorContainer: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 20,
+  },
   teamButton: {
     flex: 1,
     backgroundColor: Colors.surface,
@@ -241,5 +225,41 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  teamLogoText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  teamName: {
+    color: Colors.text.primary,
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  spreadText: {
+    color: Colors.text.secondary,
+    fontSize: 14,
+  },
+  oddsText: {
+    color: Colors.primary,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  totalText: {
+    color: Colors.text.primary,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  totalLineText: {
+    color: Colors.text.secondary,
+    fontSize: 16,
+    marginTop: 4,
+  },
+  totalOddsText: {
+    color: Colors.primary,
+    fontSize: 14,
+    fontWeight: '500',
+    marginTop: 8,
   },
 });

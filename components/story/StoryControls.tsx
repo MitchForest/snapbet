@@ -1,14 +1,11 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { Avatar } from '@/components/common/Avatar';
 import { ReactionPicker } from '@/components/engagement/ReactionPicker';
 import { Colors, OpacityColors } from '@/theme';
 import { StoryWithType } from '@/types/content';
 import { formatDistanceToNow } from '@/utils/date';
-import { chatService } from '@/services/messaging/chatService';
-import { useAuthStore } from '@/stores/authStore';
 
 interface StoryControlsProps {
   story: StoryWithType;
@@ -28,31 +25,6 @@ export function StoryControls({
   onReaction,
 }: StoryControlsProps) {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
-  const user = useAuthStore((state) => state.user);
-
-  const handleReplyPress = async () => {
-    if (!user || !story.user_id) return;
-
-    try {
-      // Find or create DM chat with story owner
-      const chatId = await chatService.getOrCreateDMChat(user.id, story.user_id);
-      if (chatId) {
-        // Navigate to chat with story context
-        router.push({
-          pathname: '/(drawer)/chat/[id]',
-          params: {
-            id: chatId,
-            replyToStory: story.id, // Pass story context
-          },
-        });
-        // Close the story viewer
-        onClose();
-      }
-    } catch (error) {
-      console.error('Error opening chat:', error);
-    }
-  };
 
   return (
     <>
@@ -73,7 +45,7 @@ export function StoryControls({
           </View>
         </View>
 
-        <Pressable onPress={onClose} style={styles.closeButton} hitSlop={8}>
+        <Pressable onPress={onClose} style={styles.closeButton} hitSlop={16}>
           <Text style={styles.closeIcon}>✕</Text>
         </Pressable>
       </View>
@@ -97,16 +69,7 @@ export function StoryControls({
         </View>
 
         <View style={styles.footerRight}>
-          {!isOwner && (
-            <>
-              <Pressable onPress={handleReplyPress} style={styles.replyButton}>
-                <Text style={styles.replyIcon}>💬</Text>
-                <Text style={styles.replyText}>Reply</Text>
-              </Pressable>
-
-              <ReactionPicker currentReaction={userReaction} onSelect={onReaction} />
-            </>
-          )}
+          {!isOwner && <ReactionPicker currentReaction={userReaction} onSelect={onReaction} />}
         </View>
       </View>
     </>
@@ -144,10 +107,12 @@ const styles = StyleSheet.create({
     color: OpacityColors.white.high,
   },
   closeButton: {
-    width: 32,
-    height: 32,
+    width: 40,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: OpacityColors.overlay.medium,
+    borderRadius: 20,
   },
   captionContainer: {
     position: 'absolute',
@@ -190,30 +155,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.white,
   },
-  replyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: OpacityColors.overlay.lighter,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: OpacityColors.overlay.lighter,
-  },
-  replyText: {
-    fontSize: 14,
-    color: Colors.white,
-  },
   closeIcon: {
-    fontSize: 20,
+    fontSize: 24,
     color: Colors.white,
-    fontWeight: '300',
+    fontWeight: '400',
   },
   viewIcon: {
     fontSize: 16,
-  },
-  replyIcon: {
-    fontSize: 18,
   },
 });

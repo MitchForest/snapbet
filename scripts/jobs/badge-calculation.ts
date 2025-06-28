@@ -33,6 +33,7 @@ export class BadgeCalculationJob extends BaseJob {
       },
       { id: 'sharp', name: 'Sharp', calculate: this.calculateSharp.bind(this) },
       { id: 'fade_god', name: 'Fade God', calculate: this.calculateFadeGod.bind(this) },
+      { id: 'rising_star', name: 'Rising Star', calculate: this.calculateRisingStar.bind(this) },
       { id: 'most_active', name: 'Most Active', calculate: this.calculateMostActive.bind(this) },
       { id: 'ghost', name: 'Ghost', calculate: this.calculateGhost.bind(this) },
       { id: 'sunday_sweep', name: 'Sunday Sweep', calculate: this.calculateSundaySweep.bind(this) },
@@ -330,6 +331,53 @@ export class BadgeCalculationJob extends BaseJob {
     }
 
     return topUserId && topWins >= 3 ? [topUserId] : [];
+  }
+
+  private async calculateRisingStar(options: JobOptions): Promise<string[]> {
+    // New users (created in last 3 days) with at least 5 bets
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+
+    // Get users created in the last 3 days
+    const { data: newUsers, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .gte('created_at', threeDaysAgo);
+
+    if (userError) throw userError;
+    if (!newUsers || newUsers.length === 0) return [];
+
+    const newUserIds = newUsers.map((u) => u.id);
+
+    // Get bets for these new users
+    const { data: bets, error: betError } = await supabase
+      .from('bets')
+      .select('user_id')
+      .in('user_id', newUserIds);
+
+    if (betError) throw betError;
+    if (!bets || bets.length === 0) return [];
+
+    // Count bets per user
+    const userBets = new Map<string, number>();
+
+    for (const bet of bets) {
+      userBets.set(bet.user_id, (userBets.get(bet.user_id) || 0) + 1);
+    }
+
+    // Find users with at least 5 bets
+    const risingStars: string[] = [];
+
+    for (const [userId, betCount] of userBets.entries()) {
+      if (betCount >= 5) {
+        risingStars.push(userId);
+      }
+    }
+
+    if (options.verbose) {
+      console.log(`    Rising Star: ${risingStars.length} new users with 5+ bets`);
+    }
+
+    return risingStars;
   }
 
   private async calculateMostActive(options: JobOptions): Promise<string[]> {

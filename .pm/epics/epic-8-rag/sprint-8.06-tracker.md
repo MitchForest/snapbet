@@ -49,9 +49,11 @@
 ### Files to Modify  
 | File Path | Changes Needed | Status |
 |-----------|----------------|--------|
-| `services/search/searchService.ts` | Add getSimilarBettors function and add to discoveryAlgorithms | NOT STARTED |
-| `hooks/useDiscovery.tsx` | Ensure new algorithm is handled properly | NOT STARTED |
+| `services/search/searchService.ts` | Add getSimilarBettors function and add 'similar' to discoveryAlgorithms | NOT STARTED |
+| `hooks/useDiscovery.tsx` | Add 'Find Your Tribe' section with AI badge in header | NOT STARTED |
+| `app/(drawer)/(tabs)/search.tsx` | Display Find Your Tribe section with AI indicators | NOT STARTED |
 | `services/rag/embeddingPipeline.ts` | Ensure updateUserProfile is working correctly | NOT STARTED |
+| `components/search/UserCard.tsx` | Add similarity percentage display option | NOT STARTED |
 
 ### Implementation Approach
 
@@ -145,7 +147,31 @@ export class FriendDiscoveryService {
 export const friendDiscoveryService = FriendDiscoveryService.getInstance();
 ```
 
-**Step 2: Add to search service**
+**Step 2: Update discovery hook for Find Your Tribe section**
+```typescript
+// In hooks/useDiscovery.tsx, add Find Your Tribe section
+const sections = [
+  // ... existing sections
+  {
+    title: 'Find Your Tribe',
+    algorithm: 'similar' as const,
+    icon: 'people' as const,
+    emptyMessage: 'No similar bettors found yet',
+    showAIBadge: true, // New flag for AI indicator
+  },
+];
+
+// In the section header rendering:
+<XStack alignItems="center" gap="$2">
+  <Ionicons name={section.icon} size={24} color={Colors.text} />
+  <Text fontSize="$6" fontWeight="700">
+    {section.title}
+  </Text>
+  {section.showAIBadge && <AIBadge variant="medium" text="AI Powered" />}
+</XStack>
+```
+
+**Step 3: Add to search service**
 ```typescript
 // services/search/searchService.ts
 import { friendDiscoveryService } from '../rag/friendDiscoveryService';
@@ -229,6 +255,7 @@ export function SimilarUserCard({ user, onPress }: SimilarUserCardProps) {
         </XStack>
         
         <YStack alignItems="flex-end" gap="$1">
+          <AIBadge variant="small" text="" />
           <Text fontSize="$6" fontWeight="700" color={Colors.primary}>
             {user.matchPercentage}%
           </Text>

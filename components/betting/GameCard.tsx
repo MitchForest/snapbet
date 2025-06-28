@@ -6,7 +6,7 @@ import { Game } from '@/types/database-helpers';
 import { SportBadge } from './SportBadge';
 import { Storage, StorageKeys } from '@/services/storage/storageService';
 import * as Haptics from 'expo-haptics';
-import { getTeamById } from '@/data/teams';
+import { getTeamByFullName } from '@/data/teams';
 import { getOddsData } from '@/types/betting';
 
 interface GameCardProps {
@@ -20,11 +20,11 @@ export const GameCard = memo(
     const isFinal = game.status === 'completed';
     const sport = game.sport_title as 'NBA' | 'NFL';
 
-    // Get team colors
-    const homeTeamAbbr = getTeamAbbreviation(game.home_team);
-    const awayTeamAbbr = getTeamAbbreviation(game.away_team);
-    const homeTeam = getTeamById(homeTeamAbbr);
-    const awayTeam = getTeamById(awayTeamAbbr);
+    // Get team info using full names
+    const homeTeam = getTeamByFullName(game.home_team);
+    const awayTeam = getTeamByFullName(game.away_team);
+    const homeTeamAbbr = homeTeam?.abbreviation || getTeamAbbreviation(game.home_team);
+    const awayTeamAbbr = awayTeam?.abbreviation || getTeamAbbreviation(game.away_team);
 
     // Format time
     const gameTime = new Date(game.commence_time);

@@ -67,6 +67,11 @@
    - Rationale: Simpler implementation, good enough for MVP
    - Trade-offs: Slight delay in notifications
 
+6. **AI Visual Indicators**: Unified badge component with sparkle icon
+   - Alternatives considered: Different icons per feature, no indicators
+   - Rationale: Consistent branding, user awareness of AI features
+   - Trade-offs: Additional UI element but clear feature attribution
+
 ### Dependencies
 **External Dependencies**:
 - `openai`: ^4.0.0 - For embeddings and chat completions
@@ -88,12 +93,14 @@ services/rag/
 └── consensusService.ts        # Consensus detection
 
 components/
+├── common/
+│   └── AIBadge.tsx            # Unified AI indicator component
 ├── creation/
-│   └── AICaptionButton.tsx
+│   └── AICaptionButton.tsx    # Uses AIBadge with "Generate" text
 ├── search/
-│   └── SimilarUserCard.tsx
+│   └── SimilarUserCard.tsx    # Shows AIBadge with match percentage
 ├── feed/
-│   └── DiscoveryBadge.tsx
+│   └── DiscoveryBadge.tsx     # Shows AIBadge with "Suggested" text
 
 hooks/
 └── useAICaption.ts
@@ -146,7 +153,10 @@ CREATE TABLE embedding_metadata (
 - `friendDiscoveryService.findSimilarUsers()` - User discovery - Sprint 8.06
 - `smartFeedService.getHybridFeed()` - 70/30 feed mixing - Sprint 8.07
 - `consensusService.checkAndNotifyConsensus()` - Consensus detection - Sprint 8.08
-- `AICaptionButton` - UI component for caption generation - Sprint 8.05
+- `AIBadge` - Unified AI indicator component - Sprint 8.04
+- `AICaptionButton` - AI caption button with sparkle icon - Sprint 8.05
+- `SimilarUserCard` - User card with AI match percentage - Sprint 8.06
+- `DiscoveryBadge` - AI suggested post indicator - Sprint 8.07
 - `useAICaption` - Hook for caption generation - Sprint 8.05
 - `withActiveContent()` - Filter helper for active content - Sprint 8.03
 - `withArchivedContent()` - Filter helper for archived content - Sprint 8.03
@@ -250,6 +260,11 @@ CREATE TABLE embedding_metadata (
 - **Bet Structure**: Remember bets use `bet_details` JSON and sports come from games table
 - **Environment Variables**: Use `SUPABASE_SERVICE_KEY` not `SUPABASE_SERVICE_ROLE_KEY`
 - **Notification Creation**: Direct database insert, no service method exists
+- **Archive Filtering**: 29+ files need archive filtering - use utility functions for consistency
+- **Type Updates**: Vector type may need special handling in TypeScript
+- **Existing Discovery**: Hook into existing discovery system, don't replace it
+- **Feed Integration**: Feed service returns only following posts currently - needs complete rewrite
+- **Camera Flow**: AI caption must integrate into existing camera/preview flow
 
 ## Build Testing & Verification
 

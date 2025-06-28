@@ -53,6 +53,20 @@ class TailFadeService {
         odds: originalBet.odds,
       };
 
+      // Validate the selection has required fields
+      if (originalBet.bet_type === 'spread' || originalBet.bet_type === 'moneyline') {
+        if (!betInput.selection.team) {
+          throw new BettingError('Invalid bet selection - missing team', 'VALIDATION_ERROR');
+        }
+      } else if (originalBet.bet_type === 'total') {
+        if (!betInput.selection.totalType || betInput.selection.line === undefined) {
+          throw new BettingError(
+            'Invalid bet selection - missing total details',
+            'VALIDATION_ERROR'
+          );
+        }
+      }
+
       // Add tail flag to bet details
       const newBet = await bettingService.placeBet({
         ...betInput,
@@ -136,6 +150,11 @@ class TailFadeService {
         stake: input.stake,
         odds: oppositeDetails.odds!,
       };
+
+      // Validate the selection has required fields
+      if (!oppositeDetails.selection) {
+        throw new BettingError('Failed to calculate opposite bet', 'VALIDATION_ERROR');
+      }
 
       // Place opposite bet
       const newBet = await bettingService.placeBet({

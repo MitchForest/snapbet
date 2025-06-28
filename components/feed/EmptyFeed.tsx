@@ -14,7 +14,6 @@ export function EmptyFeed() {
     <View style={styles.container}>
       <Text style={styles.emoji}>👋</Text>
       <Text style={styles.title}>Welcome to Snapbet!</Text>
-      <Text style={styles.subtitle}>Follow users to see their picks and content</Text>
       <Text style={styles.description}>
         Follow other bettors to see their picks and content in your feed
       </Text>
@@ -32,6 +31,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 40,
     paddingBottom: 100,
+    paddingTop: 60,
   },
   emoji: {
     fontSize: 64,
@@ -42,12 +42,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.text.primary,
     marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: 12,
   },
   description: {
     fontSize: 16,

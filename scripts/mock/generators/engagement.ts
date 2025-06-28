@@ -116,3 +116,84 @@ export async function createEngagementForPosts(posts: Post[], mockUsers: MockUse
 
   return { reactions, comments, pickActions };
 }
+
+// Add function to create trending picks
+export async function createTrendingPicks(posts: Post[], mockUsers: User[]) {
+  console.log('📈 Creating trending pick patterns...');
+
+  // Find pick posts from the last 24 hours
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const recentPickPosts = posts
+    .filter((p) => p.post_type === 'pick' && p.created_at && new Date(p.created_at) > oneDayAgo)
+    .slice(0, 5); // Take first 5 pick posts
+
+  if (recentPickPosts.length === 0) {
+    console.log('  ⚠️  No recent pick posts found for trending');
+    return;
+  }
+
+  // Get existing pick_actions to avoid duplicates
+  const postIds = recentPickPosts.map((p) => p.id);
+  const { data: existingActions } = await supabase
+    .from('pick_actions')
+    .select('post_id, user_id')
+    .in('post_id', postIds);
+
+  const existingActionsSet = new Set(
+    (existingActions || []).map((a) => `${a.post_id}-${a.user_id}`)
+  );
+
+  const pickActions = [];
+
+  // Make these posts heavily tailed
+  for (const post of recentPickPosts) {
+    // 8-15 users tail each trending pick
+    const tailCount = Math.floor(Math.random() * 8) + 8;
+    const tailers = mockUsers
+      .filter((u) => u.id !== post.user_id)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, tailCount);
+
+    for (const tailer of tailers) {
+      // Skip if this user already has an action on this post
+      if (existingActionsSet.has(`${post.id}-${tailer.id}`)) {
+        continue;
+      }
+
+      pickActions.push({
+        post_id: post.id,
+        user_id: tailer.id,
+        action_type: 'tail' as const,
+        created_at: new Date(
+          new Date(post.created_at!).getTime() + Math.random() * 4 * 60 * 60 * 1000
+        ).toISOString(),
+      });
+    }
+  }
+
+  if (pickActions.length > 0) {
+    const { error } = await supabase.from('pick_actions').insert(pickActions);
+    if (error) {
+      console.error('Error creating trending pick actions:', error);
+    } else {
+      console.log(`  ✅ Created ${pickActions.length} tail actions for trending picks`);
+
+      // Update tail counts on posts
+      for (const post of recentPickPosts) {
+        const postTails = pickActions.filter((pa) => pa.post_id === post.id).length;
+        const { data: currentPost } = await supabase
+          .from('posts')
+          .select('tail_count')
+          .eq('id', post.id)
+          .single();
+
+        if (currentPost) {
+          await supabase
+            .from('posts')
+            .update({ tail_count: (currentPost.tail_count || 0) + postTails })
+            .eq('id', post.id);
+        }
+      }
+    }
+  }
+}

@@ -19,6 +19,9 @@ export async function createNotificationsForUser(userId: string, mockUsers: User
   const followCount = Math.floor(Math.random() * 3) + 3;
   for (let i = 0; i < followCount && i < shuffledUsers.length; i++) {
     const follower = shuffledUsers[i];
+    const isRead = Math.random() > 0.3; // 70% read
+    const createdAt = new Date(now.getTime() - Math.random() * 48 * 60 * 60 * 1000);
+
     notifications.push({
       id: crypto.randomUUID(),
       user_id: userId,
@@ -28,8 +31,11 @@ export async function createNotificationsForUser(userId: string, mockUsers: User
         followerUsername: follower.username,
         followerAvatarUrl: follower.avatar_url,
       },
-      read: Math.random() > 0.3, // 70% read
-      created_at: new Date(now.getTime() - Math.random() * 48 * 60 * 60 * 1000).toISOString(), // Last 48 hours
+      read: isRead,
+      created_at: createdAt.toISOString(),
+      read_at: isRead
+        ? new Date(createdAt.getTime() + Math.random() * 60 * 60 * 1000).toISOString()
+        : null, // Read within an hour
     });
   }
 
@@ -38,11 +44,13 @@ export async function createNotificationsForUser(userId: string, mockUsers: User
   for (let i = 0; i < tailFadeCount && i < shuffledUsers.length - followCount; i++) {
     const actor = shuffledUsers[followCount + i];
     const isTail = Math.random() > 0.5;
-    
+    const isRead = Math.random() > 0.5; // 50% read
+    const createdAt = new Date(now.getTime() - Math.random() * 24 * 60 * 60 * 1000);
+
     notifications.push({
       id: crypto.randomUUID(),
       user_id: userId,
-      type: isTail ? 'tail' : 'fade' as const,
+      type: isTail ? 'tail' : ('fade' as const),
       data: {
         actorId: actor.id,
         actorUsername: actor.username,
@@ -50,8 +58,11 @@ export async function createNotificationsForUser(userId: string, mockUsers: User
         amount: [10, 20, 50, 100][Math.floor(Math.random() * 4)],
         postId: crypto.randomUUID(),
       },
-      read: Math.random() > 0.5, // 50% read
-      created_at: new Date(now.getTime() - Math.random() * 24 * 60 * 60 * 1000).toISOString(), // Last 24 hours
+      read: isRead,
+      created_at: createdAt.toISOString(),
+      read_at: isRead
+        ? new Date(createdAt.getTime() + Math.random() * 60 * 60 * 1000).toISOString()
+        : null,
     });
   }
 
@@ -59,11 +70,13 @@ export async function createNotificationsForUser(userId: string, mockUsers: User
   const betOutcomeCount = Math.floor(Math.random() * 2) + 2;
   for (let i = 0; i < betOutcomeCount; i++) {
     const isWin = Math.random() > 0.5;
-    
+    const isRead = Math.random() > 0.2; // 80% read
+    const createdAt = new Date(now.getTime() - Math.random() * 72 * 60 * 60 * 1000);
+
     notifications.push({
       id: crypto.randomUUID(),
       user_id: userId,
-      type: isWin ? 'bet_won' : 'bet_lost' as const,
+      type: isWin ? 'bet_won' : ('bet_lost' as const),
       data: {
         betId: crypto.randomUUID(),
         amount: [20, 50, 100, 200][Math.floor(Math.random() * 4)],
@@ -72,8 +85,11 @@ export async function createNotificationsForUser(userId: string, mockUsers: User
           betType: 'spread',
         },
       },
-      read: Math.random() > 0.2, // 80% read
-      created_at: new Date(now.getTime() - Math.random() * 72 * 60 * 60 * 1000).toISOString(), // Last 72 hours
+      read: isRead,
+      created_at: createdAt.toISOString(),
+      read_at: isRead
+        ? new Date(createdAt.getTime() + Math.random() * 60 * 60 * 1000).toISOString()
+        : null,
     });
   }
 
@@ -89,6 +105,7 @@ export async function createNotificationsForUser(userId: string, mockUsers: User
     },
     read: false, // Always unread
     created_at: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+    read_at: null,
   });
 
   // Insert notifications
@@ -102,4 +119,4 @@ export async function createNotificationsForUser(userId: string, mockUsers: User
   }
 
   return notifications;
-} 
+}

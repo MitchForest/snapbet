@@ -34,11 +34,15 @@
 ## Sprint Plan
 
 ### Objectives
-1. Create archive filter utility functions
-2. Update all service queries to filter archived content
-3. Ensure consistent filtering across posts, bets, stories, messages, reactions, pick_actions
-4. Maintain performance with proper query optimization
-5. Add comprehensive testing for archive filtering
+1. Create archive filter utility functions for consistent implementation
+2. Update 16 post-related files to filter archived content
+3. Update 13 bet-related files to filter archived content
+4. Update message and story services to filter archived content
+5. Ensure frontend hooks (useFeed, useStories, useMessages) filter archived
+6. Update badge calculation to exclude archived content
+7. Ensure moderation services exclude archived content
+8. Maintain performance with proper query optimization
+9. Add comprehensive testing for archive filtering
 
 ### Files to Create
 | File Path | Purpose | Status |
@@ -48,15 +52,28 @@
 ### Files to Modify  
 | File Path | Changes Needed | Status |
 |-----------|----------------|--------|
+| **Posts Table (16 files)** | | |
 | `services/feed/feedService.ts` | Add archive filtering to feed queries | NOT STARTED |
 | `services/content/postService.ts` | Add archive filtering to all post queries | NOT STARTED |
 | `services/content/storyService.ts` | Add archive filtering to story queries | NOT STARTED |
-| `services/betting/bettingService.ts` | Add archive filtering to bet queries | NOT STARTED |
 | `services/engagement/reactionService.ts` | Add archive filtering to reaction queries | NOT STARTED |
 | `services/engagement/commentService.ts` | Ensure comments respect post archive status | NOT STARTED |
 | `services/search/searchService.ts` | Add archive filtering to discovery queries | NOT STARTED |
-| `services/messaging/messageService.ts` | Add archive filtering to message queries | NOT STARTED |
+| `services/moderation/reportService.ts` | Exclude archived content from reports | NOT STARTED |
+| `hooks/useFeed.ts` | Frontend feed queries need archive filtering | NOT STARTED |
+| `hooks/useStories.ts` | Frontend story queries need archive filtering | NOT STARTED |
+| `components/profile/PostsList.tsx` | User profile posts need archive filtering | NOT STARTED |
+| **Bets Table (13 files)** | | |
+| `services/betting/bettingService.ts` | Add archive filtering to bet queries | NOT STARTED |
 | `services/betting/tailFadeService.ts` | Add archive filtering to tail/fade queries | NOT STARTED |
+| `services/betting/settlementService.ts` | Settlement should consider archived bets | NOT STARTED |
+| `services/badges/badgeAutomation.ts` | Badge calculations need archive awareness | NOT STARTED |
+| `scripts/jobs/badge-calculation.ts` | Badge calculations should exclude archived | NOT STARTED |
+| `scripts/jobs/cleanup.ts` | Needs to respect archived content | NOT STARTED |
+| **Messages & Other Tables** | | |
+| `services/messaging/messageService.ts` | Add archive filtering to message queries | NOT STARTED |
+| `hooks/useMessages.ts` | Frontend message queries need archive filtering | NOT STARTED |
+| `services/notifications/notificationService.ts` | Consider archived content in notifications | NOT STARTED |
 
 ### Implementation Approach
 
@@ -252,6 +269,13 @@ supabase
 - User with mix of active and archived content
 - Discovery algorithms with archived user data
 - Real-time updates respecting archive status
+
+### Performance Considerations
+- **Query Impact**: Every query now has additional WHERE clauses
+- **Index Usage**: Ensure compound indexes on (archived, deleted_at, created_at)
+- **Join Performance**: Filter early in the query to reduce join overhead
+- **Real-time**: Consider subscription filters for archived content
+- **Pagination**: Archived filtering may affect cursor-based pagination
 
 ## Documentation Updates
 
