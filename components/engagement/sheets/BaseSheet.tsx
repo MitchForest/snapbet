@@ -1,6 +1,11 @@
 import React, { useEffect, useRef, ReactNode, useCallback } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
-import BottomSheet, { BottomSheetBackdrop, BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
+import {
+  BottomSheetModal,
+  BottomSheetBackdrop,
+  BottomSheetBackdropProps,
+  BottomSheetScrollView,
+} from '@gorhom/bottom-sheet';
 import { Colors } from '@/theme';
 
 interface BaseSheetProps {
@@ -15,6 +20,7 @@ interface BaseSheetProps {
 }
 
 const SAFE_AREA_BOTTOM = 34; // Standard safe area bottom height
+const TRANSPARENT = 'transparent'; // Extract color literal as constant
 
 export function BaseSheet({
   isVisible,
@@ -26,7 +32,7 @@ export function BaseSheet({
   keyboardAvoidingEnabled = false,
   disableContentWrapper = false,
 }: BaseSheetProps) {
-  const bottomSheetRef = useRef<BottomSheet>(null);
+  const bottomSheetRef = useRef<BottomSheetModal>(null);
 
   // Calculate snap points based on height prop
   const snapPoints = React.useMemo(() => {
@@ -45,9 +51,9 @@ export function BaseSheet({
   // Handle visibility changes
   useEffect(() => {
     if (isVisible) {
-      bottomSheetRef.current?.expand();
+      bottomSheetRef.current?.present();
     } else {
-      bottomSheetRef.current?.close();
+      bottomSheetRef.current?.dismiss();
     }
   }, [isVisible]);
 
@@ -74,10 +80,6 @@ export function BaseSheet({
     [onClose]
   );
 
-  if (!isVisible) {
-    return null;
-  }
-
   const content = (
     <>
       {showDragIndicator && (
@@ -90,32 +92,39 @@ export function BaseSheet({
   );
 
   return (
-    <BottomSheet
+    <BottomSheetModal
       ref={bottomSheetRef}
       index={0}
       snapPoints={snapPoints}
       onChange={handleSheetChanges}
       backdropComponent={renderBackdrop}
       enablePanDownToClose={enableSwipeToClose}
-      handleIndicatorStyle={showDragIndicator ? styles.handleIndicator : styles.hiddenIndicator}
+      handleIndicatorStyle={styles.hiddenIndicator} // Always hide the built-in handle
       backgroundStyle={styles.sheet}
       keyboardBehavior={keyboardAvoidingEnabled ? 'interactive' : 'fillParent'}
       keyboardBlurBehavior="restore"
       enableDynamicSizing={height === 'auto'}
+      detached={false}
+      bottomInset={0}
     >
-      {disableContentWrapper ? (
-        <View style={[styles.flexContainer, { paddingBottom: SAFE_AREA_BOTTOM }]}>{children}</View>
-      ) : keyboardAvoidingEnabled ? (
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={[styles.contentContainer, { paddingBottom: SAFE_AREA_BOTTOM }]}
-        >
-          {content}
-        </KeyboardAvoidingView>
-      ) : (
-        <View style={[styles.flexContainer, { paddingBottom: SAFE_AREA_BOTTOM }]}>{content}</View>
-      )}
-    </BottomSheet>
+      <BottomSheetScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: SAFE_AREA_BOTTOM }}
+      >
+        {disableContentWrapper ? (
+          children
+        ) : keyboardAvoidingEnabled ? (
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.contentContainer}
+          >
+            {content}
+          </KeyboardAvoidingView>
+        ) : (
+          content
+        )}
+      </BottomSheetScrollView>
+    </BottomSheetModal>
   );
 }
 
@@ -128,9 +137,6 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
   },
-  flexContainer: {
-    flex: 1,
-  },
   dragIndicatorContainer: {
     alignItems: 'center',
     paddingVertical: 12,
@@ -141,12 +147,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[300],
     borderRadius: 2,
   },
-  handleIndicator: {
-    backgroundColor: Colors.gray[300],
-    width: 40,
-    height: 4,
-  },
   hiddenIndicator: {
     height: 0,
+    backgroundColor: TRANSPARENT,
   },
 });

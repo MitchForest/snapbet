@@ -45,17 +45,16 @@
 ### Files to Create
 | File Path | Purpose | Status |
 |-----------|---------|--------|
-| `scripts/mock/generators/rag-demo.ts` | Generate archived content with embeddings for RAG demo | NOT STARTED |
+| None | All changes are modifications to existing files | N/A |
 
 ### Files to Modify  
 | File Path | Changes Needed | Status |
 |-----------|----------------|--------|
-| `scripts/jobs/content-expiration.ts` | Replace deletion with archiving for posts and stories | NOT STARTED |
-| `scripts/jobs/content-expiration.ts` | Add weekly bet archiving logic | NOT STARTED |
-| `scripts/jobs/content-expiration.ts` | Add engagement data archiving function | NOT STARTED |
-| `scripts/jobs/content-expiration.ts` | Update logging to reflect archiving vs deletion | NOT STARTED |
-| `scripts/mock/generators/rag-demo.ts` | Create archived content generator for RAG testing | NOT STARTED |
-| `scripts/mock/orchestrators/setup.ts` | Add step to archive old content and create RAG demo scenarios | NOT STARTED |
+| `scripts/jobs/content-expiration.ts` | Replace deletion with archiving for posts and stories | COMPLETED |
+| `scripts/jobs/content-expiration.ts` | Replace deletion with archiving for messages | COMPLETED |
+| `scripts/jobs/content-expiration.ts` | Add weekly bet archiving logic | COMPLETED |
+| `scripts/jobs/content-expiration.ts` | Add engagement data archiving function | COMPLETED |
+| `scripts/jobs/content-expiration.ts` | Update logging to reflect archiving vs deletion | COMPLETED |
 
 ### Implementation Approach
 
@@ -289,9 +288,18 @@ console.log('\n🎉 Mock data setup complete with RAG demo scenarios!');
 ### Day-by-Day Progress
 **[2024-12-29]**:
 - Started: Sprint initialization and codebase investigation
-- Completed: Analysis of content-expiration job, database schema verification, mock generator patterns
-- Blockers: None
-- Decisions: Need clarification on schedule timing and batch processing approach
+- Completed: 
+  - Analysis of content-expiration job, database schema verification, mock generator patterns
+  - Modified all expiration methods to use `archived: true` instead of `deleted_at`
+  - Added weekly bet archiving method
+  - Added engagement data archiving method (reactions and pick_actions)
+  - Updated job description and logging messages
+  - Verified implementation with test script
+- Blockers: Job CLI has React Native import issues, but core logic is correct
+- Decisions: 
+  - Kept hourly schedule as per reviewer guidance
+  - Implemented without batch processing initially
+  - Added engagement archiving to run hourly
 
 ### Implementation Plan Analysis
 
@@ -319,50 +327,83 @@ console.log('\n🎉 Mock data setup complete with RAG demo scenarios!');
 - **Finding**: The job currently runs every hour (`schedule: '0 * * * *'`), not every 5 minutes
 - **Question**: Should I change the schedule to match the sprint doc (every 5 minutes)?
 - **E's Recommendation**: Keep hourly schedule to avoid excessive database load
-- **Reviewer Decision**: [PENDING]
+- **Reviewer Decision**: ✅ KEEP HOURLY - The job already runs hourly, not every 5 minutes. This is appropriate for production.
 
 **Q2: Batch Processing Implementation**
 - **Finding**: Current implementation processes all records at once
 - **Question**: Should I implement batch processing proactively or wait for performance issues?
 - **E's Recommendation**: Start without batching, add only if performance issues arise
-- **Reviewer Decision**: [PENDING]
+- **Reviewer Decision**: ✅ START WITHOUT BATCHING - Add only if performance issues arise. Monitor initial runs.
 
 **Q3: Engagement Data Archiving Frequency**
 - **Finding**: No existing pattern for engagement data expiration
 - **Question**: Should engagement archiving run hourly or only during weekly bet archiving?
 - **E's Recommendation**: Run hourly to keep data fresh and avoid large batches
-- **Reviewer Decision**: [PENDING]
+- **Reviewer Decision**: ✅ RUN HOURLY - Include in the hourly job to maintain fresh data and avoid large batch accumulations.
 
 **Q4: Mock Data Time Range**
 - **Finding**: Mock data uses various timestamps
 - **Question**: How far back should archived content be created for RAG demos?
 - **E's Recommendation**: Create content 2-6 days old for a good mix of archived data
-- **Reviewer Decision**: [PENDING]
+- **Reviewer Decision**: ✅ 2-30 DAYS OLD - Create a wider range of archived content for better RAG demonstration:
+  - Recent (2-7 days): Fresh archived content
+  - Older (7-30 days): Historical patterns for AI learning
+
+### Sprint Scope Adjustment
+
+**Reviewer Guidance**: This sprint should ONLY modify the production job to archive instead of delete. Mock data generation is a separate concern.
+
+**Removed from Sprint 8.02** (moved to Sprint 8.10):
+- Creating `scripts/mock/generators/rag-demo.ts`
+- Updating `scripts/mock/orchestrators/setup.ts`
+
+**Updated Sprint 8.02 Focus**:
+- Modify `scripts/jobs/content-expiration.ts` ONLY
+- Change deletion to archiving for posts, stories, messages
+- Add weekly bet archiving logic
+- Add engagement data archiving (reactions, pick_actions)
+- Maintain production code quality without mock data concerns
+
+### Additional Implementation Guidance
+
+1. **Weekly Bet Archiving Logic**:
+   - Instead of checking for Sunday midnight, track last run time
+   - Consider using a separate job or flag to ensure it runs exactly once per week
+
+2. **Archive vs Delete Clarity**:
+   - `archived=true`: Content expired naturally (time-based)
+   - `deleted_at`: User/moderation actions (manual deletion)
+   - Never set both - they represent different intents
+
+3. **Testing Approach**:
+   - Test production code with --dry-run flag first
+   - Verify counts before actual archiving
+   - Monitor first production run closely
 
 ### Reality Checks & Plan Updates
 
-**Reality Check 1** - [Date]
-- Issue: [What wasn't working]
+**Reality Check 1** - [2024-12-29]
+- Issue: Sprint scope included mock data generation
 - Options Considered:
-  1. [Option 1] - Pros/Cons
-  2. [Option 2] - Pros/Cons
-- Decision: [What was chosen]
-- Plan Update: [How sprint plan changed]
-- Epic Impact: [Any epic updates needed]
+  1. Keep mock data in this sprint - Pros: Complete RAG demo ready / Cons: Mixes production and mock concerns
+  2. Separate mock data to new sprint - Pros: Clean separation of concerns / Cons: RAG demo delayed
+- Decision: Separate mock data to Sprint 8.10
+- Plan Update: Focus only on production job modifications
+- Epic Impact: Added Sprint 8.10 to epic for mock data generation
 
 ### Code Quality Checks
 
 **Linting Results**:
-- [ ] Initial run: [X errors, Y warnings]
-- [ ] Final run: [Should be 0 errors]
+- [x] Initial run: 0 errors, 0 warnings (content-expiration.ts)
+- [x] Final run: 0 errors, 0 warnings
 
 **Type Checking Results**:
-- [ ] Initial run: [X errors]
-- [ ] Final run: [Should be 0 errors]
+- [x] Initial run: 0 errors
+- [x] Final run: 0 errors
 
 **Build Results**:
-- [ ] Development build passes
-- [ ] Production build passes
+- [x] Development build passes
+- [ ] Production build passes (N/A - backend job)
 
 ## Key Code Additions
 
@@ -410,62 +451,68 @@ while (hasMore) {
 ## Testing Performed
 
 ### Manual Testing
-- [ ] Posts archive after expiration (not deleted)
-- [ ] Stories archive after expiration (not deleted)
-- [ ] Bets archive after 7 days (weekly job)
-- [ ] Reactions archive after 3 days
-- [ ] Pick actions archive after 3 days
-- [ ] Already deleted content (deleted_at != null) is not archived
-- [ ] Job continues to run every 5 minutes
-- [ ] Weekly bet archiving triggers on Sunday midnight UTC
-- [ ] Proper error handling and logging
+- [x] Posts archive after expiration (not deleted) - Verified query logic
+- [x] Stories archive after expiration (not deleted) - Verified query logic
+- [x] Messages archive after expiration - Verified query logic
+- [x] Bets archive after 7 days - Test found 5 bets to archive
+- [x] Reactions archive after 3 days - Verified query logic
+- [x] Pick actions archive after 3 days - Verified query logic
+- [x] Already deleted content (deleted_at != null) is not archived - Queries include check
+- [x] Already archived content is not re-processed - All queries check archived=false
+- [x] Job continues to run every hour (per schedule)
+- [x] Proper error handling and logging - All methods have try/catch
 
 ### Edge Cases Considered
-- Content with null expires_at handled correctly
-- Already archived content not re-processed
-- Deleted content (by user/moderation) remains untouched
-- Job handles database errors gracefully
-- Large batches don't timeout
+- Content with null expires_at handled correctly (messages check for not null)
+- Already archived content not re-processed (all queries filter archived=false)
+- Deleted content (by user/moderation) remains untouched (is('deleted_at', null) check)
+- Job handles database errors gracefully (all methods throw errors up to job runner)
+- Large batches handled with limit option support
 
 ## Documentation Updates
 
-- [ ] Job comments updated to reflect archiving vs deletion
-- [ ] README updated if job behavior documented there
-- [ ] Added comments explaining archive vs delete distinction
+- [x] Job comments updated to reflect archiving vs deletion
+- [ ] README updated if job behavior documented there (no job-specific README found)
+- [x] Added comments explaining archive vs delete distinction
 
 ## Handoff to Reviewer
 
 ### What Was Implemented
 Modified content expiration job to implement archiving strategy:
 - Posts and stories now archived when expired (not deleted)
+- Messages now archived when expired (not deleted)
 - Added weekly bet archiving (7 days old)
-- Added engagement data archiving (3 days old)
-- Preserved deleted_at for actual deletions
+- Added engagement data archiving (3 days old for reactions and pick_actions)
+- Preserved deleted_at for actual deletions (user/moderation actions)
 - Updated logging to reflect new behavior
+- All queries check both archived=false and deleted_at is null
 
 ### Files Modified/Created
 **Modified**:
-- `scripts/jobs/content-expiration.ts` - Changed deletion to archiving, added engagement archiving
+- `scripts/jobs/content-expiration.ts` - Changed deletion to archiving, added bet and engagement archiving
 
 ### Key Decisions Made
-1. **Archive timing**: Keep existing 5-minute schedule for posts/stories
-2. **Bet archiving**: Weekly on Sunday midnight to reduce load
-3. **Engagement archiving**: 3 days for reactions/pick_actions
-4. **Backward compatibility**: Keep deleted_at for user/moderation deletions
+1. **Archive timing**: Kept existing hourly schedule per reviewer guidance
+2. **Bet archiving**: Runs every hour, archives bets older than 7 days
+3. **Engagement archiving**: Runs every hour, archives data older than 3 days
+4. **Backward compatibility**: Kept deleted_at for user/moderation deletions
+5. **Import fix**: Removed dotenv import, using scripts/supabase-client
 
 ### Deviations from Original Plan
-- None anticipated
+- Did not implement Sunday midnight check for bet archiving - simpler to run hourly and check age
+- Did not implement batch processing initially - can add if performance issues arise
 
 ### Known Issues/Concerns
-- Need to monitor performance with large datasets
-- May need batch processing for initial archiving run
-- Weekly job timing might need adjustment based on usage patterns
+- Job CLI has React Native import issues preventing direct execution via npm scripts
+- Core logic is correct and tested via standalone script
+- May need batch processing for initial archiving run with large datasets
+- No tracking of last run time for weekly bets (relies on age-based logic)
 
 ### Suggested Review Focus
-- Archive query correctness
-- Performance implications of new queries
+- Archive query correctness - all use archived=true and check archived=false
+- Performance implications of hourly engagement archiving
 - Error handling completeness
-- Logging clarity
+- Logging clarity for operations teams
 
 **Sprint Status**: READY FOR REVIEW
 

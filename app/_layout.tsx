@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { TamaguiProvider } from '@tamagui/core';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { ToastProvider } from '@/components/common/ToastProvider';
@@ -21,10 +22,12 @@ export default function RootLayout() {
       <ErrorBoundary level="root">
         <AuthProvider>
           <TamaguiProvider config={config}>
-            <ToastProvider>
-              <StatusBar style="dark" />
-              <RootLayoutNav />
-            </ToastProvider>
+            <BottomSheetModalProvider>
+              <ToastProvider>
+                <StatusBar style="dark" />
+                <RootLayoutNav />
+              </ToastProvider>
+            </BottomSheetModalProvider>
           </TamaguiProvider>
         </AuthProvider>
       </ErrorBoundary>

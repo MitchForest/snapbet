@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { BaseSheet } from '@/components/engagement/sheets/BaseSheet';
 import { Bet } from '@/services/betting/types';
 import { Game } from '@/types/database-helpers';
@@ -139,98 +139,89 @@ export function TailFadeSheet({
       ? "You'll ride with them on this pick. Win or lose together!"
       : "You're betting against them. May the best bettor win!";
 
-  // Wrap in Modal to ensure it renders at the app level
   return (
-    <Modal
-      visible={isOpen}
-      transparent
-      animationType="none"
-      onRequestClose={onClose}
-      statusBarTranslucent
+    <BaseSheet
+      isVisible={isOpen}
+      onClose={onClose}
+      height="70%"
+      showDragIndicator={true}
+      enableSwipeToClose={true}
     >
-      <BaseSheet
-        isVisible={isOpen}
-        onClose={onClose}
-        height="70%"
-        showDragIndicator={true}
-        enableSwipeToClose={true}
-      >
-        <View style={styles.container}>
-          <Text style={styles.title}>
-            {action === 'tail' ? 'Tail' : 'Fade'} @{originalUser.username}?
+      <View style={styles.container}>
+        <Text style={styles.title}>
+          {action === 'tail' ? 'Tail' : 'Fade'} @{originalUser.username}?
+        </Text>
+
+        {/* Original Bet Details */}
+        <View style={styles.betDetailsContainer}>
+          <Text style={styles.betDetailsLabel}>
+            {originalUser.display_name || originalUser.username}&apos;s Bet
           </Text>
-
-          {/* Original Bet Details */}
-          <View style={styles.betDetailsContainer}>
-            <Text style={styles.betDetailsLabel}>
-              {originalUser.display_name || originalUser.username}&apos;s Bet
-            </Text>
-            <Text style={styles.betDetailsText}>
-              {formatBetDetails(originalBet)} ({formatOdds(originalBet.odds)})
-            </Text>
-            <Text style={styles.betDetailsSubtext}>
-              ${originalBet.stake / 100} → Win: ${originalBet.potential_win / 100}
-            </Text>
-          </View>
-
-          {/* Stake Selection */}
-          <View style={styles.stakeContainer}>
-            <Text style={styles.stakeLabel}>Your Stake:</Text>
-            <Text style={styles.originalStakeNote}>
-              {originalUser.username} bet ${originalBet.stake / 100}
-            </Text>
-
-            <StakeInput
-              value={stake}
-              onChange={setStake}
-              maxAmount={availableBankroll}
-              quickAmounts={[25, 50, 100]}
-            />
-          </View>
-
-          {/* Insufficient Funds Warning */}
-          {stake > availableBankroll && (
-            <Text style={styles.warningText}>
-              Insufficient funds (Available: ${availableBankroll / 100})
-            </Text>
-          )}
-
-          {/* Payout Display */}
-          {stake > 0 && game && (
-            <PayoutDisplay
-              stake={stake}
-              odds={originalBet.odds}
-              potentialWin={calculatePotentialWin(stake, originalBet.odds)}
-            />
-          )}
-
-          {/* Action Message */}
-          <Text style={styles.actionMessage}>
-            {actionText} {actionEmoji}
+          <Text style={styles.betDetailsText}>
+            {formatBetDetails(originalBet)} ({formatOdds(originalBet.odds)})
           </Text>
-
-          {/* Confirm Button */}
-          <Pressable
-            style={[
-              styles.confirmButton,
-              { backgroundColor: actionColor },
-              (!stake || stake < 500 || stake > availableBankroll || isLoading) &&
-                styles.confirmButtonDisabled,
-            ]}
-            onPress={handleConfirm}
-            disabled={!stake || stake < 500 || stake > availableBankroll || isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text style={styles.confirmButtonText}>
-                Confirm {action === 'tail' ? 'Tail' : 'Fade'} - ${stake / 100}
-              </Text>
-            )}
-          </Pressable>
+          <Text style={styles.betDetailsSubtext}>
+            ${originalBet.stake / 100} → Win: ${originalBet.potential_win / 100}
+          </Text>
         </View>
-      </BaseSheet>
-    </Modal>
+
+        {/* Stake Selection */}
+        <View style={styles.stakeContainer}>
+          <Text style={styles.stakeLabel}>Your Stake:</Text>
+          <Text style={styles.originalStakeNote}>
+            {originalUser.username} bet ${originalBet.stake / 100}
+          </Text>
+
+          <StakeInput
+            value={stake}
+            onChange={setStake}
+            maxAmount={availableBankroll}
+            quickAmounts={[25, 50, 100]}
+          />
+        </View>
+
+        {/* Insufficient Funds Warning */}
+        {stake > availableBankroll && (
+          <Text style={styles.warningText}>
+            Insufficient funds (Available: ${availableBankroll / 100})
+          </Text>
+        )}
+
+        {/* Payout Display */}
+        {stake > 0 && game && (
+          <PayoutDisplay
+            stake={stake}
+            odds={originalBet.odds}
+            potentialWin={calculatePotentialWin(stake, originalBet.odds)}
+          />
+        )}
+
+        {/* Action Message */}
+        <Text style={styles.actionMessage}>
+          {actionText} {actionEmoji}
+        </Text>
+
+        {/* Confirm Button */}
+        <Pressable
+          style={[
+            styles.confirmButton,
+            { backgroundColor: actionColor },
+            (!stake || stake < 500 || stake > availableBankroll || isLoading) &&
+              styles.confirmButtonDisabled,
+          ]}
+          onPress={handleConfirm}
+          disabled={!stake || stake < 500 || stake > availableBankroll || isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.confirmButtonText}>
+              Confirm {action === 'tail' ? 'Tail' : 'Fade'} - ${stake / 100}
+            </Text>
+          )}
+        </Pressable>
+      </View>
+    </BaseSheet>
   );
 }
 

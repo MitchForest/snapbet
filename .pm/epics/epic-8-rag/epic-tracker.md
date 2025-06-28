@@ -30,6 +30,7 @@
 | 8.07 | Enhanced Feed | NOT STARTED | - | - | 70/30 smart feed mixing |
 | 8.08 | Consensus Alerts | NOT STARTED | - | - | Betting consensus notifications |
 | 8.09 | Mock Data & Demo | NOT STARTED | - | - | Complete RAG demo with archived content and scenarios |
+| 8.10 | RAG Mock Data Generation | NOT STARTED | - | - | Mock data generators for RAG feature demonstration |
 
 **Statuses**: NOT STARTED | IN PROGRESS | IN REVIEW | APPROVED | BLOCKED
 
@@ -250,6 +251,12 @@ CREATE TABLE embedding_metadata (
 **Key Decisions**: [To be completed]
 **Issues Encountered**: [To be completed]
 
+### Sprint 8.10: RAG Mock Data Generation
+**Status**: NOT STARTED
+**Summary**: [To be completed]
+**Key Decisions**: [To be completed]
+**Issues Encountered**: [To be completed]
+
 ## Testing & Quality
 
 ### Testing Approach
@@ -360,7 +367,7 @@ If any build issues are encountered:
 ## Epic Completion Checklist
 
 - [x] Sprint 8.01 completed and approved
-- [ ] All planned sprints completed and approved (1/9 complete)
+- [ ] All planned sprints completed and approved (1/10 complete)
 - [ ] User stories for this epic fully addressed
 - [ ] Code refactored and cleaned up
 - [ ] Documentation updated
@@ -370,7 +377,7 @@ If any build issues are encountered:
 - [ ] Epic summary added to project tracker
 
 ### Progress Summary
-- **Sprints Completed**: 1/9 (11%)
+- **Sprints Completed**: 1/10 (10%)
 - **Epic Status**: On Track
 - **Next Sprint**: 8.02 - Content Archiving
 

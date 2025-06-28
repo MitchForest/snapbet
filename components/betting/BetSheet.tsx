@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text } from 'react-native';
-import { Switch, ScrollView } from 'react-native';
+import { Switch } from 'react-native';
 import { BaseSheet } from '@/components/engagement/sheets/BaseSheet';
 import { Colors } from '@/theme';
 import { useBetSlipStore } from '@/stores/betSlipStore';
@@ -168,65 +168,54 @@ export function BetSheet({ isVisible, onClose, game }: BetSheetProps) {
       keyboardAvoidingEnabled={true}
       enableSwipeToClose={!isPlacing}
     >
-      <ScrollView>
-        <View style={styles.container}>
-          {/* Game Header */}
-          <View>
-            <Text style={styles.gameHeader}>
-              {awayTeamAbbr} @ {homeTeamAbbr}
-            </Text>
-            <Text style={styles.gameTime}>{formatGameTime(new Date(game.commence_time))}</Text>
-          </View>
+      <View style={styles.container}>
+        {/* Game Header */}
+        <View>
+          <Text style={styles.gameHeader}>
+            {awayTeamAbbr} @ {homeTeamAbbr}
+          </Text>
+          <Text style={styles.gameTime}>{formatGameTime(new Date(game.commence_time))}</Text>
+        </View>
 
-          {/* Bet Type Tabs */}
-          <BetTypeSelector selected={betType} onChange={setBetType} />
+        {/* Bet Type Tabs */}
+        <BetTypeSelector selected={betType} onChange={setBetType} />
 
-          {/* Team/Side Selection */}
-          <TeamSelector
-            game={game}
-            betType={betType}
-            selected={selection}
-            onChange={setSelection}
-          />
+        {/* Team/Side Selection */}
+        <TeamSelector game={game} betType={betType} selected={selection} onChange={setSelection} />
 
-          {/* Stake Input Section */}
-          <StakeInput
-            value={stake}
-            onChange={setStake}
-            quickAmounts={[25, 50, 100]}
-            maxAmount={availableBankroll}
-          />
+        {/* Stake Input Section */}
+        <StakeInput
+          value={stake}
+          onChange={setStake}
+          quickAmounts={[25, 50, 100]}
+          maxAmount={availableBankroll}
+        />
 
-          {/* Payout Display */}
-          <PayoutDisplay
-            stake={stake}
-            odds={getCurrentOdds()}
-            potentialWin={getPotentialPayout()}
-          />
+        {/* Payout Display */}
+        <PayoutDisplay stake={stake} odds={getCurrentOdds()} potentialWin={getPotentialPayout()} />
 
-          {/* Share Toggle */}
-          <View style={styles.shareToggleContainer}>
-            <Text style={styles.shareToggleText}>Share Pick to Feed</Text>
-            <Switch
-              value={shareToFeed}
-              onValueChange={toggleShareToFeed}
-              trackColor={{
-                false: Colors.gray[300],
-                true: Colors.primary,
-              }}
-              thumbColor={Colors.white}
-            />
-          </View>
-
-          {/* Place Bet Button */}
-          <PlaceBetButton
-            onPress={handlePlaceBet}
-            isLoading={isPlacing}
-            isDisabled={!isValid}
-            errorMessage={validationError}
+        {/* Share Toggle */}
+        <View style={styles.shareToggleContainer}>
+          <Text style={styles.shareToggleText}>Share Pick to Feed</Text>
+          <Switch
+            value={shareToFeed}
+            onValueChange={toggleShareToFeed}
+            trackColor={{
+              false: Colors.gray[300],
+              true: Colors.primary,
+            }}
+            thumbColor={Colors.white}
           />
         </View>
-      </ScrollView>
+
+        {/* Place Bet Button */}
+        <PlaceBetButton
+          onPress={handlePlaceBet}
+          isLoading={isPlacing}
+          isDisabled={!isValid}
+          errorMessage={validationError}
+        />
+      </View>
     </BaseSheet>
   );
 }
