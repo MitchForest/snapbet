@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text } from '@tamagui/core';
 import { TextInput, Image, Pressable, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -22,6 +22,33 @@ export const GroupCreationFlow: React.FC<GroupCreationFlowProps> = ({ onComplete
   const [groupPhoto, setGroupPhoto] = useState<{ uri: string; file?: File } | null>(null);
   const [expirationHours, setExpirationHours] = useState(24);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Immediate debug
+  useEffect(() => {
+    console.log('=== GroupCreationFlow MOUNTED ===');
+    console.log('Initial selectedMembers:', selectedMembers);
+    console.log('Length:', selectedMembers.length);
+    console.log('Content:', JSON.stringify(selectedMembers));
+
+    // Check if somehow current user is in there
+    if (selectedMembers.length > 0) {
+      console.log('WARNING: selectedMembers is not empty on mount!');
+      console.log('First item:', selectedMembers[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Debug selected members
+  const handleMemberSelect = useCallback((members: string[]) => {
+    console.log('=== handleMemberSelect ===');
+    console.log('New members:', members);
+    console.log('Setting state...');
+    setSelectedMembers(members);
+  }, []);
+
+  useEffect(() => {
+    console.log('GroupCreationFlow - selectedMembers state:', selectedMembers);
+  }, [selectedMembers]);
 
   // Pick group photo
   const pickGroupPhoto = async () => {
@@ -125,7 +152,7 @@ export const GroupCreationFlow: React.FC<GroupCreationFlowProps> = ({ onComplete
       {currentStep === 'members' ? (
         <MemberSelector
           selectedUsers={selectedMembers}
-          onSelect={setSelectedMembers}
+          onSelect={handleMemberSelect}
           minMembers={1}
           maxMembers={49}
         />

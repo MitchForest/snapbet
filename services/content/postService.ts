@@ -27,7 +27,7 @@ export async function createPost(params: CreatePostParams): Promise<PostWithType
     .select(
       `
       *,
-      user:users(id, username, avatar_url)
+      user:users(id, username, display_name, avatar_url)
     `
     )
     .single();
@@ -42,7 +42,7 @@ export async function getPostsByType(postType: PostType, limit = 20): Promise<Po
     .select(
       `
       *,
-      user:users(id, username, avatar_url)
+      user:users(id, username, display_name, avatar_url)
     `
     )
     .eq('post_type', postType)
@@ -61,7 +61,7 @@ export async function getAllPosts(limit = 20): Promise<PostWithType[]> {
     .select(
       `
       *,
-      user:users(id, username, avatar_url)
+      user:users(id, username, display_name, avatar_url)
     `
     )
     .is('deleted_at', null)
@@ -79,7 +79,7 @@ export async function getPostById(postId: string): Promise<PostWithType | null> 
     .select(
       `
       *,
-      user:users(id, username, avatar_url)
+      user:users(id, username, display_name, avatar_url)
     `
     )
     .eq('id', postId)
@@ -104,7 +104,7 @@ export async function updatePost(
     .select(
       `
       *,
-      user:users(id, username, avatar_url)
+      user:users(id, username, display_name, avatar_url)
     `
     )
     .single();
@@ -140,7 +140,7 @@ export async function createComment(postId: string, content: string): Promise<Co
     .select(
       `
       *,
-      user:users(id, username, avatar_url)
+      user:users(id, username, display_name, avatar_url)
     `
     )
     .single();
@@ -156,7 +156,7 @@ export async function getComments(postId: string, limit = 50): Promise<Comment[]
     .select(
       `
       *,
-      user:users(id, username, avatar_url)
+      user:users(id, username, display_name, avatar_url)
     `
     )
     .eq('post_id', postId)

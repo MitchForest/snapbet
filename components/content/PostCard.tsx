@@ -113,8 +113,14 @@ export function PostCard({ post, onPress }: PostCardProps) {
               fallback={post.user?.username?.[0]?.toUpperCase() || '?'}
             />
             <View style={styles.userText}>
-              <Text style={styles.username}>@{post.user?.username || 'unknown'}</Text>
-              <Text style={styles.timestamp}>{timeUntilExpiration}</Text>
+              <Text style={styles.displayName}>
+                {post.user?.display_name || post.user?.username || 'Unknown'}
+              </Text>
+              <View style={styles.metaRow}>
+                <Text style={styles.username}>@{post.user?.username || 'unknown'}</Text>
+                <Text style={styles.dot}>•</Text>
+                <Text style={styles.timestamp}>{timeUntilExpiration}</Text>
+              </View>
             </View>
           </Pressable>
           <View style={styles.headerRight}>
@@ -273,15 +279,28 @@ const styles = StyleSheet.create({
   userText: {
     marginLeft: 12,
   },
-  username: {
+  displayName: {
     color: Colors.text.primary,
     fontSize: 16,
     fontWeight: '600',
   },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  username: {
+    color: Colors.text.secondary,
+    fontSize: 12,
+  },
+  dot: {
+    color: Colors.text.secondary,
+    fontSize: 12,
+    marginHorizontal: 4,
+  },
   timestamp: {
     color: Colors.text.secondary,
     fontSize: 12,
-    marginTop: 2,
   },
   headerRight: {
     flexDirection: 'row',

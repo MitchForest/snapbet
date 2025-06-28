@@ -15,7 +15,9 @@ async function cleanup() {
   console.log('  ❌ All mock user messages');
   console.log('  ❌ All mock user bets');
   console.log('  ❌ All reactions and comments from mock users');
-  console.log('  ❌ All follow relationships with mock users\n');
+  console.log('  ❌ All follow relationships with mock users');
+  console.log('  ❌ All messages in chats with mock users');
+  console.log('  ❌ All broken/empty chats\n');
 
   const confirm = process.argv.includes('--confirm');
   if (!confirm) {
@@ -37,6 +39,31 @@ async function cleanup() {
 
     const mockUserIds = mockUsers.map((u) => u.id);
     console.log(`Found ${mockUserIds.length} mock users to clean up\n`);
+
+    // First, get all chats that have mock users as members
+    console.log('🗑️  Finding chats with mock users...');
+    const { data: chatsWithMockUsers } = await supabase
+      .from('chat_members')
+      .select('chat_id')
+      .in('user_id', mockUserIds);
+
+    const chatIdsToClean = [...new Set(chatsWithMockUsers?.map((c) => c.chat_id) || [])];
+    console.log(`   Found ${chatIdsToClean.length} chats with mock users`);
+
+    // Delete all messages in these chats
+    if (chatIdsToClean.length > 0) {
+      console.log('🗑️  Cleaning messages in chats with mock users...');
+      const { error: msgError } = await supabase
+        .from('messages')
+        .delete()
+        .in('chat_id', chatIdsToClean);
+
+      if (msgError) {
+        console.error(`   ❌ Error: ${msgError.message}`);
+      } else {
+        console.log(`   ✅ Complete`);
+      }
+    }
 
     // Delete in order to respect foreign key constraints
     const cleanupSteps = [
@@ -61,7 +88,7 @@ async function cleanup() {
         column: 'viewer_id',
       },
       {
-        name: 'Messages',
+        name: 'Messages from mock users',
         table: 'messages',
         column: 'sender_id',
       },
@@ -114,24 +141,62 @@ async function cleanup() {
       }
     }
 
-    // Clean up empty group chats (where all members were mock users)
-    console.log('\n🗑️  Cleaning empty group chats...');
-    const { data: emptyChats } = await supabase
-      .from('chats')
-      .select('id')
-      .eq('chat_type', 'group')
-      .not('chat_members', 'inner', null);
+    // Clean up broken chats (DMs with != 2 members or groups with < 2 members)
+    console.log('\n🗑️  Cleaning broken chats...');
+
+    // Get all chats with their member counts
+    const { data: allChats } = await supabase.from('chats').select(`
+        id,
+        chat_type,
+        chat_members!inner(user_id)
+      `);
+
+    if (allChats) {
+      const brokenChats = allChats.filter((chat) => {
+        const memberCount = chat.chat_members?.length || 0;
+        return (
+          (chat.chat_type === 'dm' && memberCount !== 2) ||
+          (chat.chat_type === 'group' && memberCount < 2)
+        );
+      });
+
+      if (brokenChats.length > 0) {
+        const brokenChatIds = brokenChats.map((c) => c.id);
+
+        // Delete messages first
+        await supabase.from('messages').delete().in('chat_id', brokenChatIds);
+
+        // Delete the chats (cascade will handle members)
+        const { error } = await supabase.from('chats').delete().in('id', brokenChatIds);
+
+        if (error) {
+          console.error(`   ❌ Error deleting broken chats: ${error.message}`);
+        } else {
+          console.log(`   ✅ Deleted ${brokenChats.length} broken chats`);
+        }
+      } else {
+        console.log('   ✅ No broken chats found');
+      }
+    }
+
+    // Clean up empty chats where all members were removed
+    console.log('\n🗑️  Cleaning empty chats...');
+    const { data: emptyChats } = await supabase.from('chats').select(`
+        id,
+        chat_members(user_id)
+      `);
 
     if (emptyChats) {
-      for (const chat of emptyChats) {
-        const { data: members } = await supabase
-          .from('chat_members')
-          .select('user_id')
-          .eq('chat_id', chat.id);
+      const trulyEmptyChats = emptyChats.filter(
+        (chat) => !chat.chat_members || chat.chat_members.length === 0
+      );
 
-        if (!members || members.length === 0) {
-          await supabase.from('chats').delete().eq('id', chat.id);
-        }
+      if (trulyEmptyChats.length > 0) {
+        const emptyChatIds = trulyEmptyChats.map((c) => c.id);
+        await supabase.from('chats').delete().in('id', emptyChatIds);
+        console.log(`   ✅ Deleted ${trulyEmptyChats.length} empty chats`);
+      } else {
+        console.log('   ✅ No empty chats found');
       }
     }
 

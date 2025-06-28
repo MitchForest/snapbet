@@ -9,7 +9,7 @@ export function useAuthRedirector() {
   const navigationState = useRootNavigationState();
   const { isAuthenticated, isLoading, user } = useAuthStore();
   const [checkingUsername, setCheckingUsername] = useState(false);
-  const hasRedirected = useRef(false);
+  const lastAuthState = useRef(isAuthenticated);
 
   useEffect(() => {
     if (!navigationState?.key || isLoading || checkingUsername) return;
@@ -17,6 +17,15 @@ export function useAuthRedirector() {
     const checkOnboarding = async () => {
       const inAuthGroup = segments[0] === '(auth)';
       const inDrawerGroup = segments[0] === '(drawer)';
+
+      // Log for debugging - commented out to reduce console noise
+      // console.log('[AuthRedirector]', {
+      //   isAuthenticated,
+      //   hasUser: !!user,
+      //   inAuthGroup,
+      //   inDrawerGroup,
+      //   segments,
+      // });
 
       if (isAuthenticated && user) {
         setCheckingUsername(true);
@@ -33,31 +42,27 @@ export function useAuthRedirector() {
         const hasUsername = !error && !!data?.username;
 
         if (!hasUsername && !inAuthGroup) {
-          console.log('User needs onboarding - redirecting...');
-          hasRedirected.current = true;
+          // console.log('[AuthRedirector] User needs onboarding - redirecting...');
           router.replace('/(auth)/onboarding/username');
-        } else if (hasUsername && !inDrawerGroup) {
-          console.log(
-            `User is authenticated and has username: ${data.username} - redirecting to app...`
-          );
-          hasRedirected.current = true;
+        } else if (hasUsername && !inDrawerGroup && !inAuthGroup) {
+          // console.log(
+          //   `[AuthRedirector] User is authenticated and has username: ${data.username} - redirecting to app...`
+          // );
           router.replace('/(drawer)/(tabs)');
         }
       } else if (!isAuthenticated && !inAuthGroup) {
-        console.log('User is not authenticated - redirecting to login...');
-        hasRedirected.current = true;
+        // console.log('[AuthRedirector] User is not authenticated - redirecting to login...');
         router.replace('/(auth)/welcome');
       }
     };
 
-    // Only check if we haven't already redirected
-    if (!hasRedirected.current) {
+    // Check if auth state changed
+    if (lastAuthState.current !== isAuthenticated) {
+      lastAuthState.current = isAuthenticated;
+      checkOnboarding();
+    } else {
+      // Also check on initial mount and segment changes
       checkOnboarding();
     }
   }, [isAuthenticated, isLoading, user, navigationState?.key, router, checkingUsername, segments]);
-
-  // Reset the redirect flag when auth state changes
-  useEffect(() => {
-    hasRedirected.current = false;
-  }, [isAuthenticated]);
 }

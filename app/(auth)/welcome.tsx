@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Stack } from '@tamagui/core';
 import { TouchableOpacity, TextInput, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Logo } from '@/components/common/Logo';
 import { OAuthButton } from '@/components/auth/OAuthButton';
 import { LoadingOverlay } from '@/components/auth/LoadingOverlay';
@@ -13,10 +14,12 @@ import {
 } from '@/services/referral/referralService';
 import type { OAuthProvider } from '@/services/auth/types';
 import { Colors } from '@/theme';
+import { supabase } from '@/services/supabase/client';
 
 export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
-  const { signIn, error, clearError, isLoading } = useAuthStore();
+  const router = useRouter();
+  const { signIn, error, clearError, isLoading, isAuthenticated, user } = useAuthStore();
   const [loadingProvider, setLoadingProvider] = useState<OAuthProvider | null>(null);
   const [showReferralInput, setShowReferralInput] = useState(false);
   const [referralCode, setReferralCode] = useState('');
@@ -26,6 +29,24 @@ export default function WelcomeScreen() {
   useEffect(() => {
     return () => clearError();
   }, [clearError]);
+
+  // Handle redirect when user becomes authenticated
+  useEffect(() => {
+    if (isAuthenticated && user && !isLoading) {
+      // Check if user has username
+      const checkUsername = async () => {
+        const { data } = await supabase.from('users').select('username').eq('id', user.id).single();
+
+        if (data?.username) {
+          router.replace('/(drawer)/(tabs)');
+        } else {
+          router.replace('/(auth)/onboarding/username');
+        }
+      };
+
+      checkUsername();
+    }
+  }, [isAuthenticated, user, isLoading, router]);
 
   const handleOAuthSignIn = async (provider: OAuthProvider) => {
     clearError();
@@ -41,7 +62,7 @@ export default function WelcomeScreen() {
 
     try {
       await signIn(provider);
-      // Navigation will be handled by the auth state change in _layout.tsx
+      // Navigation will be handled by the useEffect above
     } catch (err) {
       console.error('OAuth sign in error:', err);
     } finally {

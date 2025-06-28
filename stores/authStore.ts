@@ -66,7 +66,7 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
 
       // If we got a session back, set it
       if (response.session && response.user) {
-        console.log('Sign in successful, setting session');
+        // console.log('Sign in successful, setting session');
         set({
           session: response.session,
           user: response.user,
@@ -161,10 +161,10 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
   },
 
   setSession: (session: Session | null) => {
-    console.log(`[${new Date().toISOString()}] authStore.setSession - called with:`, {
-      hasSession: !!session,
-      userId: session?.user?.id,
-    });
+    // console.log(`[${new Date().toISOString()}] authStore.setSession - called with:`, {
+    //   hasSession: !!session,
+    //   userId: session?.user?.id,
+    // });
 
     set({
       session,

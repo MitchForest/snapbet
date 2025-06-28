@@ -132,23 +132,24 @@ async function getUpcomingGames(): Promise<Game[]> {
 // Helper function to generate proper bet details based on bet type
 function generateBetDetails(betType: 'spread' | 'moneyline' | 'total', game: Game) {
   switch (betType) {
-    case 'spread':
-      const spreadLine = (Math.random() * 10 - 5).toFixed(1); // Random spread between -5 and +5
+    case 'spread': {
+      const favoriteTeam = Math.random() > 0.5 ? game.home_team : game.away_team;
+      const spread = Math.floor(Math.random() * 10) + 1; // 1-10 point spread
       return {
-        team: Math.random() > 0.5 ? game.home_team : game.away_team,
-        line: parseFloat(spreadLine),
+        team: favoriteTeam,
+        line: spread * (Math.random() > 0.5 ? 1 : -1),
       };
-    
+    }
+    case 'total': {
+      const totalLine = 200 + Math.floor(Math.random() * 50); // 200-250 range
+      return {
+        total_type: (Math.random() > 0.5 ? 'over' : 'under') as 'over' | 'under',
+        line: totalLine,
+      };
+    }
     case 'moneyline':
       return {
         team: Math.random() > 0.5 ? game.home_team : game.away_team,
-      };
-    
-    case 'total':
-      const totalLine = Math.floor(200 + Math.random() * 40); // Random total between 200-240 for NBA
-      return {
-        total_type: Math.random() > 0.5 ? 'over' : 'under',
-        line: totalLine,
       };
   }
 }
@@ -197,46 +198,74 @@ async function createFollowRelationships(userId: string, mockUsers: MockUser[]) 
   );
 }
 
-// Create stories from mock users
+// Helper function to get the start of the week (Monday)
+function getWeekStart(date: Date): Date {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+  return new Date(d.setDate(diff));
+}
+
+// Helper function to get days since Monday
+function getDaysSinceMonday(): number {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  return dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sunday is 0, so it's 6 days since Monday
+}
+
+// Helper function for story captions
+function getRandomStoryCaption(): string {
+  const captions = [
+    'Game time 🏀',
+    'Locked in 🔒',
+    'Trust the process 📈',
+    'Books are scared 😤',
+    'Feeling good about tonight 🔥',
+    'Line movement 👀',
+    "Who's tailing? 🚀",
+    'Another day, another play 💰',
+    "Let's ride 🎯",
+    'Fade or tail? 🤔',
+  ];
+  return captions[Math.floor(Math.random() * captions.length)];
+}
+
+// Create stories
 async function createStories(mockUsers: MockUser[]) {
   console.log('📸 Creating stories...');
 
-  const storyUsers = mockUsers.sort(() => Math.random() - 0.5).slice(0, CONFIG.posts.stories);
-
   const stories = [];
+  const activeUsers = mockUsers.slice(0, CONFIG.posts.stories);
 
-  for (const user of storyUsers) {
-    const personality = getPersonalityFromBehavior(user.mock_personality_id);
-    const storyType = Math.random() > 0.5 ? 'photo' : 'video';
+  for (const user of activeUsers) {
+    // Randomly select a GIF category for each story
+    const categories = ['thinking', 'positive', 'celebration', 'frustration', 'all'];
+    const category = categories[Math.floor(Math.random() * categories.length)];
 
-    // Story content based on personality
-    let content = '';
     let mediaUrl = '';
-
-    if (Math.random() > 0.6) {
-      // Betting-related story
-      const templates = postTemplates['pick-share'].confident;
-      content = fillTemplate(getRandomTemplate(templates), {
-        team: 'Lakers',
-        spread: '-5.5',
-        odds: '-110',
-        type: 'spread',
-        line: '-5.5',
-      });
-      mediaUrl = mockMediaUrls.reaction[0];
+    if (category === 'all') {
+      // Pick from all available GIFs
+      const allGifs = [
+        ...mockMediaUrls.thinking,
+        ...mockMediaUrls.positive,
+        ...mockMediaUrls.celebration,
+        ...mockMediaUrls.frustration,
+      ];
+      mediaUrl = allGifs[Math.floor(Math.random() * allGifs.length)];
     } else {
-      // General story
-      const templates = messageTemplates[personality as keyof typeof messageTemplates];
-      content = getRandomTemplate(templates?.greeting || ['Game day! 🏀']);
-      mediaUrl = mockMediaUrls.reaction[Math.floor(Math.random() * mockMediaUrls.reaction.length)];
+      mediaUrl =
+        mockMediaUrls[category as keyof typeof mockMediaUrls][
+          Math.floor(Math.random() * mockMediaUrls[category as keyof typeof mockMediaUrls].length)
+        ];
     }
 
     stories.push({
       user_id: user.id,
-      media_url: mediaUrl,
-      media_type: storyType as 'photo' | 'video',
-      caption: content,
-      created_at: new Date(Date.now() - Math.random() * 2 * 60 * 60 * 1000).toISOString(), // Random time in last 2 hours
+      media_url: mediaUrl, // Always include a GIF
+      media_type: 'photo' as const, // GIFs are treated as photos
+      caption: Math.random() > 0.5 ? getRandomStoryCaption() : null,
+      created_at: new Date(Date.now() - Math.random() * 20 * 60 * 60 * 1000).toISOString(), // Within last 20 hours
+      expires_at: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(), // 4 hours from now
     });
   }
 
@@ -255,63 +284,150 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
   const comments: Comment[] = [];
   const pickActions: PickAction[] = [];
 
-  // First, create historical winning bets for "Hot Bettors"
-  console.log('  🔥 Creating hot bettor history...');
-  const hotBettors = mockUsers
-    .filter((u) => ['sharp-bettor', 'live-bettor'].includes(u.mock_personality_id || ''))
-    .slice(0, 5);
+  // First, create some posts from the main user with GIFs
+  const userPostCount = 3;
+  for (let i = 0; i < userPostCount; i++) {
+    const postType = ['regular', 'pick'][Math.floor(Math.random() * 2)] as 'regular' | 'pick';
+    const game = games[Math.floor(Math.random() * games.length)];
 
-  // Calculate current week boundaries
-  const now = new Date();
-  const dayOfWeek = now.getDay();
-  const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sunday is 0, so it's 6 days since Monday
-  const mondayStart = new Date(now);
-  mondayStart.setDate(now.getDate() - daysSinceMonday);
-  mondayStart.setHours(0, 0, 0, 0);
+    if (postType === 'pick') {
+      // Create a bet for the pick
+      const betType = (['spread', 'moneyline', 'total'] as const)[Math.floor(Math.random() * 3)];
+      const betDetails = generateBetDetails(betType, game);
+      const stake = [100, 250, 500][Math.floor(Math.random() * 3)];
 
-  console.log(`  📅 Current week: Monday ${mondayStart.toISOString()} to now ${now.toISOString()}`);
-  console.log(`  📅 Days since Monday: ${daysSinceMonday}`);
-
-  for (const hotUser of hotBettors) {
-    // Create 5-8 bets settled THIS WEEK with 70%+ win rate
-    const betCount = Math.floor(Math.random() * 4) + 5;
-    const winCount = Math.floor(betCount * (0.7 + Math.random() * 0.2));
-
-    for (let i = 0; i < betCount; i++) {
-      const game = games[Math.floor(Math.random() * games.length)];
-      const isWin = i < winCount;
-      const betId = crypto.randomUUID();
-
-      // Ensure bets are settled within current week (since Monday)
-      // Distribute evenly across the days we've had so far this week
-      const maxDaysAgo = Math.min(daysSinceMonday, 6); // Cap at 6 days to stay within week
-      const daysAgo = Math.random() * maxDaysAgo;
-      const hoursAgo = daysAgo * 24 + Math.floor(Math.random() * 12); // Add some hour variation
-
-      const settledAt = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
-      const createdAt = new Date(settledAt.getTime() - 2 * 60 * 60 * 1000); // Created 2 hours before settled
-
-      const betType = ['spread', 'moneyline', 'total'][Math.floor(Math.random() * 3)] as
-        | 'spread'
-        | 'moneyline'
-        | 'total';
-
-      bets.push({
-        id: betId,
-        user_id: hotUser.id,
+      const bet = {
+        id: crypto.randomUUID(),
+        user_id: userId,
         game_id: game.id,
         bet_type: betType,
-        bet_details: generateBetDetails(betType, game),
-        stake: 2000,
+        bet_details: betDetails,
         odds: -110,
-        potential_win: 1818,
-        actual_win: isWin ? 3818 : 0,
-        status: isWin ? ('won' as const) : ('lost' as const),
-        settled_at: settledAt.toISOString(),
-        created_at: createdAt.toISOString(),
+        stake,
+        potential_win: (stake * 100) / 110,
+        status: 'pending' as const,
+        created_at: new Date(Date.now() - i * 2 * 60 * 60 * 1000).toISOString(),
+      };
+
+      bets.push(bet);
+
+      // Create pick post with thinking GIF
+      posts.push({
+        id: crypto.randomUUID(),
+        user_id: userId,
+        caption: `🔒 ${game.home_team} vs ${game.away_team}\n\n${betType === 'spread' ? `${betDetails.team} ${betDetails.line}` : betType === 'total' ? `${betDetails.total_type} ${betDetails.line}` : `${betDetails.team} ML`}\n\nLet's ride 🚀`,
+        created_at: bet.created_at,
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        media_type: 'photo',
+        media_url:
+          mockMediaUrls.thinking[Math.floor(Math.random() * mockMediaUrls.thinking.length)],
+        post_type: 'pick',
+        bet_id: bet.id,
+      });
+    } else {
+      // Regular post with random GIF
+      const gifCategories = ['positive', 'celebration', 'frustration', 'thinking'];
+      const category = gifCategories[Math.floor(Math.random() * gifCategories.length)];
+
+      posts.push({
+        id: crypto.randomUUID(),
+        user_id: userId,
+        caption: [
+          'Books are scared today 😤',
+          'Another day, another dub 💰',
+          'Trust the process 📈',
+          'Who else is feeling good about tonight? 🔥',
+          'Line movement tells the story 👀',
+        ][Math.floor(Math.random() * 5)],
+        created_at: new Date(Date.now() - i * 3 * 60 * 60 * 1000).toISOString(),
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        media_type: 'photo',
+        media_url:
+          mockMediaUrls[category as keyof typeof mockMediaUrls][
+            Math.floor(Math.random() * mockMediaUrls[category as keyof typeof mockMediaUrls].length)
+          ],
+        post_type: 'regular',
       });
     }
   }
+
+  // Create historical winning bets for "Hot Bettors"
+  console.log('  🔥 Creating hot bettor history...');
+  const hotBettors = mockUsers.slice(0, 5);
+  const currentWeekStart = getWeekStart(new Date());
+  console.log(
+    `  📅 Current week: ${currentWeekStart.toISOString()} to now ${new Date().toISOString()}`
+  );
+  console.log(`  📅 Days since Monday: ${getDaysSinceMonday()}`);
+
+  // Create settled bets type
+  type SettledBet = {
+    id: string;
+    user_id: string;
+    game_id: string;
+    bet_type: 'spread' | 'moneyline' | 'total';
+    bet_details: {
+      team?: string;
+      line?: number;
+      total_type?: 'over' | 'under';
+    };
+    stake: number;
+    odds: number;
+    potential_win: number;
+    actual_win: number;
+    status: 'won' | 'lost';
+    settled_at: string;
+    created_at: string;
+  };
+
+  const settledBets: SettledBet[] = [];
+
+  for (const bettor of hotBettors) {
+    // Create 4-6 winning bets this week
+    const winCount = Math.floor(Math.random() * 3) + 4;
+    for (let i = 0; i < winCount; i++) {
+      const game = games[Math.floor(Math.random() * games.length)];
+      const daysAgo = Math.floor(Math.random() * getDaysSinceMonday());
+      settledBets.push({
+        id: crypto.randomUUID(),
+        user_id: bettor.id,
+        game_id: game.id,
+        bet_type: 'spread' as const,
+        bet_details: generateBetDetails('spread', game),
+        stake: Math.floor(Math.random() * 2000) + 500,
+        odds: -110,
+        potential_win: 909,
+        actual_win: 1909,
+        status: 'won' as const,
+        settled_at: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - (daysAgo + 1) * 24 * 60 * 60 * 1000).toISOString(),
+      });
+    }
+
+    // Add 1-2 losses for realism
+    const lossCount = Math.floor(Math.random() * 2) + 1;
+    for (let i = 0; i < lossCount; i++) {
+      const game = games[Math.floor(Math.random() * games.length)];
+      const daysAgo = Math.floor(Math.random() * getDaysSinceMonday());
+      settledBets.push({
+        id: crypto.randomUUID(),
+        user_id: bettor.id,
+        game_id: game.id,
+        bet_type: 'moneyline' as const,
+        bet_details: generateBetDetails('moneyline', game),
+        stake: Math.floor(Math.random() * 1000) + 200,
+        odds: -110,
+        potential_win: 182,
+        actual_win: 0,
+        status: 'lost' as const,
+        settled_at: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - (daysAgo + 1) * 24 * 60 * 60 * 1000).toISOString(),
+      });
+    }
+  }
+
+  // Add to main bets array
+  bets.push(...settledBets);
 
   // Create additional hot bettors to ensure we have enough
   console.log('  🔥 Creating additional hot bettors...');
@@ -330,14 +446,16 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
       const betId = crypto.randomUUID();
 
       // All bets settled within current week
-      const maxDaysAgo = Math.min(daysSinceMonday, 6);
+      const maxDaysAgo = Math.min(getDaysSinceMonday(), 6);
       const daysAgo = Math.random() * maxDaysAgo;
       const hoursAgo = daysAgo * 24 + Math.floor(Math.random() * 6);
 
-      const settledAt = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
+      const settledAt = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
       const createdAt = new Date(settledAt.getTime() - 3 * 60 * 60 * 1000);
 
-      const betType = ['spread', 'moneyline'][Math.floor(Math.random() * 2)] as 'spread' | 'moneyline';
+      const betType = ['spread', 'moneyline'][Math.floor(Math.random() * 2)] as
+        | 'spread'
+        | 'moneyline';
 
       bets.push({
         id: betId,
@@ -441,7 +559,7 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
     const wins = userBets.filter((b) => b.status === 'won').length;
     const losses = userBets.filter((b) => b.status === 'lost').length;
     const totalWagered = userBets.reduce((sum, b) => sum + b.stake, 0);
-    const totalWon = userBets.reduce((sum, b) => sum + (b.actual_win || 0), 0);
+    const totalWon = userBets.reduce((sum, b) => sum + ('actual_win' in b ? b.actual_win : 0), 0);
 
     await supabase
       .from('bankrolls')
@@ -646,7 +764,6 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
 
   // Create outcome posts for some settled bets from followed users
   console.log('  🎯 Creating outcome posts for settled bets...');
-  const settledBets = bets.filter((b) => b.status === 'won' || b.status === 'lost');
   const outcomePostsToCreate = 8; // Create 8 outcome posts
   const selectedBets = settledBets.slice(0, outcomePostsToCreate);
 
@@ -684,7 +801,7 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
       id: crypto.randomUUID(),
       user_id: user.id,
       caption,
-      created_at: new Date(new Date(bet.settled_at!).getTime() + 10 * 60 * 1000).toISOString(), // 10 mins after settlement
+      created_at: new Date(new Date(bet.settled_at).getTime() + 10 * 60 * 1000).toISOString(), // 10 mins after settlement
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       media_type: 'photo',
       media_url: isWin
@@ -801,7 +918,7 @@ async function createGroupChats(userId: string, mockUsers: MockUser[]) {
     });
 
     // Add recent messages AFTER all members are added
-    const messageCount = Math.floor(Math.random() * 15) + 10;
+    const messageCount = Math.floor(Math.random() * 20) + 15; // 15-35 messages
     const messages = [];
 
     // Start messages 30 minutes after chat creation to ensure system messages appear first
@@ -809,22 +926,48 @@ async function createGroupChats(userId: string, mockUsers: MockUser[]) {
     const firstMessageTime = new Date(chatCreatedAt).getTime() + 30 * 60 * 1000; // 30 minutes after chat creation
 
     for (let i = 0; i < messageCount; i++) {
-      const sender = allMemberIds[Math.floor(Math.random() * allMemberIds.length)];
+      // Mix of user and mock user messages (30% chance for user messages)
+      const isUserMessage = Math.random() < 0.3;
+      const sender = isUserMessage
+        ? userId
+        : allMemberIds[Math.floor(Math.random() * allMemberIds.length)];
+
+      // Skip if it's the user but we're randomly selecting from all members
+      if (sender === userId && !isUserMessage) continue;
+
       const senderUser = sender === userId ? null : mockUsers.find((u) => u.id === sender);
 
-      if (!senderUser && sender === userId) continue; // Skip user's messages for now
+      let content = '';
+      if (sender === userId) {
+        // User messages
+        const userTemplates = [
+          'Anyone tailing tonight?',
+          'What do you guys think about the Lakers game?',
+          "I'm on the over",
+          'Locked in 🔒',
+          'Who else is on this?',
+          'Books are scared of this line',
+          'Slam it',
+          'This line is moving fast',
+          'Got it at -3.5',
+          'LFG!! 🚀',
+        ];
+        content = userTemplates[Math.floor(Math.random() * userTemplates.length)];
+      } else {
+        // Mock user messages
+        const personality = senderUser
+          ? getPersonalityFromBehavior(senderUser.mock_personality_id)
+          : 'degen';
 
-      const personality = senderUser
-        ? getPersonalityFromBehavior(senderUser.mock_personality_id)
-        : 'degen';
+        const templates =
+          messageTemplates[personality as keyof typeof messageTemplates] ||
+          messageTemplates['degen'];
 
-      const templates =
-        messageTemplates[personality as keyof typeof messageTemplates] || messageTemplates['degen'];
-
-      const content = fillTemplate(getRandomTemplate(templates.discussion || templates.greeting), {
-        team: 'Lakers',
-        game: 'Lakers vs Celtics',
-      });
+        content = fillTemplate(getRandomTemplate(templates.discussion || templates.greeting), {
+          team: 'Lakers',
+          game: 'Lakers vs Celtics',
+        });
+      }
 
       messages.push({
         chat_id: chat.id,
@@ -847,120 +990,151 @@ async function createDirectChats(userId: string, mockUsers: MockUser[]) {
 
   const dmPartners = mockUsers.sort(() => Math.random() - 0.5).slice(0, CONFIG.chats.directChats);
   let createdCount = 0;
+  let skippedCount = 0;
 
   for (const partner of dmPartners) {
-    // Check if DM already exists between these two users
-    // First get all chats where the partner is a member
-    const { data: partnerChats } = await supabase
-      .from('chat_members')
-      .select('chat_id')
-      .eq('user_id', partner.id);
-
-    let existingDM = null;
-    if (partnerChats && partnerChats.length > 0) {
-      // Now check if user is also in any of those chats
-      const partnerChatIds = partnerChats.map((c) => c.chat_id);
-      const { data: userInSameChat } = await supabase
+    try {
+      // Check if DM already exists between these two users
+      const { data: partnerChats } = await supabase
         .from('chat_members')
         .select('chat_id')
-        .eq('user_id', userId)
-        .in('chat_id', partnerChatIds);
+        .eq('user_id', partner.id);
 
-      if (userInSameChat && userInSameChat.length > 0) {
-        // Check if it's a DM chat
-        const { data: dmChat } = await supabase
-          .from('chats')
-          .select('id')
-          .eq('id', userInSameChat[0].chat_id)
-          .eq('chat_type', 'dm')
-          .single();
+      let chatId = null;
 
-        if (dmChat) {
-          existingDM = [{ chat_id: dmChat.id }];
+      if (partnerChats && partnerChats.length > 0) {
+        // Check each chat to see if it's a DM with the user
+        for (const pc of partnerChats) {
+          // Check if this is a DM chat
+          const { data: chatInfo } = await supabase
+            .from('chats')
+            .select('id, chat_type')
+            .eq('id', pc.chat_id)
+            .eq('chat_type', 'dm')
+            .single();
+
+          if (chatInfo) {
+            // Check if the user is also in this chat
+            const { data: userInChat } = await supabase
+              .from('chat_members')
+              .select('chat_id')
+              .eq('chat_id', pc.chat_id)
+              .eq('user_id', userId)
+              .single();
+
+            if (userInChat) {
+              chatId = pc.chat_id;
+              skippedCount++;
+              break;
+            }
+          }
         }
       }
-    }
 
-    let chatId;
+      if (!chatId) {
+        // Create new DM chat with both members in a transaction-like approach
+        const { data: newChat, error: chatError } = await supabase
+          .from('chats')
+          .insert({
+            chat_type: 'dm',
+            created_by: userId,
+          })
+          .select()
+          .single();
 
-    if (!existingDM || existingDM.length === 0) {
-      // Create new DM chat
-      const { data: newChat, error } = await supabase
-        .from('chats')
-        .insert({
-          chat_type: 'dm',
-          created_by: userId,
-        })
-        .select()
-        .single();
+        if (chatError || !newChat) {
+          console.error('Error creating DM chat:', chatError);
+          continue;
+        }
 
-      if (error || !newChat) {
-        console.error('Error creating DM chat:', error);
-        continue;
+        // Add BOTH members immediately
+        const membersToAdd = [
+          { chat_id: newChat.id, user_id: userId, role: 'member' as const },
+          { chat_id: newChat.id, user_id: partner.id, role: 'member' as const },
+        ];
+
+        const { error: memberError } = await supabase.from('chat_members').insert(membersToAdd);
+
+        if (memberError) {
+          console.error('Error adding DM members:', memberError);
+          // Clean up the chat since member addition failed
+          await supabase.from('chats').delete().eq('id', newChat.id);
+          continue;
+        }
+
+        chatId = newChat.id;
+
+        // Add some messages with varied conversation flow
+        const messageCount = Math.floor(Math.random() * 10) + 5; // 5-15 messages
+        const messages = [];
+
+        // Create a more natural conversation flow
+        let lastSender = Math.random() > 0.5 ? partner.id : userId;
+
+        for (let i = 0; i < messageCount; i++) {
+          // 70% chance to continue with same sender (more natural conversation flow)
+          if (Math.random() > 0.7) {
+            lastSender = lastSender === partner.id ? userId : partner.id;
+          }
+
+          let content = '';
+          if (lastSender === userId) {
+            // User messages in DMs
+            const userDmTemplates = [
+              'You see that line move?',
+              'What you got tonight?',
+              'Nice hit yesterday 💰',
+              'Brutal beat on that last one',
+              'You tailing or fading?',
+              'Check my last pick',
+              'Books got this wrong',
+              "I'm hammering this",
+              'Lock of the day incoming',
+              'Trust the process',
+            ];
+            content = userDmTemplates[Math.floor(Math.random() * userDmTemplates.length)];
+          } else {
+            // Partner messages
+            const personality = getPersonalityFromBehavior(partner.mock_personality_id);
+            const templates =
+              messageTemplates[personality as keyof typeof messageTemplates] ||
+              messageTemplates['degen'];
+
+            // Vary message types based on position in conversation
+            if (i === 0) {
+              content = getRandomTemplate(templates.greeting);
+            } else if (i === messageCount - 1) {
+              content = getRandomTemplate(templates.reaction || templates.discussion);
+            } else {
+              content = getRandomTemplate(templates.discussion || templates.reaction);
+            }
+          }
+
+          messages.push({
+            chat_id: chatId,
+            sender_id: lastSender,
+            content,
+            created_at: new Date(Date.now() - (messageCount - i) * 60 * 60 * 1000).toISOString(),
+          });
+        }
+
+        if (messages.length > 0) {
+          const { error: msgError } = await supabase.from('messages').insert(messages);
+          if (msgError) {
+            console.error('Error creating DM messages:', msgError);
+          } else {
+            createdCount++;
+          }
+        }
       }
-
-      chatId = newChat.id;
-
-      // Add BOTH members at the same time - this is critical for DMs
-      const { error: memberError } = await supabase.from('chat_members').insert([
-        { chat_id: chatId, user_id: userId, role: 'member' },
-        { chat_id: chatId, user_id: partner.id, role: 'member' },
-      ]);
-
-      if (memberError) {
-        console.error('Error adding DM members:', memberError);
-        // Clean up the chat if member addition failed
-        await supabase.from('chats').delete().eq('id', chatId);
-        continue;
-      }
-    } else {
-      chatId = existingDM[0].chat_id;
-    }
-
-    // Add some messages with varied conversation flow
-    const messageCount = Math.floor(Math.random() * 8) + 3;
-    const messages = [];
-
-    // Create a more natural conversation flow
-    let lastSender = Math.random() > 0.5 ? partner.id : userId;
-
-    for (let i = 0; i < messageCount; i++) {
-      // 70% chance to continue with same sender (more natural conversation flow)
-      if (Math.random() > 0.7) {
-        lastSender = lastSender === partner.id ? userId : partner.id;
-      }
-
-      const isFromPartner = lastSender === partner.id;
-      const personality = getPersonalityFromBehavior(partner.mock_personality_id);
-      const templates =
-        messageTemplates[personality as keyof typeof messageTemplates] || messageTemplates['degen'];
-
-      // Vary message types based on position in conversation
-      let content;
-      if (i === 0) {
-        content = getRandomTemplate(templates.greeting);
-      } else if (i === messageCount - 1) {
-        content = getRandomTemplate(templates.reaction || templates.discussion);
-      } else {
-        content = getRandomTemplate(templates.discussion || templates.reaction);
-      }
-
-      messages.push({
-        chat_id: chatId,
-        sender_id: lastSender,
-        content,
-        created_at: new Date(Date.now() - (messageCount - i) * 60 * 60 * 1000).toISOString(),
-      });
-    }
-
-    if (messages.length > 0) {
-      const { error: msgError } = await supabase.from('messages').insert(messages);
-      if (msgError) console.error('Error creating DM messages:', msgError);
-      else createdCount++;
+    } catch (error) {
+      console.error(`Error processing DM with ${partner.username}:`, error);
     }
   }
 
-  console.log(`  ✅ Created ${createdCount} direct message conversations`);
+  console.log(
+    `  ✅ Created ${createdCount} new DM conversations (${skippedCount} already existed)`
+  );
 }
 
 // Create notifications

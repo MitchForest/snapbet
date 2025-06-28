@@ -59,9 +59,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   onBlock,
 }) => {
   // Calculate stats - Updated to remove decimals
-  const winRate = stats
-    ? Math.round((stats.win_count / (stats.win_count + stats.loss_count)) * 100)
-    : 0;
+  const winRate =
+    stats && stats.win_count + stats.loss_count > 0
+      ? Math.round((stats.win_count / (stats.win_count + stats.loss_count)) * 100)
+      : 0;
   const profit = stats ? Math.round((stats.total_won - stats.total_wagered) / 100) : 0;
   const roi =
     stats && stats.total_wagered > 0

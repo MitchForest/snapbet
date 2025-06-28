@@ -179,6 +179,7 @@ class ChatService {
   async getOrCreateDMChat(userId: string, otherUserId: string): Promise<string | null> {
     try {
       // Use the database function to handle chat creation with proper permissions
+      // The function uses auth.uid() internally, so we only pass the other user's ID
       // @ts-expect-error - create_dm_chat is a custom function not in generated types
       const { data, error } = await supabase.rpc('create_dm_chat', {
         other_user_id: otherUserId,

@@ -211,7 +211,7 @@ function ProfileScreenContent() {
   if (isUserBlocked) {
     return (
       <View flex={1} backgroundColor="$background">
-        <ScreenHeader title={`@${profileUser.username}`} />
+        <ScreenHeader title={profileUser.display_name || profileUser.username} />
         <ProfileHeader
           user={profileUser}
           stats={null}
@@ -253,7 +253,7 @@ function ProfileScreenContent() {
   if (profileUser.is_private && !canViewContent && !isOwnProfile) {
     return (
       <View flex={1} backgroundColor="$background">
-        <ScreenHeader title={`@${profileUser.username}`} />
+        <ScreenHeader title={profileUser.display_name || profileUser.username} />
         <ProfileHeader
           user={profileUser}
           stats={null}
@@ -284,7 +284,7 @@ function ProfileScreenContent() {
 
   return (
     <View flex={1} backgroundColor="$background">
-      <ScreenHeader title={`@${profileUser.username}`} />
+      <ScreenHeader title={profileUser.display_name || profileUser.username} />
       <View flex={1}>
         <ProfileHeader
           user={profileUser}

@@ -46,7 +46,7 @@ class AuthService {
         path: 'auth/callback',
       });
 
-      console.log('OAuth redirect URL:', redirectTo);
+      // console.log('OAuth redirect URL:', redirectTo);
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,

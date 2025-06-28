@@ -41,7 +41,7 @@ export const PostsList: React.FC<PostsListProps> = ({ userId, canView = true }) 
         .select(
           `
           *,
-          user:users(id, username, avatar_url)
+          user:users(id, username, display_name, avatar_url)
         `
         )
         .eq('user_id', userId)

@@ -48,43 +48,19 @@ export class FeedService {
       const blockedIds = (blockedUsers || []).map((row) => row.blocked_id);
 
       // Build query with privacy filter and blocked users filter
-      let query = supabase
+      const query = supabase
         .from('posts')
         .select(
           `
-          id,
-          user_id,
-          post_type,
-          media_url,
-          media_type,
-          thumbnail_url,
-          caption,
-          effect_id,
-          bet_id,
-          settled_bet_id,
-          comment_count,
-          tail_count,
-          fade_count,
-          reaction_count,
-          report_count,
-          created_at,
-          expires_at,
-          deleted_at,
-          user:user_id (
+          *,
+          user:users!user_id (
             id,
             username,
-            avatar_url,
             display_name,
-            is_private
+            avatar_url
           ),
-          bet:bets!bet_id (
-            *,
-            game:games!game_id (*)
-          ),
-          settled_bet:bets!settled_bet_id (
-            *,
-            game:games!game_id (*)
-          )
+          bet:bets!bet_id (*),
+          settled_bet:bets!settled_bet_id (*)
         `
         )
         .in('user_id', userIds)
@@ -96,7 +72,7 @@ export class FeedService {
 
       // Apply cursor if provided
       if (cursor) {
-        query = query.lt('created_at', cursor.timestamp).not('id', 'eq', cursor.id);
+        query.lt('created_at', cursor.timestamp).not('id', 'eq', cursor.id);
       }
 
       const { data, error } = await query;

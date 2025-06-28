@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { View, Text } from '@tamagui/core';
-import { TextInput, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
+import { TextInput, ActivityIndicator, Pressable, StyleSheet, Text as RNText } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { Avatar } from '@/components/common/Avatar';
 import { getFollowingIds } from '@/services/api/followUser';
@@ -29,6 +29,8 @@ export const MemberSelector: React.FC<MemberSelectorProps> = ({
   minMembers = 1,
   maxMembers = 49,
 }) => {
+  const componentId = useRef(Math.random().toString(36).substr(2, 9));
+  const selectedUsersRef = useRef(selectedUsers);
   const currentUser = useAuthStore((state) => state.user);
   const [searchQuery, setSearchQuery] = useState('');
   const [followingUsers, setFollowingUsers] = useState<User[]>([]);
@@ -36,6 +38,24 @@ export const MemberSelector: React.FC<MemberSelectorProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const { blockedUserIds } = useBlockedUsers();
+
+  // Debug logging
+  useEffect(() => {
+    const id = componentId.current;
+    console.log(`[${id}] MemberSelector - MOUNTED`);
+    return () => {
+      console.log(`[${id}] MemberSelector - UNMOUNTED`);
+    };
+  }, []);
+
+  useEffect(() => {
+    console.log(`[${componentId.current}] MemberSelector - selectedUsers updated:`, selectedUsers);
+  }, [selectedUsers]);
+
+  // Keep ref in sync
+  useEffect(() => {
+    selectedUsersRef.current = selectedUsers;
+  }, [selectedUsers]);
 
   // Fetch following users on mount
   useEffect(() => {
@@ -118,30 +138,47 @@ export const MemberSelector: React.FC<MemberSelectorProps> = ({
   // Toggle user selection
   const toggleUser = useCallback(
     (userId: string) => {
-      console.log('Toggle user:', userId, 'Current selected:', selectedUsers);
-      if (selectedUsers.includes(userId)) {
-        onSelect(selectedUsers.filter((id) => id !== userId));
-      } else if (selectedUsers.length < maxMembers) {
-        onSelect([...selectedUsers, userId]);
+      console.log('=== TOGGLE USER DEBUG ===');
+      console.log('userId:', userId);
+      console.log('selectedUsers from ref:', selectedUsersRef.current);
+      console.log('includes check:', selectedUsersRef.current.includes(userId));
+
+      if (selectedUsersRef.current.includes(userId)) {
+        const newSelection = selectedUsersRef.current.filter((id) => id !== userId);
+        console.log('Removing user, new selection:', newSelection);
+        onSelect(newSelection);
+      } else if (selectedUsersRef.current.length < maxMembers) {
+        const newSelection = [...selectedUsersRef.current, userId];
+        console.log('Adding user, new selection:', newSelection);
+        onSelect(newSelection);
+      } else {
+        console.log('Max members reached');
       }
     },
-    [selectedUsers, onSelect, maxMembers]
+    [onSelect, maxMembers]
   );
 
   // Render user item
   const renderUser = useCallback(
     ({ item }: { item: User }) => {
+      console.log('=== RENDERING USER ===');
+      console.log('item:', item);
+      console.log('selectedUsers in renderUser:', selectedUsers);
+
       const isSelected = selectedUsers.includes(item.id);
       const isDisabled = !isSelected && selectedUsers.length >= maxMembers;
 
+      console.log('isSelected:', isSelected);
+      console.log('isDisabled:', isDisabled);
+
       return (
         <Pressable
-          onPress={() => !isDisabled && toggleUser(item.id)}
-          style={({ pressed }) => [
-            styles.userItem,
-            isDisabled && styles.disabledItem,
-            pressed && styles.userItemPressed,
-          ]}
+          onPress={() => {
+            console.log('=== PRESSABLE PRESSED ===');
+            console.log('Attempting to toggle user:', item.id);
+            toggleUser(item.id);
+          }}
+          style={({ pressed }) => [styles.userItem, pressed && styles.userItemPressed]}
         >
           <View flexDirection="row" alignItems="center" gap="$3">
             <View
@@ -152,9 +189,9 @@ export const MemberSelector: React.FC<MemberSelectorProps> = ({
               ]}
             >
               {isSelected && (
-                <Text style={styles.checkmark} allowFontScaling={false}>
+                <RNText style={styles.checkmark} allowFontScaling={false}>
                   ✓
-                </Text>
+                </RNText>
               )}
             </View>
             <Avatar
@@ -194,6 +231,11 @@ export const MemberSelector: React.FC<MemberSelectorProps> = ({
 
   return (
     <View flex={1}>
+      {/* Show current selection */}
+      <View padding="$2" backgroundColor="$yellow2">
+        <Text fontSize="$2">Selected IDs: {JSON.stringify(selectedUsers)}</Text>
+      </View>
+
       {/* Search bar */}
       <View
         paddingHorizontal="$4"
@@ -268,9 +310,6 @@ const styles = StyleSheet.create({
   },
   userItemPressed: {
     backgroundColor: Colors.gray[100],
-  },
-  disabledItem: {
-    opacity: 0.5,
   },
   searchInput: {
     flex: 1,

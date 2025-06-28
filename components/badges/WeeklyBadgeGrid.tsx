@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text } from '@tamagui/core';
+import { Pressable, StyleSheet } from 'react-native';
 import { WEEKLY_BADGES } from '@/data/weeklyBadges';
 import { Colors } from '@/theme';
 
@@ -9,51 +10,72 @@ interface WeeklyBadgeGridProps {
 }
 
 export const WeeklyBadgeGrid: React.FC<WeeklyBadgeGridProps> = ({ badges }) => {
-  console.log('[WeeklyBadgeGrid Debug] Received badges:', badges);
-  console.log('[WeeklyBadgeGrid Debug] Available badge keys:', Object.keys(WEEKLY_BADGES));
+  const [tooltipBadgeId, setTooltipBadgeId] = React.useState<string | null>(null);
 
   if (!badges || badges.length === 0) {
     return null;
   }
 
   return (
-    <View flexDirection="row" flexWrap="wrap" gap="$2">
+    <View flexDirection="row" alignItems="center" gap="$1">
       {badges.map((badgeId) => {
-        console.log(
-          '[WeeklyBadgeGrid Debug] Looking up badge:',
-          badgeId,
-          'as',
-          badgeId.toUpperCase()
-        );
         const badge = WEEKLY_BADGES[badgeId.toUpperCase()];
-        console.log('[WeeklyBadgeGrid Debug] Found badge:', badge);
 
         if (!badge) {
-          console.warn('[WeeklyBadgeGrid Debug] Badge not found for ID:', badgeId);
           return null;
         }
 
         return (
-          <View
-            key={badge.id}
-            backgroundColor={Colors.surface}
-            borderRadius="$3"
-            borderWidth={1}
-            borderColor={Colors.border.light}
-            paddingHorizontal="$3"
-            paddingVertical="$2"
-            minWidth={100}
-            alignItems="center"
-          >
-            <Text fontSize={32} marginBottom="$1">
-              {badge.emoji}
-            </Text>
-            <Text fontSize="$1" fontWeight="600" color={Colors.text.primary} textAlign="center">
-              {badge.name}
-            </Text>
-            <Text fontSize="$1" color={Colors.text.secondary} textAlign="center" marginTop="$1">
-              {badge.description}
-            </Text>
+          <View key={badge.id} position="relative">
+            <Pressable
+              onPressIn={() => setTooltipBadgeId(badge.id)}
+              onPressOut={() => setTooltipBadgeId(null)}
+              style={styles.badgeButton}
+            >
+              <Text fontSize={20}>{badge.emoji}</Text>
+            </Pressable>
+
+            {/* Tooltip */}
+            {tooltipBadgeId === badge.id && (
+              <View
+                position="absolute"
+                bottom="$8"
+                left="50%"
+                transform={[{ translateX: -100 }]}
+                backgroundColor={Colors.gray[900]}
+                borderRadius="$2"
+                paddingHorizontal="$4"
+                paddingVertical="$3"
+                width={200}
+                zIndex={1000}
+                shadowColor={Colors.black}
+                shadowOffset={{ width: 0, height: 2 }}
+                shadowOpacity={0.25}
+                shadowRadius={4}
+              >
+                <Text fontSize={14} fontWeight="600" color={Colors.white} textAlign="center">
+                  {badge.name}
+                </Text>
+                <Text fontSize={12} color={Colors.gray[300]} textAlign="center" marginTop="$1">
+                  {badge.description}
+                </Text>
+                {/* Tooltip arrow */}
+                <View
+                  position="absolute"
+                  bottom={-6}
+                  left="50%"
+                  transform={[{ translateX: -6 }]}
+                  width={0}
+                  height={0}
+                  borderLeftWidth={6}
+                  borderRightWidth={6}
+                  borderTopWidth={6}
+                  borderLeftColor="transparent"
+                  borderRightColor="transparent"
+                  borderTopColor={Colors.gray[900]}
+                />
+              </View>
+            )}
           </View>
         );
       })}
@@ -108,3 +130,9 @@ export const BadgeProgress: React.FC<BadgeProgressProps> = ({ userId }) => {
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  badgeButton: {
+    padding: 4,
+  },
+});

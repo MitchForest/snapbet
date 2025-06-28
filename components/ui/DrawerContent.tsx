@@ -144,17 +144,23 @@ export const DrawerContent: React.FC<DrawerContentComponentProps> = ({ navigatio
         text: 'Sign Out',
         style: 'destructive',
         onPress: async () => {
-          await signOut();
           navigation.closeDrawer();
+          await signOut();
+          // Force navigation to welcome screen after sign out
+          navigation.reset({
+            index: 0,
+            routes: [{ name: '(auth)/welcome' as never }],
+          });
         },
       },
     ]);
   };
 
   // Calculate display stats
-  const winRate = userStats
-    ? ((userStats.win_count / (userStats.win_count + userStats.loss_count)) * 100).toFixed(1)
-    : '0.0';
+  const winRate =
+    userStats && userStats.win_count + userStats.loss_count > 0
+      ? ((userStats.win_count / (userStats.win_count + userStats.loss_count)) * 100).toFixed(1)
+      : '0.0';
 
   return (
     <View flex={1} backgroundColor="$background">
