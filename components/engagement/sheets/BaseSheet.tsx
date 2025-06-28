@@ -1,15 +1,7 @@
-import React, { useEffect, useRef, ReactNode, useCallback, useMemo } from 'react';
-import {
-  View,
-  StyleSheet,
-  Animated,
-  PanResponder,
-  Dimensions,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
-import { Colors, OpacityColors } from '@/theme';
+import React, { useEffect, useRef, ReactNode, useCallback } from 'react';
+import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import BottomSheet, { BottomSheetBackdrop, BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
+import { Colors } from '@/theme';
 
 interface BaseSheetProps {
   isVisible: boolean;
@@ -22,8 +14,6 @@ interface BaseSheetProps {
   disableContentWrapper?: boolean;
 }
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const DISMISS_THRESHOLD = 0.3; // Dismiss when dragged 30% of sheet height
 const SAFE_AREA_BOTTOM = 34; // Standard safe area bottom height
 
 export function BaseSheet({
@@ -36,111 +26,62 @@ export function BaseSheet({
   keyboardAvoidingEnabled = false,
   disableContentWrapper = false,
 }: BaseSheetProps) {
-  const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
-  const lastGestureDy = useRef(0);
-  const [isRendered, setIsRendered] = React.useState(false);
+  const bottomSheetRef = useRef<BottomSheet>(null);
 
-  // Calculate sheet height
-  const sheetHeight =
-    typeof height === 'string' ? (parseInt(height) / 100) * SCREEN_HEIGHT : height;
+  // Calculate snap points based on height prop
+  const snapPoints = React.useMemo(() => {
+    if (height === 'auto') {
+      // For auto height, we use dynamic sizing
+      return [-1];
+    } else if (typeof height === 'string') {
+      return [height];
+    } else if (typeof height === 'number') {
+      return [height];
+    } else {
+      return ['50%'];
+    }
+  }, [height]);
 
-  const closeSheet = useCallback(() => {
-    Animated.parallel([
-      Animated.timing(translateY, {
-        toValue: SCREEN_HEIGHT,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-      Animated.timing(backdropOpacity, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      onClose();
-      // Delay unmounting to allow animation to complete
-      setTimeout(() => setIsRendered(false), 50);
-    });
-  }, [translateY, backdropOpacity, onClose]);
-
-  // Create pan responder with useMemo to avoid recreation
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => enableSwipeToClose,
-        onMoveShouldSetPanResponder: (_, gestureState) => {
-          // Only respond to downward swipes
-          return enableSwipeToClose && gestureState.dy > 0;
-        },
-        onPanResponderMove: (_, gestureState) => {
-          lastGestureDy.current = gestureState.dy;
-          translateY.setValue(gestureState.dy);
-
-          // Update backdrop opacity based on drag distance
-          const opacity = 1 - gestureState.dy / sheetHeight;
-          backdropOpacity.setValue(Math.max(0, Math.min(1, opacity)));
-        },
-        onPanResponderRelease: () => {
-          if (lastGestureDy.current > sheetHeight * DISMISS_THRESHOLD) {
-            closeSheet();
-          } else {
-            // Snap back to open position
-            Animated.parallel([
-              Animated.spring(translateY, {
-                toValue: 0,
-                useNativeDriver: true,
-                tension: 50,
-                friction: 8,
-              }),
-              Animated.timing(backdropOpacity, {
-                toValue: 1,
-                duration: 200,
-                useNativeDriver: true,
-              }),
-            ]).start();
-          }
-        },
-      }),
-    [enableSwipeToClose, translateY, backdropOpacity, sheetHeight, closeSheet]
-  );
-
-  const openSheet = useCallback(() => {
-    Animated.parallel([
-      Animated.spring(translateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 50,
-        friction: 8,
-      }),
-      Animated.timing(backdropOpacity, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [translateY, backdropOpacity]);
-
+  // Handle visibility changes
   useEffect(() => {
     if (isVisible) {
-      setIsRendered(true);
-      // Use requestAnimationFrame instead of setTimeout
-      requestAnimationFrame(() => {
-        openSheet();
-      });
-    } else if (isRendered) {
-      closeSheet();
+      bottomSheetRef.current?.expand();
+    } else {
+      bottomSheetRef.current?.close();
     }
-  }, [isVisible, openSheet, closeSheet, isRendered]);
+  }, [isVisible]);
 
-  if (!isRendered) {
+  // Handle backdrop press
+  const renderBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop
+        {...props}
+        disappearsOnIndex={-1}
+        appearsOnIndex={0}
+        opacity={0.5}
+        pressBehavior="close"
+      />
+    ),
+    []
+  );
+
+  const handleSheetChanges = useCallback(
+    (index: number) => {
+      if (index === -1) {
+        onClose();
+      }
+    },
+    [onClose]
+  );
+
+  if (!isVisible) {
     return null;
   }
 
   const content = (
     <>
       {showDragIndicator && (
-        <View style={styles.dragIndicatorContainer} {...panResponder.panHandlers}>
+        <View style={styles.dragIndicatorContainer}>
           <View style={styles.dragIndicator} />
         </View>
       )}
@@ -149,86 +90,40 @@ export function BaseSheet({
   );
 
   return (
-    <View style={StyleSheet.absoluteFillObject} pointerEvents={isVisible ? 'auto' : 'none'}>
-      {/* Backdrop */}
-      <Animated.View
-        style={[
-          styles.backdrop,
-          {
-            opacity: backdropOpacity,
-          },
-        ]}
-      >
-        <TouchableOpacity
-          style={StyleSheet.absoluteFillObject}
-          onPress={closeSheet}
-          activeOpacity={1}
-        />
-      </Animated.View>
-
-      {/* Sheet */}
-      <Animated.View
-        style={[
-          styles.sheet,
-          {
-            height: sheetHeight,
-            transform: [{ translateY }],
-          },
-        ]}
-      >
-        {disableContentWrapper ? (
-          // For components with their own scrolling, don't wrap in additional containers
-          <>
-            {showDragIndicator && (
-              <View style={styles.dragIndicatorContainer} {...panResponder.panHandlers}>
-                <View style={styles.dragIndicator} />
-              </View>
-            )}
-            <View style={[styles.flexContainer, { paddingBottom: SAFE_AREA_BOTTOM }]}>
-              {children}
-            </View>
-          </>
-        ) : keyboardAvoidingEnabled ? (
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={[styles.contentContainer, { paddingBottom: SAFE_AREA_BOTTOM }]}
-          >
-            {content}
-          </KeyboardAvoidingView>
-        ) : (
-          <View style={[styles.flexContainer, { paddingBottom: SAFE_AREA_BOTTOM }]}>{content}</View>
-        )}
-      </Animated.View>
-    </View>
+    <BottomSheet
+      ref={bottomSheetRef}
+      index={0}
+      snapPoints={snapPoints}
+      onChange={handleSheetChanges}
+      backdropComponent={renderBackdrop}
+      enablePanDownToClose={enableSwipeToClose}
+      handleIndicatorStyle={showDragIndicator ? styles.handleIndicator : styles.hiddenIndicator}
+      backgroundStyle={styles.sheet}
+      keyboardBehavior={keyboardAvoidingEnabled ? 'interactive' : 'fillParent'}
+      keyboardBlurBehavior="restore"
+      enableDynamicSizing={height === 'auto'}
+    >
+      {disableContentWrapper ? (
+        <View style={[styles.flexContainer, { paddingBottom: SAFE_AREA_BOTTOM }]}>{children}</View>
+      ) : keyboardAvoidingEnabled ? (
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={[styles.contentContainer, { paddingBottom: SAFE_AREA_BOTTOM }]}
+        >
+          {content}
+        </KeyboardAvoidingView>
+      ) : (
+        <View style={[styles.flexContainer, { paddingBottom: SAFE_AREA_BOTTOM }]}>{content}</View>
+      )}
+    </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: OpacityColors.overlay.light,
-    zIndex: 9999,
-  },
   sheet: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
     backgroundColor: Colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    zIndex: 10000,
-    ...Platform.select({
-      ios: {
-        shadowColor: OpacityColors.shadow,
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 20,
-      },
-    }),
   },
   contentContainer: {
     flex: 1,
@@ -245,5 +140,13 @@ const styles = StyleSheet.create({
     height: 4,
     backgroundColor: Colors.gray[300],
     borderRadius: 2,
+  },
+  handleIndicator: {
+    backgroundColor: Colors.gray[300],
+    width: 40,
+    height: 4,
+  },
+  hiddenIndicator: {
+    height: 0,
   },
 });

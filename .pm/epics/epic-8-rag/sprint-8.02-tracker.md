@@ -287,11 +287,57 @@ console.log('\n🎉 Mock data setup complete with RAG demo scenarios!');
 ## Implementation Log
 
 ### Day-by-Day Progress
-**[Date]**:
-- Started: [What was begun]
-- Completed: [What was finished]
-- Blockers: [Any issues]
-- Decisions: [Any changes to plan]
+**[2024-12-29]**:
+- Started: Sprint initialization and codebase investigation
+- Completed: Analysis of content-expiration job, database schema verification, mock generator patterns
+- Blockers: None
+- Decisions: Need clarification on schedule timing and batch processing approach
+
+### Implementation Plan Analysis
+
+**Current Job Structure**:
+- Runs hourly (not every 5 minutes as stated in sprint doc)
+- Uses `deleted_at` for marking expired content
+- Expires content based on different criteria:
+  - Posts: 24h after creation (content posts)
+  - Pick posts: 3h after game start
+  - Stories: Based on expires_at field
+  - Messages: Based on expires_at field
+- Cleans up related data and hard deletes after 30 days
+
+**Implementation Approach**:
+1. Modify all expiration methods to use `archived: true` instead of `deleted_at`
+2. Add conditions to preserve already deleted content (user/moderation actions)
+3. Add weekly bet archiving check within hourly job
+4. Add engagement data archiving (runs hourly)
+5. Create RAG demo generator following existing mock patterns
+6. Update setup orchestrator to include RAG scenarios
+
+### Questions for Reviewer
+
+**Q1: Job Schedule Discrepancy**
+- **Finding**: The job currently runs every hour (`schedule: '0 * * * *'`), not every 5 minutes
+- **Question**: Should I change the schedule to match the sprint doc (every 5 minutes)?
+- **E's Recommendation**: Keep hourly schedule to avoid excessive database load
+- **Reviewer Decision**: [PENDING]
+
+**Q2: Batch Processing Implementation**
+- **Finding**: Current implementation processes all records at once
+- **Question**: Should I implement batch processing proactively or wait for performance issues?
+- **E's Recommendation**: Start without batching, add only if performance issues arise
+- **Reviewer Decision**: [PENDING]
+
+**Q3: Engagement Data Archiving Frequency**
+- **Finding**: No existing pattern for engagement data expiration
+- **Question**: Should engagement archiving run hourly or only during weekly bet archiving?
+- **E's Recommendation**: Run hourly to keep data fresh and avoid large batches
+- **Reviewer Decision**: [PENDING]
+
+**Q4: Mock Data Time Range**
+- **Finding**: Mock data uses various timestamps
+- **Question**: How far back should archived content be created for RAG demos?
+- **E's Recommendation**: Create content 2-6 days old for a good mix of archived data
+- **Reviewer Decision**: [PENDING]
 
 ### Reality Checks & Plan Updates
 

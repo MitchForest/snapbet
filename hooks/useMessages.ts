@@ -18,6 +18,7 @@ interface OptimisticMessage extends Omit<Message, 'bet_id' | 'media_url' | 'mess
   metadata: Json;
   report_count: number | null;
   is_blocked: boolean | null;
+  archived: boolean;
 }
 
 interface UseMessagesOptions {
@@ -102,6 +103,7 @@ export function useMessages({ chatId, pageSize = 50 }: UseMessagesOptions) {
         metadata: null,
         report_count: null,
         is_blocked: null,
+        archived: false,
       };
 
       // Add to optimistic set

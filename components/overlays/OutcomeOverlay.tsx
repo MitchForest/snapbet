@@ -30,6 +30,8 @@ export function OutcomeOverlay({ bet }: OutcomeOverlayProps) {
     is_fade: false,
     is_tail: false,
     original_pick_id: null,
+    archived: false,
+    embedding: null,
     game: bet.game,
   };
 

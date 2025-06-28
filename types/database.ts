@@ -109,9 +109,11 @@ export type Database = {
       bets: {
         Row: {
           actual_win: number | null;
+          archived: boolean | null;
           bet_details: Json;
           bet_type: Database['public']['Enums']['bet_type'];
           created_at: string | null;
+          embedding: string | null;
           expires_at: string | null;
           game_id: string;
           id: string;
@@ -127,9 +129,11 @@ export type Database = {
         };
         Insert: {
           actual_win?: number | null;
+          archived?: boolean | null;
           bet_details: Json;
           bet_type: Database['public']['Enums']['bet_type'];
           created_at?: string | null;
+          embedding?: string | null;
           expires_at?: string | null;
           game_id: string;
           id?: string;
@@ -145,9 +149,11 @@ export type Database = {
         };
         Update: {
           actual_win?: number | null;
+          archived?: boolean | null;
           bet_details?: Json;
           bet_type?: Database['public']['Enums']['bet_type'];
           created_at?: string | null;
+          embedding?: string | null;
           expires_at?: string | null;
           game_id?: string;
           id?: string;
@@ -338,6 +344,33 @@ export type Database = {
             referencedColumns: ['id'];
           },
         ];
+      };
+      embedding_metadata: {
+        Row: {
+          entity_id: string;
+          entity_type: string;
+          generated_at: string | null;
+          id: string;
+          model_version: string;
+          token_count: number | null;
+        };
+        Insert: {
+          entity_id: string;
+          entity_type: string;
+          generated_at?: string | null;
+          id?: string;
+          model_version?: string;
+          token_count?: number | null;
+        };
+        Update: {
+          entity_id?: string;
+          entity_type?: string;
+          generated_at?: string | null;
+          id?: string;
+          model_version?: string;
+          token_count?: number | null;
+        };
+        Relationships: [];
       };
       follow_requests: {
         Row: {
@@ -711,6 +744,7 @@ export type Database = {
       };
       messages: {
         Row: {
+          archived: boolean | null;
           bet_id: string | null;
           chat_id: string;
           content: string;
@@ -727,6 +761,7 @@ export type Database = {
           sender_id: string;
         };
         Insert: {
+          archived?: boolean | null;
           bet_id?: string | null;
           chat_id: string;
           content: string;
@@ -743,6 +778,7 @@ export type Database = {
           sender_id: string;
         };
         Update: {
+          archived?: boolean | null;
           bet_id?: string | null;
           chat_id?: string;
           content?: string;
@@ -823,6 +859,7 @@ export type Database = {
       pick_actions: {
         Row: {
           action_type: Database['public']['Enums']['pick_action'];
+          archived: boolean | null;
           created_at: string | null;
           id: string;
           post_id: string;
@@ -831,6 +868,7 @@ export type Database = {
         };
         Insert: {
           action_type: Database['public']['Enums']['pick_action'];
+          archived?: boolean | null;
           created_at?: string | null;
           id?: string;
           post_id: string;
@@ -839,6 +877,7 @@ export type Database = {
         };
         Update: {
           action_type?: Database['public']['Enums']['pick_action'];
+          archived?: boolean | null;
           created_at?: string | null;
           id?: string;
           post_id?: string;
@@ -871,12 +910,14 @@ export type Database = {
       };
       posts: {
         Row: {
+          archived: boolean | null;
           bet_id: string | null;
           caption: string | null;
           comment_count: number | null;
           created_at: string | null;
           deleted_at: string | null;
           effect_id: string | null;
+          embedding: string | null;
           expires_at: string;
           fade_count: number | null;
           id: string;
@@ -891,12 +932,14 @@ export type Database = {
           user_id: string;
         };
         Insert: {
+          archived?: boolean | null;
           bet_id?: string | null;
           caption?: string | null;
           comment_count?: number | null;
           created_at?: string | null;
           deleted_at?: string | null;
           effect_id?: string | null;
+          embedding?: string | null;
           expires_at: string;
           fade_count?: number | null;
           id?: string;
@@ -911,12 +954,14 @@ export type Database = {
           user_id: string;
         };
         Update: {
+          archived?: boolean | null;
           bet_id?: string | null;
           caption?: string | null;
           comment_count?: number | null;
           created_at?: string | null;
           deleted_at?: string | null;
           effect_id?: string | null;
+          embedding?: string | null;
           expires_at?: string;
           fade_count?: number | null;
           id?: string;
@@ -956,6 +1001,7 @@ export type Database = {
       };
       reactions: {
         Row: {
+          archived: boolean | null;
           created_at: string | null;
           emoji: string;
           id: string;
@@ -964,6 +1010,7 @@ export type Database = {
           user_id: string;
         };
         Insert: {
+          archived?: boolean | null;
           created_at?: string | null;
           emoji: string;
           id?: string;
@@ -972,6 +1019,7 @@ export type Database = {
           user_id: string;
         };
         Update: {
+          archived?: boolean | null;
           created_at?: string | null;
           emoji?: string;
           id?: string;
@@ -1127,6 +1175,7 @@ export type Database = {
       };
       stories: {
         Row: {
+          archived: boolean | null;
           caption: string | null;
           created_at: string | null;
           deleted_at: string | null;
@@ -1142,6 +1191,7 @@ export type Database = {
           view_count: number | null;
         };
         Insert: {
+          archived?: boolean | null;
           caption?: string | null;
           created_at?: string | null;
           deleted_at?: string | null;
@@ -1157,6 +1207,7 @@ export type Database = {
           view_count?: number | null;
         };
         Update: {
+          archived?: boolean | null;
           caption?: string | null;
           created_at?: string | null;
           deleted_at?: string | null;
@@ -1296,15 +1347,18 @@ export type Database = {
           display_name: string | null;
           email: string | null;
           favorite_team: string | null;
+          favorite_teams: string[] | null;
           id: string;
           is_mock: boolean | null;
           is_private: boolean | null;
+          last_embedding_update: string | null;
           mock_behavior_seed: number | null;
           mock_personality_id: string | null;
           notification_settings: Json | null;
           oauth_id: string;
           oauth_provider: Database['public']['Enums']['oauth_provider'];
           privacy_settings: Json | null;
+          profile_embedding: string | null;
           referral_count: number | null;
           show_bankroll: boolean | null;
           show_picks: boolean | null;
@@ -1320,15 +1374,18 @@ export type Database = {
           display_name?: string | null;
           email?: string | null;
           favorite_team?: string | null;
+          favorite_teams?: string[] | null;
           id?: string;
           is_mock?: boolean | null;
           is_private?: boolean | null;
+          last_embedding_update?: string | null;
           mock_behavior_seed?: number | null;
           mock_personality_id?: string | null;
           notification_settings?: Json | null;
           oauth_id: string;
           oauth_provider: Database['public']['Enums']['oauth_provider'];
           privacy_settings?: Json | null;
+          profile_embedding?: string | null;
           referral_count?: number | null;
           show_bankroll?: boolean | null;
           show_picks?: boolean | null;
@@ -1344,15 +1401,18 @@ export type Database = {
           display_name?: string | null;
           email?: string | null;
           favorite_team?: string | null;
+          favorite_teams?: string[] | null;
           id?: string;
           is_mock?: boolean | null;
           is_private?: boolean | null;
+          last_embedding_update?: string | null;
           mock_behavior_seed?: number | null;
           mock_personality_id?: string | null;
           notification_settings?: Json | null;
           oauth_id?: string;
           oauth_provider?: Database['public']['Enums']['oauth_provider'];
           privacy_settings?: Json | null;
+          profile_embedding?: string | null;
           referral_count?: number | null;
           show_bankroll?: boolean | null;
           show_picks?: boolean | null;
@@ -1381,6 +1441,10 @@ export type Database = {
       };
     };
     Functions: {
+      binary_quantize: {
+        Args: { '': string } | { '': unknown };
+        Returns: unknown;
+      };
       calculate_payout: {
         Args: { stake: number; odds: number };
         Returns: number;
@@ -1396,6 +1460,21 @@ export type Database = {
       can_user_message: {
         Args: { sender_id: string; recipient_id: string };
         Returns: boolean;
+      };
+      check_bet_consensus: {
+        Args: {
+          check_game_id: string;
+          check_bet_details: Json;
+          check_user_id: string;
+          time_window?: unknown;
+        };
+        Returns: {
+          consensus_count: number;
+          user_ids: string[];
+          usernames: string[];
+          avg_odds: number;
+          total_stake: number;
+        }[];
       };
       check_perfect_nfl_sunday: {
         Args: { p_user_id: string; p_week_start?: string };
@@ -1434,6 +1513,47 @@ export type Database = {
       fade_pick: {
         Args: { p_user_id: string; p_post_id: string };
         Returns: string;
+      };
+      find_similar_posts: {
+        Args: {
+          user_embedding: string;
+          p_user_id: string;
+          exclude_user_ids: string[];
+          time_window?: unknown;
+          limit_count?: number;
+        };
+        Returns: {
+          id: string;
+          post_user_id: string;
+          content: string;
+          type: string;
+          created_at: string;
+          expires_at: string;
+          view_count: number;
+          reaction_count: number;
+          comment_count: number;
+          similarity: number;
+        }[];
+      };
+      find_similar_users: {
+        Args: {
+          query_embedding: string;
+          p_user_id: string;
+          limit_count?: number;
+        };
+        Returns: {
+          id: string;
+          username: string;
+          display_name: string;
+          avatar_url: string;
+          bio: string;
+          is_verified: boolean;
+          similarity: number;
+          win_rate: number;
+          total_bets: number;
+          favorite_teams: string[];
+          common_sports: string[];
+        }[];
       };
       get_blocked_user_ids: {
         Args: { p_user_id: string };
@@ -1548,6 +1668,38 @@ export type Database = {
         Args: { '': unknown };
         Returns: unknown;
       };
+      halfvec_avg: {
+        Args: { '': number[] };
+        Returns: unknown;
+      };
+      halfvec_out: {
+        Args: { '': unknown };
+        Returns: unknown;
+      };
+      halfvec_send: {
+        Args: { '': unknown };
+        Returns: string;
+      };
+      halfvec_typmod_in: {
+        Args: { '': unknown[] };
+        Returns: number;
+      };
+      hnsw_bit_support: {
+        Args: { '': unknown };
+        Returns: unknown;
+      };
+      hnsw_halfvec_support: {
+        Args: { '': unknown };
+        Returns: unknown;
+      };
+      hnsw_sparsevec_support: {
+        Args: { '': unknown };
+        Returns: unknown;
+      };
+      hnswhandler: {
+        Args: { '': unknown };
+        Returns: unknown;
+      };
       increment_counter: {
         Args: { table_name: string; column_name: string; row_id: string };
         Returns: undefined;
@@ -1559,6 +1711,26 @@ export type Database = {
       is_chat_member: {
         Args: { p_chat_id: string; p_user_id: string };
         Returns: boolean;
+      };
+      ivfflat_bit_support: {
+        Args: { '': unknown };
+        Returns: unknown;
+      };
+      ivfflat_halfvec_support: {
+        Args: { '': unknown };
+        Returns: unknown;
+      };
+      ivfflathandler: {
+        Args: { '': unknown };
+        Returns: unknown;
+      };
+      l2_norm: {
+        Args: { '': unknown } | { '': unknown };
+        Returns: number;
+      };
+      l2_normalize: {
+        Args: { '': string } | { '': unknown } | { '': unknown };
+        Returns: string;
       };
       log_bankroll_transaction: {
         Args: {
@@ -1623,6 +1795,18 @@ export type Database = {
         Args: { '': string };
         Returns: string[];
       };
+      sparsevec_out: {
+        Args: { '': unknown };
+        Returns: unknown;
+      };
+      sparsevec_send: {
+        Args: { '': unknown };
+        Returns: string;
+      };
+      sparsevec_typmod_in: {
+        Args: { '': unknown[] };
+        Returns: number;
+      };
       tail_pick: {
         Args: { p_user_id: string; p_post_id: string };
         Returns: string;
@@ -1634,6 +1818,30 @@ export type Database = {
       users_blocked: {
         Args: { user1_id: string; user2_id: string };
         Returns: boolean;
+      };
+      vector_avg: {
+        Args: { '': number[] };
+        Returns: string;
+      };
+      vector_dims: {
+        Args: { '': string } | { '': unknown };
+        Returns: number;
+      };
+      vector_norm: {
+        Args: { '': string };
+        Returns: number;
+      };
+      vector_out: {
+        Args: { '': string };
+        Returns: unknown;
+      };
+      vector_send: {
+        Args: { '': string };
+        Returns: string;
+      };
+      vector_typmod_in: {
+        Args: { '': unknown[] };
+        Returns: number;
       };
     };
     Enums: {
