@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text } from '@tamagui/core';
 import { ScrollView } from 'react-native';
-import { router, useNavigation } from 'expo-router';
+import { router } from 'expo-router';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SettingsRow } from '@/components/settings/SettingsRow';
 import { useAuthStore } from '@/stores/authStore';
@@ -16,19 +16,15 @@ const isAdmin = (userId: string): boolean => {
 export default function SettingsScreen() {
   const user = useAuthStore((state) => state.user);
   const signOut = useAuthStore((state) => state.signOut);
-  const navigation = useNavigation();
 
   const handleLogout = async () => {
     try {
       await signOut();
-      // Use navigation reset to ensure proper navigation to auth screens
-      navigation.reset({
-        index: 0,
-        routes: [{ name: '(auth)/welcome' as never }],
-      });
+      // Force navigation to welcome screen after sign out
+      router.replace('/welcome');
     } catch (error) {
-      console.error('Error signing out:', error);
-      toastService.showError('Failed to sign out');
+      console.error('Logout error:', error);
+      toastService.showError('Failed to log out');
     }
   };
 

@@ -9,6 +9,7 @@ import { supabase } from '@/services/supabase/client';
 import { useNotifications } from '@/hooks/useNotifications';
 import { followRequestService } from '@/services/social/followRequestService';
 import { ReferralBonusDisplay } from '@/components/referral/ReferralBonusDisplay';
+import { router } from 'expo-router';
 
 interface MenuItemProps {
   icon: string;
@@ -147,10 +148,7 @@ export const DrawerContent: React.FC<DrawerContentComponentProps> = ({ navigatio
           navigation.closeDrawer();
           await signOut();
           // Force navigation to welcome screen after sign out
-          navigation.reset({
-            index: 0,
-            routes: [{ name: '(auth)/welcome' as never }],
-          });
+          router.replace('/welcome');
         },
       },
     ]);

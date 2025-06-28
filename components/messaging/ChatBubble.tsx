@@ -297,6 +297,19 @@ export function ChatBubble({
             </Stack>
           )}
         </Stack>
+
+        {/* Avatar for own messages */}
+        {isOwn && showAvatar && (
+          <Pressable onPress={handleAvatarPress}>
+            <Avatar
+              src={message.sender.avatar_url || undefined}
+              username={message.sender.username || undefined}
+              fallback={message.sender.username?.[0]?.toUpperCase() || '?'}
+              size={28}
+            />
+          </Pressable>
+        )}
+        {isOwn && !showAvatar && <View width={28} />}
       </Stack>
 
       {/* Message Action Menu */}

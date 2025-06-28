@@ -22,20 +22,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.text.primary,
   },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: Colors.gray[300],
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.white,
-  },
-  checkboxSelected: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
   checkmark: {
     color: Colors.white,
     fontSize: 16,
@@ -64,18 +50,24 @@ interface UserItemProps {
 }
 
 const UserItem: React.FC<UserItemProps> = ({ user, isSelected, onToggle }) => {
-  console.log(`Rendering UserItem for ${user.username}, selected: ${isSelected}`);
+  const checkboxStyle = {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: isSelected ? Colors.primary : Colors.gray[300],
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    backgroundColor: isSelected ? Colors.primary : Colors.white,
+  };
 
   return (
     <Pressable
-      onPress={() => {
-        console.log('UserItem pressed:', user.id);
-        onToggle(user.id);
-      }}
+      onPress={() => onToggle(user.id)}
       style={({ pressed }) => [styles.userItem, pressed && styles.userItemPressed]}
     >
       <View flexDirection="row" alignItems="center" gap="$3">
-        <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
+        <View style={checkboxStyle}>
           {isSelected && (
             <RNText style={styles.checkmark} allowFontScaling={false}>
               ✓
@@ -106,9 +98,7 @@ export const MemberSelector: React.FC<MemberSelectorProps> = ({
   minMembers = 1,
   maxMembers = 49,
 }) => {
-  const componentId = useRef(Math.random().toString(36).substr(2, 9));
   const selectedUsersRef = useRef(selectedUsers);
-  const [renderCount, setRenderCount] = useState(0);
   const currentUser = useAuthStore((state) => state.user);
   const [searchQuery, setSearchQuery] = useState('');
   const [followingUsers, setFollowingUsers] = useState<User[]>([]);
@@ -116,19 +106,6 @@ export const MemberSelector: React.FC<MemberSelectorProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const { blockedUserIds } = useBlockedUsers();
-
-  // Debug logging
-  useEffect(() => {
-    const id = componentId.current;
-    console.log(`[${id}] MemberSelector - MOUNTED`);
-    return () => {
-      console.log(`[${id}] MemberSelector - UNMOUNTED`);
-    };
-  }, []);
-
-  useEffect(() => {
-    console.log(`[${componentId.current}] MemberSelector - selectedUsers updated:`, selectedUsers);
-  }, [selectedUsers]);
 
   // Keep ref in sync
   useEffect(() => {
@@ -216,21 +193,12 @@ export const MemberSelector: React.FC<MemberSelectorProps> = ({
   // Toggle user selection
   const toggleUser = useCallback(
     (userId: string) => {
-      console.log('=== TOGGLE USER DEBUG ===');
-      console.log('userId:', userId);
-      console.log('selectedUsers from ref:', selectedUsersRef.current);
-      console.log('includes check:', selectedUsersRef.current.includes(userId));
-
       if (selectedUsersRef.current.includes(userId)) {
         const newSelection = selectedUsersRef.current.filter((id) => id !== userId);
-        console.log('Removing user, new selection:', newSelection);
         onSelect(newSelection);
       } else if (selectedUsersRef.current.length < maxMembers) {
         const newSelection = [...selectedUsersRef.current, userId];
-        console.log('Adding user, new selection:', newSelection);
         onSelect(newSelection);
-      } else {
-        console.log('Max members reached');
       }
     },
     [onSelect, maxMembers]
@@ -239,19 +207,11 @@ export const MemberSelector: React.FC<MemberSelectorProps> = ({
   // Render user item
   const renderUser = useCallback(
     ({ item }: { item: User }) => {
-      console.log('=== RENDERING USER ===');
-      console.log('item:', item);
-      console.log('selectedUsers in renderUser:', selectedUsers);
-
       const isSelected = selectedUsers.includes(item.id);
-      const isDisabled = selectedUsers.length >= maxMembers && !isSelected;
-
-      console.log('isSelected:', isSelected);
-      console.log('isDisabled:', isDisabled);
 
       return <UserItem user={item} isSelected={isSelected} onToggle={toggleUser} />;
     },
-    [selectedUsers, maxMembers, toggleUser]
+    [selectedUsers, toggleUser]
   );
 
   const displayUsers = useMemo(() => {
@@ -260,12 +220,6 @@ export const MemberSelector: React.FC<MemberSelectorProps> = ({
     }
     return followingUsers;
   }, [searchQuery, searchResults, followingUsers]);
-
-  // Force re-render when selectedUsers changes
-  useEffect(() => {
-    console.log(`[${componentId.current}] Force re-render due to selectedUsers change`);
-    setRenderCount((prev) => prev + 1);
-  }, [selectedUsers]);
 
   if (isLoading) {
     return (
@@ -277,12 +231,6 @@ export const MemberSelector: React.FC<MemberSelectorProps> = ({
 
   return (
     <View flex={1}>
-      {/* Show current selection */}
-      <View padding="$2" backgroundColor="$yellow2">
-        <Text fontSize="$2">Selected IDs: {JSON.stringify(selectedUsers)}</Text>
-        <Text fontSize="$2">Render count: {renderCount}</Text>
-      </View>
-
       {/* Search bar */}
       <View
         paddingHorizontal="$4"
@@ -333,6 +281,7 @@ export const MemberSelector: React.FC<MemberSelectorProps> = ({
           keyExtractor={(item) => item.id}
           estimatedItemSize={72}
           showsVerticalScrollIndicator={false}
+          extraData={selectedUsers}
         />
       )}
 
