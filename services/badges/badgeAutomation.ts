@@ -1,5 +1,6 @@
 import { supabase } from '@/services/supabase/client';
 import { calculateUserBadges } from './badgeService';
+import { withActiveContent } from '@/utils/database/archiveFilter';
 
 interface BadgeChange {
   userId: string;
@@ -16,9 +17,7 @@ export async function getActiveUsers(daysAgo: number = 7): Promise<string[]> {
     cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
 
     // Get users who have placed bets recently
-    const { data, error } = await supabase
-      .from('bets')
-      .select('user_id')
+    const { data, error } = await withActiveContent(supabase.from('bets').select('user_id'))
       .gte('created_at', cutoffDate.toISOString())
       .order('user_id');
 

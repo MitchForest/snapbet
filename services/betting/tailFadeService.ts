@@ -6,6 +6,7 @@ import { Bet, BetInput, BettingError, BetSelection } from './types';
 import { Game } from '@/types/database-helpers';
 import { Database } from '@/types/database-helpers';
 import { toastService } from '@/services/toastService';
+import { withActiveContent } from '@/utils/database/archiveFilter';
 
 type PickAction = Database['public']['Tables']['pick_actions']['Row'];
 type PickActionInsert = Database['public']['Tables']['pick_actions']['Insert'];
@@ -214,9 +215,7 @@ class TailFadeService {
    * Get user's pick action for a post
    */
   async getUserPickAction(postId: string, userId: string): Promise<PickAction | null> {
-    const { data, error } = await supabase
-      .from('pick_actions')
-      .select('*')
+    const { data, error } = await withActiveContent(supabase.from('pick_actions').select('*'))
       .eq('post_id', postId)
       .eq('user_id', userId)
       .single();
@@ -232,10 +231,9 @@ class TailFadeService {
    * Get tail/fade counts for a post
    */
   async getPickActionCounts(postId: string): Promise<TailFadeCounts> {
-    const { data, error } = await supabase
-      .from('pick_actions')
-      .select('action_type')
-      .eq('post_id', postId);
+    const { data, error } = await withActiveContent(
+      supabase.from('pick_actions').select('action_type')
+    ).eq('post_id', postId);
 
     if (error || !data) {
       return { tailCount: 0, fadeCount: 0 };
@@ -251,25 +249,25 @@ class TailFadeService {
    * Get all pick actions for a post with user details
    */
   async getPickActionsWithUsers(postId: string) {
-    const { data, error } = await supabase
-      .from('pick_actions')
-      .select(
+    const { data, error } = await withActiveContent(
+      supabase.from('pick_actions').select(
         `
-        *,
-        user:users!pick_actions_user_id_fkey(
-          id,
-          username,
-          display_name,
-          avatar_url
-        ),
-        bet:bets!pick_actions_resulting_bet_id_fkey(
-          id,
-          stake,
-          potential_win,
-          status
-        )
-      `
+          *,
+          user:users!pick_actions_user_id_fkey(
+            id,
+            username,
+            display_name,
+            avatar_url
+          ),
+          bet:bets!pick_actions_resulting_bet_id_fkey(
+            id,
+            stake,
+            potential_win,
+            status
+          )
+        `
       )
+    )
       .eq('post_id', postId)
       .order('created_at', { ascending: false });
 

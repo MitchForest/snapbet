@@ -1,6 +1,7 @@
 import { supabase } from '@/services/supabase';
 import { PostType, StoryWithType } from '@/types/content';
 import { MediaType } from '@/types/database-helpers';
+import { withActiveContent } from '@/utils/database/archiveFilter';
 
 interface CreateStoryParams {
   media_url: string;
@@ -54,15 +55,14 @@ export async function createStory(params: CreateStoryParams): Promise<StoryWithT
 }
 
 export async function getActiveStories(limit = 50): Promise<StoryWithType[]> {
-  const { data, error } = await supabase
-    .from('stories')
-    .select(
+  const { data, error } = await withActiveContent(
+    supabase.from('stories').select(
       `
-      *,
-      user:users(id, username, avatar_url)
-    `
+        *,
+        user:users(id, username, avatar_url)
+      `
     )
-    .is('deleted_at', null)
+  )
     .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -72,16 +72,15 @@ export async function getActiveStories(limit = 50): Promise<StoryWithType[]> {
 }
 
 export async function getUserStories(userId: string): Promise<StoryWithType[]> {
-  const { data, error } = await supabase
-    .from('stories')
-    .select(
+  const { data, error } = await withActiveContent(
+    supabase.from('stories').select(
       `
-      *,
-      user:users(id, username, avatar_url)
-    `
+        *,
+        user:users(id, username, avatar_url)
+      `
     )
+  )
     .eq('user_id', userId)
-    .is('deleted_at', null)
     .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending: false });
 

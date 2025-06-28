@@ -1,5 +1,6 @@
 import { supabase } from '@/services/supabase/client';
 import { startOfWeek } from 'date-fns';
+import { withActiveContent } from '@/utils/database/archiveFilter';
 
 // Constants
 export const MIN_SEARCH_LENGTH = 2;
@@ -99,25 +100,25 @@ export async function getHotBettors(limit: number = 10): Promise<UserWithStats[]
     console.log('[getHotBettors] Week start:', weekStart.toISOString());
 
     // First, get all settled bets from this week with user info
-    const { data: betsData, error: betsError } = await supabase
-      .from('bets')
-      .select(
+    const { data: betsData, error: betsError } = await withActiveContent(
+      supabase.from('bets').select(
         `
-        id,
-        user_id,
-        status,
-        settled_at,
-        users!inner (
           id,
-          username,
-          display_name,
-          avatar_url,
-          bio,
-          favorite_team,
-          created_at
-        )
-      `
+          user_id,
+          status,
+          settled_at,
+          users!inner (
+            id,
+            username,
+            display_name,
+            avatar_url,
+            bio,
+            favorite_team,
+            created_at
+          )
+        `
       )
+    )
       .gte('settled_at', weekStart.toISOString())
       .in('status', ['won', 'lost'])
       .not('settled_at', 'is', null);
@@ -141,25 +142,25 @@ export async function getHotBettors(limit: number = 10): Promise<UserWithStats[]
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-      const { data: fallbackData, error: fallbackError } = await supabase
-        .from('bets')
-        .select(
+      const { data: fallbackData, error: fallbackError } = await withActiveContent(
+        supabase.from('bets').select(
           `
-          id,
-          user_id,
-          status,
-          settled_at,
-          users!inner (
             id,
-            username,
-            display_name,
-            avatar_url,
-            bio,
-            favorite_team,
-            created_at
-          )
-        `
+            user_id,
+            status,
+            settled_at,
+            users!inner (
+              id,
+              username,
+              display_name,
+              avatar_url,
+              bio,
+              favorite_team,
+              created_at
+            )
+          `
         )
+      )
         .gte('settled_at', sevenDaysAgo.toISOString())
         .in('status', ['won', 'lost'])
         .not('settled_at', 'is', null);
@@ -273,23 +274,22 @@ export async function getTrendingPickUsers(limit: number = 10): Promise<Trending
     yesterday.setDate(yesterday.getDate() - 1);
 
     // Get posts with high tail counts from last 24 hours
-    const { data, error } = await supabase
-      .from('posts')
-      .select(
+    const { data, error } = await withActiveContent(
+      supabase.from('posts').select(
         `
-        user_id,
-        tail_count,
-        user:users!user_id (
-          username,
-          display_name,
-          avatar_url
-        )
-      `
+          user_id,
+          tail_count,
+          user:users!user_id (
+            username,
+            display_name,
+            avatar_url
+          )
+        `
       )
+    )
       .eq('post_type', 'pick')
       .gte('created_at', yesterday.toISOString())
-      .gt('tail_count', 0)
-      .is('deleted_at', null);
+      .gt('tail_count', 0);
 
     if (error) throw error;
 

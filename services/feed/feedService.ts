@@ -2,6 +2,7 @@ import { supabase } from '@/services/supabase/client';
 import { PostWithType } from '@/types/content';
 import { getFollowingIds } from '@/services/api/followUser';
 import { Storage, StorageKeys, CacheUtils } from '@/services/storage/storageService';
+import { withActiveContent } from '@/utils/database/archiveFilter';
 
 // Types
 export interface FeedCursor {
@@ -48,23 +49,22 @@ export class FeedService {
       const blockedIds = (blockedUsers || []).map((row) => row.blocked_id);
 
       // Build query with privacy filter and blocked users filter
-      const query = supabase
-        .from('posts')
-        .select(
+      const query = withActiveContent(
+        supabase.from('posts').select(
           `
-          *,
-          user:users!user_id (
-            id,
-            username,
-            display_name,
-            avatar_url
-          ),
-          bet:bets!bet_id (*),
-          settled_bet:bets!settled_bet_id (*)
-        `
+            *,
+            user:users!user_id (
+              id,
+              username,
+              display_name,
+              avatar_url
+            ),
+            bet:bets!bet_id (*),
+            settled_bet:bets!settled_bet_id (*)
+          `
         )
+      )
         .in('user_id', userIds)
-        .is('deleted_at', null)
         .gte('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false })
         .order('id', { ascending: false })

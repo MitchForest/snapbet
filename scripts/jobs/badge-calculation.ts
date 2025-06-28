@@ -3,6 +3,7 @@
 import { config } from 'dotenv';
 import { supabase } from '../supabase-client';
 import { BaseJob, JobOptions, JobResult } from './types';
+import { withActiveContent } from '../../utils/database/archiveFilter';
 
 // Load environment variables
 config();
@@ -120,9 +121,9 @@ export class BadgeCalculationJob extends BaseJob {
     // Users with 3+ consecutive wins this week
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    const { data: bets, error } = await supabase
-      .from('bets')
-      .select('user_id, status, created_at')
+    const { data: bets, error } = await withActiveContent(
+      supabase.from('bets').select('user_id, status, created_at')
+    )
       .gte('created_at', oneWeekAgo)
       .in('status', ['won', 'lost'])
       .order('user_id')

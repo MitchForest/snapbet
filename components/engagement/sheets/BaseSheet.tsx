@@ -151,6 +151,7 @@ const styles = StyleSheet.create({
     backgroundColor: TRANSPARENT,
   },
   scrollContent: {
+    flexGrow: 1,
     paddingBottom: 0,
   },
 });

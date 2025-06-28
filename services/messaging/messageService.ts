@@ -2,6 +2,7 @@ import { supabase } from '@/services/supabase';
 import { MessageContent, Message } from '@/types/messaging';
 import { uploadWithRetry } from '@/services/media/upload';
 import { compressPhoto } from '@/services/media/compression';
+import { withActiveContent } from '@/utils/database/archiveFilter';
 
 class MessageService {
   /**
@@ -150,29 +151,28 @@ class MessageService {
    * Get messages for a chat with pagination
    */
   async getChatMessages(chatId: string, offset = 0, limit = 50): Promise<Message[]> {
-    const { data, error } = await supabase
-      .from('messages')
-      .select(
+    const { data, error } = await withActiveContent(
+      supabase.from('messages').select(
         `
-        *,
-        sender:users!messages_sender_id_fkey(
-          id,
-          username,
-          display_name,
-          avatar_url
-        ),
-        bet:bets(
           *,
-          game:games(*)
-        ),
-        reads:message_reads(
-          user_id,
-          read_at
-        )
-      `
+          sender:users!messages_sender_id_fkey(
+            id,
+            username,
+            display_name,
+            avatar_url
+          ),
+          bet:bets(
+            *,
+            game:games(*)
+          ),
+          reads:message_reads(
+            user_id,
+            read_at
+          )
+        `
       )
+    )
       .eq('chat_id', chatId)
-      .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -217,12 +217,11 @@ class MessageService {
    * Get unread message count for a chat
    */
   async getUnreadCount(chatId: string, userId: string): Promise<number> {
-    const { count, error } = await supabase
-      .from('messages')
-      .select('id', { count: 'exact', head: true })
+    const { count, error } = await withActiveContent(
+      supabase.from('messages').select('id', { count: 'exact', head: true })
+    )
       .eq('chat_id', chatId)
       .neq('sender_id', userId)
-      .is('deleted_at', null)
       .not(
         'id',
         'in',

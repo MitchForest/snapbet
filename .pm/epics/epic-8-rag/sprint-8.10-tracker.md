@@ -1,4 +1,4 @@
-# Sprint 8.10: RAG Mock Data Generation Tracker
+# Sprint 8.10: RAG Mock Data Generation & Performance Optimization Tracker
 
 ## Sprint Overview
 
@@ -7,10 +7,11 @@
 **End Date**: [TBD]  
 **Epic**: 8 - RAG Implementation
 
-**Sprint Goal**: Create mock data generators and scenarios specifically for demonstrating RAG features, including archived content with various timestamps and patterns for AI learning.
+**Sprint Goal**: Generate comprehensive mock data for demonstrating RAG features and implement deferred performance optimizations for archive filtering.
 
 **User Story Contribution**: 
-- Enables comprehensive testing and demonstration of all RAG features with realistic archived data
+- Enables complete demonstration of all RAG features with realistic archived content
+- Optimizes query performance for archive filtering across the application
 
 ## 🚨 Required Development Practices
 
@@ -28,59 +29,108 @@
 ## Sprint Plan
 
 ### Objectives
-1. Create RAG demo data generator with archived content
-2. Generate content with similar captions for AI training
-3. Create consensus betting scenarios
-4. Update mock setup orchestrator to include RAG scenarios
-5. Ensure proper time distribution (2-30 days old content)
+1. Create mock data generators for archived content with embeddings
+2. Generate realistic scenarios for AI caption learning
+3. Create similar user patterns for Find Your Tribe feature
+4. Generate consensus betting scenarios
+5. Implement performance indexes for archive filtering
+6. Add real-time subscription filtering for archived content
+7. Create comprehensive demo scenarios
 
 ### Files to Create
 | File Path | Purpose | Status |
 |-----------|---------|--------|
-| `scripts/mock/generators/rag-demo.ts` | Generate archived content with embeddings for RAG demo | NOT STARTED |
+| `scripts/mock/generators/ragContent.ts` | Generate archived content with embeddings | NOT STARTED |
+| `scripts/mock/generators/similarUsers.ts` | Create users with similar betting patterns | NOT STARTED |
+| `scripts/mock/generators/consensusBets.ts` | Generate consensus betting scenarios | NOT STARTED |
+| `supabase/migrations/034_archive_performance_indexes.sql` | Performance indexes for archive filtering | NOT STARTED |
 
 ### Files to Modify  
 | File Path | Changes Needed | Status |
 |-----------|----------------|--------|
-| `scripts/mock/orchestrators/setup.ts` | Add step to archive old content and create RAG demo scenarios | NOT STARTED |
+| `scripts/mock/orchestrators/setup.ts` | Add RAG mock data generation | NOT STARTED |
+| `services/realtime/realtimeManager.ts` | Add archive filtering to subscriptions | NOT STARTED |
+| `services/realtime/channelHelpers.ts` | Update channel filters for archived content | NOT STARTED |
 
-### Implementation Approach
+### Deferred Items from Sprint 8.03
 
-**Step 1: Create RAG demo data generator**
-```typescript
-// scripts/mock/generators/rag-demo.ts
-export async function archiveOldMockContent() {
-  // Archive posts older than specified timeframes
-  // Archive bets older than 7 days
-  // Archive engagement data older than 3 days
-}
+**1. Performance Indexes**
+- **What**: Compound indexes on (archived, deleted_at, created_at) for high-traffic tables
+- **Why Deferred**: Focus on functionality first, optimize after confirming query patterns
+- **Implementation**: Create migration with strategic indexes
 
-export async function createRAGDemoScenarios(mockUsers: User[], games: Game[]) {
-  // Create posts with similar captions for AI training
-  // Create consensus betting scenarios
-  // Generate time-distributed content (2-30 days)
-}
+**2. Real-time Subscription Filtering**
+- **What**: Add archive filters at subscription level for all real-time channels
+- **Why Deferred**: Core filtering more critical, real-time is enhancement
+- **Implementation**: Update subscription queries in realtimeManager
+
+**3. Settlement Service Edge Cases**
+- **What**: Determine final approach for archived bet settlement
+- **Why Deferred**: Needs product decision on historical accuracy vs performance
+- **Implementation**: Update settlementService based on decision
+
+### Mock Data Requirements
+
+**Archived Content with Embeddings**:
+- 1000+ archived posts with caption embeddings
+- Various caption styles (funny, serious, emoji-heavy, etc.)
+- Different sports/betting contexts
+- Timestamps spanning 30+ days
+
+**Similar User Patterns**:
+- Groups of 3-5 users with similar betting patterns
+- Shared favorite teams
+- Similar bet amounts and frequencies
+- Overlapping active times
+
+**Consensus Scenarios**:
+- Multiple users betting same game/outcome within 1 hour
+- Various group sizes (2-10 users)
+- Different bet amounts but same picks
+- Mix of followed and non-followed users
+
+**Feed Testing Data**:
+- 70% content from followed users (active)
+- 30% slots for AI-discovered content
+- Mix of bet types and post types
+- Realistic engagement patterns
+
+### Performance Optimization Plan
+
+**Index Strategy**:
+```sql
+-- High-traffic table indexes
+CREATE INDEX idx_posts_archive_filter ON posts(archived, deleted_at, created_at DESC) 
+  WHERE archived = false AND deleted_at IS NULL;
+
+CREATE INDEX idx_bets_archive_filter ON bets(archived, deleted_at, created_at DESC)
+  WHERE archived = false AND deleted_at IS NULL;
+
+CREATE INDEX idx_stories_archive_filter ON stories(archived, deleted_at, created_at DESC)
+  WHERE archived = false AND deleted_at IS NULL;
+
+-- Embedding search indexes (using ivfflat)
+CREATE INDEX idx_posts_embedding ON posts USING ivfflat (embedding vector_cosine_ops)
+  WHERE embedding IS NOT NULL;
+
+CREATE INDEX idx_users_embedding ON users USING ivfflat (profile_embedding vector_cosine_ops)
+  WHERE profile_embedding IS NOT NULL;
 ```
 
-**Step 2: Update orchestrator**
-- Import RAG demo functions
-- Call after existing mock data creation
-- Ensure proper sequencing
-
-**Key Technical Decisions**:
-- Generate content across 2-30 day range for varied patterns
-- Focus on caption similarity for AI training
-- Create clear consensus scenarios for betting alerts
+**Real-time Optimization**:
+- Add `.eq('archived', false)` to all subscription builders
+- Update presence channels to exclude archived content
+- Ensure broadcast filters respect archive status
 
 ### Dependencies & Risks
 **Dependencies**:
-- Sprint 8.02 must be completed (archiving logic in place)
-- Existing mock data infrastructure
-- Archive columns must exist in database
+- Archive filtering (Sprint 8.03) must be complete
+- RAG service layer (Sprint 8.04) needed for embedding generation
 
 **Identified Risks**:
-- Timing conflicts with production archiving
-- Large volume of test data might affect performance
+- Large mock data volume could slow down development database
+- Index creation might lock tables temporarily
+- Real-time filtering could affect subscription performance
 
 ## Implementation Log
 
@@ -114,68 +164,71 @@ export async function createRAGDemoScenarios(mockUsers: User[], games: Game[]) {
 
 ## Key Code Additions
 
-### Archive Pattern for Mock Data
+### Mock Data Generator Structure
 ```typescript
-// Archive content with specific age ranges
-const archiveWithAge = async (table: string, daysOld: number) => {
-  const targetDate = new Date();
-  targetDate.setDate(targetDate.getDate() - daysOld);
-  
-  await supabase
-    .from(table)
-    .update({ archived: true })
-    .eq('is_mock', true) // Only archive mock data
-    .lt('created_at', targetDate.toISOString());
-};
-```
+// scripts/mock/generators/ragContent.ts
+export async function generateArchivedContent() {
+  // Generate posts with various caption styles
+  // Set archived = true, add embeddings
+  // Span across 30+ days
+}
 
-### Caption Templates for AI Training
-```typescript
-const captionTemplates = [
-  "Let's go! 🔥",
-  "Easy money tonight 💰",
-  "Lock of the day 🔒",
-  "Feeling good about this one 🎯",
-  "Trust the process 📈"
-];
+// scripts/mock/generators/similarUsers.ts
+export async function generateSimilarUsers() {
+  // Create user groups with matching patterns
+  // Update profile_embeddings
+  // Set favorite_teams
+}
+
+// scripts/mock/generators/consensusBets.ts
+export async function generateConsensusBets() {
+  // Create matching bets within time windows
+  // Various group sizes
+  // Mix of followed/unfollowed users
+}
 ```
 
 ## Testing Performed
 
-### Manual Testing
-- [ ] Mock data creates with correct timestamps
-- [ ] Archived content spans 2-30 days
-- [ ] Caption patterns are varied but similar
-- [ ] Consensus scenarios properly created
-- [ ] No interference with production data
+### Mock Data Validation
+- [ ] Archived content has valid embeddings
+- [ ] Similar users show in discovery
+- [ ] Consensus alerts trigger correctly
+- [ ] Feed mixing works with mock data
+
+### Performance Testing
+- [ ] Query times with new indexes
+- [ ] Real-time subscription performance
+- [ ] Archive filtering overhead measurement
 
 ## Documentation Updates
 
-- [ ] Updated mock data README with RAG scenarios
-- [ ] Documented caption patterns for AI training
-- [ ] Added examples of consensus betting scenarios
+- [ ] Mock data generation documented
+- [ ] Performance optimization rationale explained
+- [ ] Demo scenarios documented
 
 ## Handoff to Reviewer
 
 ### What Was Implemented
-[To be completed when sprint starts]
+[To be completed during implementation]
 
 ### Files Modified/Created
-[To be completed when sprint starts]
+[To be completed during implementation]
 
 ### Key Decisions Made
-[To be completed when sprint starts]
+[To be completed during implementation]
 
 ### Deviations from Original Plan
-[To be completed when sprint starts]
+[To be completed during implementation]
 
 ### Known Issues/Concerns
-[To be completed when sprint starts]
+[To be completed during implementation]
 
 ### Suggested Review Focus
-- Mock data time distribution
-- Caption variety for AI training
-- Consensus scenario realism
+- Mock data quality and realism
+- Performance index effectiveness
+- Real-time filtering implementation
+- Demo scenario completeness
 
 **Sprint Status**: NOT STARTED
 
@@ -187,13 +240,11 @@ const captionTemplates = [
 **Review Date**: [Date]
 
 ### Review Checklist
-- [ ] Code matches sprint objectives
-- [ ] All planned files created/modified
-- [ ] Follows established patterns
-- [ ] No unauthorized scope additions
-- [ ] Code is clean and maintainable
-- [ ] No obvious bugs or issues
-- [ ] Integrates properly with existing code
+- [ ] Mock data covers all RAG features
+- [ ] Performance optimizations are effective
+- [ ] Real-time filtering works correctly
+- [ ] No regression in existing features
+- [ ] Demo scenarios are compelling
 
 ### Review Outcome
 
@@ -202,16 +253,19 @@ const captionTemplates = [
 ### Feedback
 [If NEEDS REVISION, specific feedback here]
 
+### Post-Review Updates
+[Track changes made in response to review]
+
 ---
 
 ## Sprint Metrics
 
-**Duration**: Planned 2 hours | Actual [Y] hours  
+**Duration**: Planned 4 hours | Actual [Y] hours  
 **Scope Changes**: [Number of plan updates]  
 **Review Cycles**: [Number of review rounds]  
-**Files Touched**: 2  
-**Lines Added**: ~200  
-**Lines Removed**: ~0
+**Files Touched**: [Number]  
+**Lines Added**: [Number]  
+**Lines Removed**: [Number]
 
 ## Learnings for Future Sprints
 

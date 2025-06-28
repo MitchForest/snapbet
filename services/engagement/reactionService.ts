@@ -103,12 +103,23 @@ class ReactionService {
    */
   async getReactions(contentId: string, isStory = false): Promise<ReactionSummary[]> {
     try {
-      const query = supabase.from('reactions').select('emoji');
+      // For reactions, we need to check if the parent content is archived
+      let query;
 
       if (isStory) {
-        query.eq('story_id', contentId);
+        query = supabase
+          .from('reactions')
+          .select('emoji, story:stories!inner(archived, deleted_at)')
+          .eq('story_id', contentId)
+          .eq('story.archived', false)
+          .is('story.deleted_at', null);
       } else {
-        query.eq('post_id', contentId);
+        query = supabase
+          .from('reactions')
+          .select('emoji, post:posts!inner(archived, deleted_at)')
+          .eq('post_id', contentId)
+          .eq('post.archived', false)
+          .is('post.deleted_at', null);
       }
 
       const { data: reactions, error } = await query;

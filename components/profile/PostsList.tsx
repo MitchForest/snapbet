@@ -5,6 +5,7 @@ import { PostCard } from '@/components/content/PostCard';
 import { PostWithType } from '@/types/content';
 import { supabase } from '@/services/supabase/client';
 import { Colors } from '@/theme';
+import { withActiveContent } from '@/utils/database/archiveFilter';
 
 interface PostsListProps {
   userId?: string;
@@ -41,16 +42,15 @@ export const PostsList: React.FC<PostsListProps> = ({
       }
 
       // Fetch posts for specific user
-      const { data, error } = await supabase
-        .from('posts')
-        .select(
+      const { data, error } = await withActiveContent(
+        supabase.from('posts').select(
           `
-          *,
-          user:users(id, username, display_name, avatar_url)
-        `
+            *,
+            user:users(id, username, display_name, avatar_url)
+          `
         )
+      )
         .eq('user_id', userId)
-        .is('deleted_at', null)
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false })
         .limit(20);

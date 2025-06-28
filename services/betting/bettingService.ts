@@ -12,6 +12,7 @@ import {
   PayoutCalculation,
 } from './types';
 import { getOddsData } from '@/types/betting';
+import { withActiveContent } from '@/utils/database/archiveFilter';
 
 class BettingService {
   // Place a new bet
@@ -83,11 +84,13 @@ class BettingService {
   // Get user's active (pending) bets
   async getActiveBets(userId: string): Promise<BetWithGame[]> {
     try {
-      const { data, error } = await supabase
-        .from('bets')
-        .select(
-          '*, game:games(id, sport, home_team, away_team, commence_time, status, home_score, away_score)'
-        )
+      const { data, error } = await withActiveContent(
+        supabase
+          .from('bets')
+          .select(
+            '*, game:games(id, sport, home_team, away_team, commence_time, status, home_score, away_score)'
+          )
+      )
         .eq('user_id', userId)
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
@@ -106,13 +109,15 @@ class BettingService {
     try {
       const { limit = 20, offset = 0, status, includeGameDetails = true } = options;
 
-      let query = supabase
-        .from('bets')
-        .select(
-          includeGameDetails
-            ? '*, game:games(id, sport, home_team, away_team, commence_time, status, home_score, away_score)'
-            : '*'
-        );
+      let query = withActiveContent(
+        supabase
+          .from('bets')
+          .select(
+            includeGameDetails
+              ? '*, game:games(id, sport, home_team, away_team, commence_time, status, home_score, away_score)'
+              : '*'
+          )
+      );
 
       query = query.eq('user_id', userId);
 
@@ -136,7 +141,9 @@ class BettingService {
   // Get single bet details
   async getBet(betId: string): Promise<Bet | null> {
     try {
-      const { data, error } = await supabase.from('bets').select('*').eq('id', betId).single();
+      const { data, error } = await withActiveContent(supabase.from('bets').select('*'))
+        .eq('id', betId)
+        .single();
 
       if (error) {
         if (error.code === 'PGRST116') return null; // Not found

@@ -1,6 +1,7 @@
 import { supabase } from '@/services/supabase';
 import { PostType, PostWithType, CreatePostParams, Comment } from '@/types/content';
 import { calculateExpiration } from '@/utils/content/postTypeHelpers';
+import { withActiveContent } from '@/utils/database/archiveFilter';
 
 export async function createPost(params: CreatePostParams): Promise<PostWithType> {
   const { post_type = PostType.CONTENT, bet_id, settled_bet_id, expires_at, ...rest } = params;
@@ -37,16 +38,15 @@ export async function createPost(params: CreatePostParams): Promise<PostWithType
 }
 
 export async function getPostsByType(postType: PostType, limit = 20): Promise<PostWithType[]> {
-  const { data, error } = await supabase
-    .from('posts')
-    .select(
+  const { data, error } = await withActiveContent(
+    supabase.from('posts').select(
       `
-      *,
-      user:users(id, username, display_name, avatar_url)
-    `
+        *,
+        user:users(id, username, display_name, avatar_url)
+      `
     )
+  )
     .eq('post_type', postType)
-    .is('deleted_at', null)
     .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -56,15 +56,14 @@ export async function getPostsByType(postType: PostType, limit = 20): Promise<Po
 }
 
 export async function getAllPosts(limit = 20): Promise<PostWithType[]> {
-  const { data, error } = await supabase
-    .from('posts')
-    .select(
+  const { data, error } = await withActiveContent(
+    supabase.from('posts').select(
       `
-      *,
-      user:users(id, username, display_name, avatar_url)
-    `
+        *,
+        user:users(id, username, display_name, avatar_url)
+      `
     )
-    .is('deleted_at', null)
+  )
     .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -74,16 +73,15 @@ export async function getAllPosts(limit = 20): Promise<PostWithType[]> {
 }
 
 export async function getPostById(postId: string): Promise<PostWithType | null> {
-  const { data, error } = await supabase
-    .from('posts')
-    .select(
+  const { data, error } = await withActiveContent(
+    supabase.from('posts').select(
       `
-      *,
-      user:users(id, username, display_name, avatar_url)
-    `
+        *,
+        user:users(id, username, display_name, avatar_url)
+      `
     )
+  )
     .eq('id', postId)
-    .is('deleted_at', null)
     .single();
 
   if (error) {
@@ -156,11 +154,14 @@ export async function getComments(postId: string, limit = 50): Promise<Comment[]
     .select(
       `
       *,
-      user:users(id, username, display_name, avatar_url)
+      user:users(id, username, display_name, avatar_url),
+      post:posts!inner(archived, deleted_at)
     `
     )
     .eq('post_id', postId)
     .is('deleted_at', null)
+    .eq('post.archived', false)
+    .is('post.deleted_at', null)
     .order('created_at', { ascending: true })
     .limit(limit);
 

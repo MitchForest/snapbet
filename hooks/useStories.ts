@@ -4,6 +4,7 @@ import { supabase } from '@/services/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { getFollowingIds } from '@/services/api/followUser';
 import { eventEmitter, FeedEvents } from '@/utils/eventEmitter';
+import { withActiveContent } from '@/utils/database/archiveFilter';
 
 interface StorySummary {
   id: string;
@@ -35,20 +36,19 @@ export function useStories() {
       const userIds = [...followingIds, user.id];
 
       // Fetch active stories from followed users
-      const { data, error: fetchError } = await supabase
-        .from('stories')
-        .select(
+      const { data, error: fetchError } = await withActiveContent(
+        supabase.from('stories').select(
           `
-          *,
-          user:user_id (
-            id,
-            username,
-            avatar_url
-          )
-        `
+            *,
+            user:user_id (
+              id,
+              username,
+              avatar_url
+            )
+          `
         )
+      )
         .in('user_id', userIds)
-        .is('deleted_at', null)
         .gte('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false });
 
