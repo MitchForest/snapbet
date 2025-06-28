@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Stack } from '@tamagui/core';
+import { View, Text, StyleSheet } from 'react-native';
 import { Colors } from '@/theme';
 
 interface PayoutDisplayProps {
@@ -12,35 +12,23 @@ export function PayoutDisplay({ stake, odds, potentialWin }: PayoutDisplayProps)
   const totalReturn = stake + potentialWin;
 
   return (
-    <View backgroundColor={Colors.surfaceAlt} borderRadius={12} padding={16} marginBottom={16}>
-      <Stack flexDirection="row" justifyContent="space-between" marginBottom={8}>
-        <Text fontSize={14} color={Colors.text.secondary}>
-          Odds
-        </Text>
-        <Text fontSize={14} fontWeight="600" color={Colors.text.primary}>
-          {formatOdds(odds)}
-        </Text>
-      </Stack>
+    <View style={styles.container}>
+      <View style={styles.row}>
+        <Text style={styles.label}>Odds</Text>
+        <Text style={styles.value}>{formatOdds(odds)}</Text>
+      </View>
 
-      <Stack flexDirection="row" justifyContent="space-between" marginBottom={8}>
-        <Text fontSize={14} color={Colors.text.secondary}>
-          To Win
-        </Text>
-        <Text fontSize={16} fontWeight="600" color={Colors.success}>
-          ${formatMoney(potentialWin)}
-        </Text>
-      </Stack>
+      <View style={styles.row}>
+        <Text style={styles.label}>To Win</Text>
+        <Text style={styles.winAmount}>${formatMoney(potentialWin)}</Text>
+      </View>
 
-      <View height={1} backgroundColor={Colors.border.light} marginVertical={8} />
+      <View style={styles.divider} />
 
-      <Stack flexDirection="row" justifyContent="space-between">
-        <Text fontSize={14} color={Colors.text.secondary}>
-          Total Return
-        </Text>
-        <Text fontSize={18} fontWeight="700" color={Colors.text.primary}>
-          ${formatMoney(totalReturn)}
-        </Text>
-      </Stack>
+      <View style={styles.row}>
+        <Text style={styles.label}>Total Return</Text>
+        <Text style={styles.totalAmount}>${formatMoney(totalReturn)}</Text>
+      </View>
     </View>
   );
 }
@@ -55,3 +43,41 @@ function formatOdds(odds: number): string {
 function formatMoney(cents: number): string {
   return (cents / 100).toFixed(2);
 }
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: Colors.surfaceAlt,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  label: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+  },
+  value: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text.primary,
+  },
+  winAmount: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.success,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.border.light,
+    marginVertical: 8,
+  },
+  totalAmount: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.text.primary,
+  },
+});

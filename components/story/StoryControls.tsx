@@ -58,19 +58,23 @@ export function StoryControls({
       )}
 
       {/* Footer */}
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
-        <View style={styles.footerLeft}>
-          {isOwner && (
-            <View style={styles.viewCount}>
-              <Text style={styles.viewIcon}>👁</Text>
-              <Text style={styles.viewCountText}>{viewCount} views</Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.footerRight}>
-          {!isOwner && <ReactionPicker currentReaction={userReaction} onSelect={onReaction} />}
-        </View>
+      <View
+        style={[
+          styles.footer,
+          { paddingBottom: insets.bottom + 16 },
+          !isOwner && styles.footerCentered,
+        ]}
+      >
+        {isOwner ? (
+          <View style={styles.viewCount}>
+            <Text style={styles.viewIcon}>👁</Text>
+            <Text style={styles.viewCountText}>{viewCount} views</Text>
+          </View>
+        ) : (
+          <View style={styles.reactionContainer}>
+            <ReactionPicker currentReaction={userReaction} onSelect={onReaction} />
+          </View>
+        )}
       </View>
     </>
   );
@@ -134,17 +138,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    paddingHorizontal: 16,
-  },
-  footerLeft: {
-    flex: 1,
-  },
-  footerRight: {
-    flexDirection: 'row',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    gap: 16,
+    paddingHorizontal: 16,
   },
   viewCount: {
     flexDirection: 'row',
@@ -162,5 +158,12 @@ const styles = StyleSheet.create({
   },
   viewIcon: {
     fontSize: 16,
+  },
+  reactionContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  footerCentered: {
+    justifyContent: 'center',
   },
 });

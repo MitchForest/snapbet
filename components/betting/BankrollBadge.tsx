@@ -1,79 +1,47 @@
 import React from 'react';
-import { Stack, Text } from '@tamagui/core';
-import { Pressable, ActivityIndicator } from 'react-native';
+import { Pressable, Text, StyleSheet } from 'react-native';
 import { Colors } from '@/theme';
-import { useBankroll } from '@/hooks/useBankroll';
-import { useActiveBets } from '@/hooks/useBetting';
+import { useAvailableBalance } from '@/hooks/useBankroll';
+import * as Haptics from 'expo-haptics';
 
 interface BankrollBadgeProps {
   onPress?: () => void;
 }
 
 export function BankrollBadge({ onPress }: BankrollBadgeProps) {
-  const { data: bankroll, isLoading: bankrollLoading } = useBankroll();
-  const { bets: pendingBets, isLoading: betsLoading } = useActiveBets();
+  const balance = useAvailableBalance();
 
-  const isLoading = bankrollLoading || betsLoading;
-
-  // Calculate available balance
-  const pendingTotal = pendingBets?.reduce((sum, bet) => sum + bet.stake, 0) || 0;
-  const available = (bankroll?.balance || 0) - pendingTotal;
-
-  // Determine color based on weekly P&L
-  const weeklyPL = bankroll ? bankroll.balance - bankroll.weekly_deposit : 0;
-  const color = getBankrollColor(weeklyPL);
-
-  if (isLoading) {
-    return (
-      <Stack
-        backgroundColor={Colors.surface}
-        paddingHorizontal="$4"
-        paddingVertical="$2"
-        borderRadius="$4"
-        alignItems="center"
-        justifyContent="center"
-        flexDirection="row"
-        borderWidth={1}
-        borderColor={Colors.border.light}
-        minWidth={140}
-        height={36}
-      >
-        <ActivityIndicator size="small" color={Colors.text.secondary} />
-      </Stack>
-    );
-  }
+  const handlePress = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onPress?.();
+  };
 
   return (
-    <Pressable onPress={onPress}>
-      <Stack
-        backgroundColor={Colors.surface}
-        paddingHorizontal="$4"
-        paddingVertical="$2"
-        borderRadius="$4"
-        alignItems="center"
-        gap="$2"
-        flexDirection="row"
-        borderWidth={1}
-        borderColor={Colors.border.light}
-      >
-        <Text fontSize="$3" color={Colors.text.secondary} fontWeight="500">
-          Bankroll:
-        </Text>
-        <Text fontSize="$4" fontWeight="bold" color={color}>
-          ${formatCentsToDisplay(available)}
-        </Text>
-      </Stack>
+    <Pressable style={styles.container} onPress={handlePress}>
+      <Text style={styles.label}>Bankroll</Text>
+      <Text style={styles.amount}>${(balance / 100).toFixed(0)}</Text>
     </Pressable>
   );
 }
 
-// Helper functions
-function formatCentsToDisplay(cents: number): string {
-  return (cents / 100).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-
-function getBankrollColor(weeklyPL: number): string {
-  if (weeklyPL > 0) return Colors.success;
-  if (weeklyPL < 0) return Colors.error;
-  return Colors.text.secondary;
-}
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.white,
+  },
+  amount: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+});

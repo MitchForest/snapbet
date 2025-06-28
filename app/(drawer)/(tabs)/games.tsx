@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Stack } from '@tamagui/core';
+import { View, StyleSheet } from 'react-native';
 import { Colors } from '@/theme';
 import { GamesList } from '@/components/betting/GamesList';
 import { BetSheet } from '@/components/betting/BetSheet';
@@ -28,19 +28,11 @@ export default function GamesScreen() {
   };
 
   return (
-    <View flex={1} backgroundColor={Colors.background}>
+    <View style={styles.container}>
       {/* Sticky Bankroll Badge */}
-      <Stack
-        paddingHorizontal="$4"
-        paddingVertical="$2"
-        backgroundColor={Colors.surface}
-        borderBottomWidth={1}
-        borderBottomColor={Colors.border.light}
-        alignItems="center"
-        zIndex={10}
-      >
+      <View style={styles.bankrollContainer}>
         <BankrollBadge onPress={handleBankrollPress} />
-      </Stack>
+      </View>
 
       {/* Games List */}
       <GamesList onQuickBet={handleQuickBet} />
@@ -54,3 +46,19 @@ export default function GamesScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  bankrollContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: Colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.light,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+});

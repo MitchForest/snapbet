@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator, Modal } from 'react-native';
 import { BaseSheet } from '@/components/engagement/sheets/BaseSheet';
 import { Bet } from '@/services/betting/types';
@@ -35,7 +35,6 @@ export function TailFadeSheet({
   const { mutate: fadePick, isLoading: isFading } = useFadePick();
 
   const [stake, setStake] = useState(0);
-  const [showCustomInput, setShowCustomInput] = useState(false);
   const [availableBankroll, setAvailableBankroll] = useState(0);
   const [game, setGame] = useState<Game | null>(null);
 
@@ -96,18 +95,7 @@ export function TailFadeSheet({
   useEffect(() => {
     if (originalBet) {
       setStake(originalBet.stake);
-      setShowCustomInput(false);
     }
-  }, [originalBet]);
-
-  const quickAmounts = useMemo(() => {
-    if (!originalBet) return [];
-    return [
-      originalBet.stake,
-      2500, // $25
-      5000, // $50
-      10000, // $100
-    ];
   }, [originalBet]);
 
   const handleConfirm = useCallback(async () => {
@@ -188,50 +176,16 @@ export function TailFadeSheet({
           {/* Stake Selection */}
           <View style={styles.stakeContainer}>
             <Text style={styles.stakeLabel}>Your Stake:</Text>
+            <Text style={styles.originalStakeNote}>
+              {originalUser.username} bet ${originalBet.stake / 100}
+            </Text>
 
-            {!showCustomInput ? (
-              <View style={styles.quickAmountsContainer}>
-                {quickAmounts.map((amount) => (
-                  <Pressable
-                    key={amount}
-                    style={[
-                      styles.quickAmountButton,
-                      stake === amount && { backgroundColor: actionColor },
-                    ]}
-                    onPress={() => {
-                      setStake(amount);
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.quickAmountText,
-                        stake === amount && styles.quickAmountTextActive,
-                      ]}
-                    >
-                      ${amount / 100}
-                      {amount === originalBet.stake && ' (match)'}
-                    </Text>
-                  </Pressable>
-                ))}
-                <Pressable
-                  style={[styles.quickAmountButton, styles.customButton]}
-                  onPress={() => {
-                    setShowCustomInput(true);
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  }}
-                >
-                  <Text style={styles.quickAmountText}>Custom</Text>
-                </Pressable>
-              </View>
-            ) : (
-              <StakeInput
-                value={stake}
-                onChange={setStake}
-                maxAmount={availableBankroll}
-                quickAmounts={[25, 50, 100]}
-              />
-            )}
+            <StakeInput
+              value={stake}
+              onChange={setStake}
+              maxAmount={availableBankroll}
+              quickAmounts={[25, 50, 100]}
+            />
           </View>
 
           {/* Insufficient Funds Warning */}
@@ -246,7 +200,7 @@ export function TailFadeSheet({
             <PayoutDisplay
               stake={stake}
               odds={originalBet.odds}
-              potentialWin={originalBet.potential_win}
+              potentialWin={calculatePotentialWin(stake, originalBet.odds)}
             />
           )}
 
@@ -278,6 +232,17 @@ export function TailFadeSheet({
       </BaseSheet>
     </Modal>
   );
+}
+
+// Helper function to calculate potential win
+function calculatePotentialWin(stake: number, odds: number): number {
+  if (odds > 0) {
+    // Positive odds: (stake * odds) / 100
+    return Math.floor((stake * odds) / 100);
+  } else {
+    // Negative odds: (stake * 100) / Math.abs(odds)
+    return Math.floor((stake * 100) / Math.abs(odds));
+  }
 }
 
 const styles = StyleSheet.create({
@@ -319,28 +284,9 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     fontSize: 14,
   },
-  quickAmountsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  quickAmountButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border.default,
-  },
-  quickAmountText: {
-    fontSize: 14,
-    color: Colors.text.primary,
-  },
-  quickAmountTextActive: {
-    color: Colors.white,
-  },
-  customButton: {
-    borderStyle: 'dashed',
+  originalStakeNote: {
+    color: Colors.text.secondary,
+    fontSize: 12,
   },
   warningText: {
     color: Colors.error,

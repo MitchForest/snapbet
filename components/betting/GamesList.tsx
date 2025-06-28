@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text } from '@tamagui/core';
+import { View, Text, StyleSheet } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { RefreshControl, StyleSheet } from 'react-native';
+import { RefreshControl } from 'react-native';
 import { Colors } from '@/theme';
 import { Game } from '@/types/database-helpers';
 import { GameCard } from './GameCard';
@@ -27,17 +27,15 @@ export function GamesList({ sport = 'all', onQuickBet }: GamesListProps) {
     if (typeof item === 'string') {
       // Section header
       return (
-        <View paddingHorizontal={16} paddingVertical={12} backgroundColor={Colors.background}>
-          <Text color={Colors.text.primary} fontSize={16} fontWeight="600">
-            {item}
-          </Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>{item}</Text>
         </View>
       );
     }
 
     // Game card
     return (
-      <View paddingHorizontal={16}>
+      <View style={styles.cardContainer}>
         <GameCard game={item} onQuickBet={onQuickBet} />
       </View>
     );
@@ -57,8 +55,8 @@ export function GamesList({ sport = 'all', onQuickBet }: GamesListProps) {
   // Loading state
   if (isLoading && flatData.length === 0) {
     return (
-      <View flex={1} justifyContent="center" alignItems="center">
-        <Text color={Colors.text.secondary}>Loading games...</Text>
+      <View style={styles.centerContainer}>
+        <Text style={styles.loadingText}>Loading games...</Text>
       </View>
     );
   }
@@ -66,13 +64,9 @@ export function GamesList({ sport = 'all', onQuickBet }: GamesListProps) {
   // Error state
   if (error) {
     return (
-      <View flex={1} justifyContent="center" alignItems="center" padding={16}>
-        <Text color={Colors.error} fontSize={16} marginBottom={8}>
-          Error loading games
-        </Text>
-        <Text color={Colors.text.secondary} textAlign="center">
-          {error.message}
-        </Text>
+      <View style={styles.centerContainer}>
+        <Text style={styles.errorTitle}>Error loading games</Text>
+        <Text style={styles.errorMessage}>{error.message}</Text>
       </View>
     );
   }
@@ -80,13 +74,9 @@ export function GamesList({ sport = 'all', onQuickBet }: GamesListProps) {
   // Empty state
   if (flatData.length === 0) {
     return (
-      <View flex={1} justifyContent="center" alignItems="center" padding={16}>
-        <Text color={Colors.text.primary} fontSize={18} marginBottom={8}>
-          No games available
-        </Text>
-        <Text color={Colors.text.secondary} textAlign="center">
-          Check back later for upcoming games
-        </Text>
+      <View style={styles.centerContainer}>
+        <Text style={styles.emptyTitle}>No games available</Text>
+        <Text style={styles.emptyMessage}>Check back later for upcoming games</Text>
       </View>
     );
   }
@@ -115,5 +105,45 @@ export function GamesList({ sport = 'all', onQuickBet }: GamesListProps) {
 const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 100,
+  },
+  sectionHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: Colors.background,
+  },
+  sectionTitle: {
+    color: Colors.text.primary,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  cardContainer: {
+    paddingHorizontal: 16,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  loadingText: {
+    color: Colors.text.secondary,
+  },
+  errorTitle: {
+    color: Colors.error,
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  errorMessage: {
+    color: Colors.text.secondary,
+    textAlign: 'center',
+  },
+  emptyTitle: {
+    color: Colors.text.primary,
+    fontSize: 18,
+    marginBottom: 8,
+  },
+  emptyMessage: {
+    color: Colors.text.secondary,
+    textAlign: 'center',
   },
 });

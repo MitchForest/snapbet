@@ -1,6 +1,5 @@
 import React, { memo } from 'react';
-import { View, Text, Stack } from '@tamagui/core';
-import { TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors } from '@/theme';
 import { Game } from '@/types/database-helpers';
 import { SportBadge } from './SportBadge';
@@ -52,10 +51,10 @@ export const GameCard = memo(
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <Stack flexDirection="row" alignItems="center" gap={8}>
+          <View style={styles.timeContainer}>
             <SportBadge sport={sport} />
             <Text style={styles.timeText}>• {timeString}</Text>
-          </Stack>
+          </View>
           {isLive && (
             <View style={styles.liveIndicator}>
               <Text style={styles.liveText}>LIVE</Text>
@@ -223,6 +222,11 @@ const styles = StyleSheet.create({
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border.light,
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   timeText: {
     color: Colors.text.secondary,

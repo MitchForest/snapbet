@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Stack } from '@tamagui/core';
-import { TouchableOpacity, TextInput, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
 import { Colors } from '@/theme';
 import * as Haptics from 'expo-haptics';
 
@@ -50,12 +49,10 @@ export function StakeInput({ value, onChange, quickAmounts, maxAmount }: StakeIn
 
   return (
     <View>
-      <Text fontSize={14} color={Colors.text.secondary} marginBottom={8}>
-        Bet Amount
-      </Text>
+      <Text style={styles.label}>Bet Amount</Text>
 
       {/* Quick Amounts */}
-      <Stack flexDirection="row" gap={8} marginBottom={12}>
+      <View style={styles.quickAmountsContainer}>
         {quickAmounts.map((amount) => (
           <TouchableOpacity
             key={amount}
@@ -63,9 +60,10 @@ export function StakeInput({ value, onChange, quickAmounts, maxAmount }: StakeIn
             onPress={() => handleQuickAmount(amount)}
           >
             <Text
-              fontSize={14}
-              fontWeight="600"
-              color={value === amount * 100 ? Colors.white : Colors.text.primary}
+              style={[
+                styles.quickButtonText,
+                value === amount * 100 && styles.quickButtonTextSelected,
+              ]}
             >
               ${amount}
             </Text>
@@ -80,20 +78,20 @@ export function StakeInput({ value, onChange, quickAmounts, maxAmount }: StakeIn
           onPress={handleMax}
         >
           <Text
-            fontSize={14}
-            fontWeight="600"
-            color={value === maxAmount ? Colors.white : Colors.primary}
+            style={[
+              styles.quickButtonText,
+              styles.maxButtonText,
+              value === maxAmount && styles.quickButtonTextSelected,
+            ]}
           >
             MAX
           </Text>
         </TouchableOpacity>
-      </Stack>
+      </View>
 
       {/* Custom Input */}
       <View style={styles.inputContainer}>
-        <Text fontSize={20} color={Colors.text.primary} marginRight={8}>
-          $
-        </Text>
+        <Text style={styles.dollarSign}>$</Text>
         <TextInput
           style={styles.input}
           value={inputValue}
@@ -106,14 +104,10 @@ export function StakeInput({ value, onChange, quickAmounts, maxAmount }: StakeIn
       </View>
 
       {/* Min/Max Info */}
-      <Stack flexDirection="row" justifyContent="space-between" marginTop={8}>
-        <Text fontSize={12} color={Colors.text.tertiary}>
-          Min: $5
-        </Text>
-        <Text fontSize={12} color={Colors.text.tertiary}>
-          Max: ${(maxAmount / 100).toFixed(2)}
-        </Text>
-      </Stack>
+      <View style={styles.minMaxContainer}>
+        <Text style={styles.minMaxText}>Min: $5</Text>
+        <Text style={styles.minMaxText}>Max: ${(maxAmount / 100).toFixed(2)}</Text>
+      </View>
     </View>
   );
 }
@@ -124,6 +118,16 @@ function formatCentsToDisplay(cents: number): string {
 }
 
 const styles = StyleSheet.create({
+  label: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+    marginBottom: 8,
+  },
+  quickAmountsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
   quickButton: {
     flex: 1,
     paddingVertical: 10,
@@ -141,6 +145,17 @@ const styles = StyleSheet.create({
   maxButton: {
     borderColor: Colors.primary,
   },
+  quickButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text.primary,
+  },
+  quickButtonTextSelected: {
+    color: Colors.white,
+  },
+  maxButtonText: {
+    color: Colors.primary,
+  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -156,5 +171,19 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: Colors.text.primary,
     padding: 0,
+  },
+  dollarSign: {
+    fontSize: 20,
+    color: Colors.text.primary,
+    marginRight: 8,
+  },
+  minMaxContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  minMaxText: {
+    fontSize: 12,
+    color: Colors.text.tertiary,
   },
 });
