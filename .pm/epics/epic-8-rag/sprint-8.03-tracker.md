@@ -2,8 +2,8 @@
 
 ## Sprint Overview
 
-**Status**: NOT STARTED  
-**Start Date**: [TBD]  
+**Status**: IN PROGRESS  
+**Start Date**: 2024-12-29  
 **End Date**: [TBD]  
 **Epic**: 8 - RAG Implementation
 
@@ -189,22 +189,67 @@ const { data: recentBets } = await withActiveContent(
 ## Implementation Log
 
 ### Day-by-Day Progress
-**[Date]**:
-- Started: [What was begun]
-- Completed: [What was finished]
-- Blockers: [Any issues]
-- Decisions: [Any changes to plan]
+**2024-12-29**:
+- Started: Sprint investigation and planning phase
+- Completed: Comprehensive codebase analysis and implementation plan
+- Blockers: None - awaiting plan approval
+- Decisions: Created detailed 10-step implementation approach
 
 ### Reality Checks & Plan Updates
 
-**Reality Check 1** - [Date]
-- Issue: [What wasn't working]
-- Options Considered:
-  1. [Option 1] - Pros/Cons
-  2. [Option 2] - Pros/Cons
-- Decision: [What was chosen]
-- Plan Update: [How sprint plan changed]
-- Epic Impact: [Any epic updates needed]
+**Initial Investigation** - 2024-12-29
+- Issue: Need comprehensive understanding of all query locations
+- Investigation Results:
+  - Archive columns confirmed present from Sprint 8.01
+  - No existing archive filtering implemented
+  - 29+ files need updates across multiple services
+  - Complex join queries need special handling
+- Decision: Proceed with utility-based approach for consistency
+- Plan Update: Added specific file list and implementation priority
+
+### Implementation Plan Presented
+
+**Executor's Comprehensive Plan**:
+
+1. **Create Archive Filter Utility** (`utils/database/archiveFilter.ts`)
+   - Generic type-safe filter functions
+   - Support for PostgrestFilterBuilder chaining
+   - Separate functions for active vs archived content
+
+2. **Update Core Services** (Priority Order):
+   - Feed Service - `getFeedPosts`, `getCachedFeed`
+   - Post Service - All query methods
+   - Story Service - Active story queries
+   - Betting Service - User bets, active bets
+   - Engagement Services - Reactions, comments with parent checks
+
+3. **Update Supporting Services**:
+   - Search/Discovery - All algorithms
+   - Messaging - Chat and message queries
+   - Badge Automation - Calculation queries
+   - Job Scripts - Badge calculations, cleanup
+
+4. **Update Frontend Components**:
+   - Profile components that query directly
+   - Frontend hooks if they bypass services
+
+**Questions for Reviewer**:
+
+1. **Settlement Service Handling**
+   - Should settlement still process archived bets or skip them?
+   - Executor suggests: Continue settling for historical accuracy, exclude from visible stats
+
+2. **Real-time Subscriptions**
+   - Should subscriptions filter archived content at subscription level?
+   - Executor suggests: Add archive filters to subscription queries
+
+3. **Performance Indexes**
+   - Should we add compound indexes in this sprint or defer?
+   - Executor suggests: Add TODO comments, create separate performance sprint
+
+4. **Edge Case: Parent-Child Relationships**
+   - How to handle comments/reactions on archived posts?
+   - Executor suggests: Hide all engagement when parent is archived
 
 ### Code Quality Checks
 
@@ -328,7 +373,7 @@ Comprehensive archive filtering across all user-facing queries:
 - Performance implications
 - Edge case handling
 
-**Sprint Status**: READY FOR REVIEW
+**Sprint Status**: AWAITING PLAN APPROVAL
 
 ---
 

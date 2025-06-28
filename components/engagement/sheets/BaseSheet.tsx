@@ -19,7 +19,6 @@ interface BaseSheetProps {
   disableContentWrapper?: boolean;
 }
 
-const SAFE_AREA_BOTTOM = 34; // Standard safe area bottom height
 const TRANSPARENT = 'transparent'; // Extract color literal as constant
 
 export function BaseSheet({
@@ -109,7 +108,7 @@ export function BaseSheet({
     >
       <BottomSheetScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: SAFE_AREA_BOTTOM }}
+        contentContainerStyle={styles.scrollContent}
       >
         {disableContentWrapper ? (
           children
@@ -150,5 +149,8 @@ const styles = StyleSheet.create({
   hiddenIndicator: {
     height: 0,
     backgroundColor: TRANSPARENT,
+  },
+  scrollContent: {
+    paddingBottom: 0,
   },
 });

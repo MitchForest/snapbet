@@ -22,7 +22,7 @@
 | Sprint # | Sprint Name | Status | Start Date | End Date | Key Deliverable |
 |----------|-------------|--------|------------|----------|-----------------|
 | 8.01 | Database Infrastructure | COMPLETED | 2024-12-29 | 2024-12-29 | pgvector setup, archive columns, RPC functions |
-| 8.02 | Content Archiving | NOT STARTED | - | - | Modify content-expiration job to archive |
+| 8.02 | Content Archiving | COMPLETED | 2024-12-29 | 2024-12-29 | Modify content-expiration job to archive |
 | 8.03 | Archive Filtering | NOT STARTED | - | - | Update all queries to filter archived content |
 | 8.04 | RAG Service Layer | NOT STARTED | - | - | OpenAI integration and embedding pipeline |
 | 8.05 | AI Caption Generation | NOT STARTED | - | - | Caption UI and generation service |
@@ -203,17 +203,58 @@ CREATE TABLE embedding_metadata (
 - RPC functions tested and working
 - TypeScript types properly aligned
 
-### Sprint 8.02: Content Archiving
-**Status**: NOT STARTED
-**Summary**: [To be completed]
-**Key Decisions**: [To be completed]
-**Issues Encountered**: [To be completed]
+### Sprint 8.02: Content Archiving  
+**Status**: COMPLETED  
+**Duration**: 1.5 hours (planned 2 hours)  
+**Completed**: 2024-12-29  
+**Summary**: Successfully modified content-expiration job to archive content instead of deleting it, preserving data for RAG features while maintaining backward compatibility.
+
+**Key Accomplishments**:
+- Modified expiration logic for posts, stories, and messages to use `archived: true`
+- Added weekly bet archiving (7 days old) running hourly
+- Added engagement data archiving for reactions and pick_actions (3 days old)
+- Maintained `deleted_at` for user/moderation deletions
+- Updated all logging messages to reflect archiving operations
+- All queries properly check both `archived=false` and `deleted_at is null`
+
+**Key Decisions**:
+- Kept hourly schedule (not 5 minutes) for production stability
+- Implemented without initial batching (can add if performance issues arise)
+- Used simple age-based logic for archiving instead of complex scheduling
+- Separated mock data generation to Sprint 8.10 for clean separation of concerns
+
+**Technical Notes**:
+- Import path fixed to use scripts/supabase-client
+- All archive operations follow consistent pattern
+- Limit option supported for future batch processing needs
+
+**Issues Encountered**:
+- Job CLI has React Native import issues (doesn't affect cron execution)
+- Resolved by using scripts-specific supabase client
+
+**Review Outcome**: APPROVED (2024-12-29)
+- All quality checks passing (0 lint errors, 0 type errors)
+- Archive logic correctly implemented
+- Production-ready code without mock data concerns
 
 ### Sprint 8.03: Archive Filtering
-**Status**: NOT STARTED
-**Summary**: [To be completed]
-**Key Decisions**: [To be completed]
-**Issues Encountered**: [To be completed]
+**Status**: IN PROGRESS
+**Duration**: Started 2024-12-29
+**Summary**: Implementing comprehensive archive filtering across all user-facing queries to ensure users only see active content while preserving archived data for AI/RAG features.
+
+**Implementation Plan**:
+- Create centralized archive filter utility for consistency
+- Update 29+ files across feed, betting, messaging, and engagement services
+- Handle complex join queries where child records need parent archive status
+- Update frontend hooks and components that query directly
+
+**Key Questions for Approval**:
+1. Settlement service: Continue settling archived bets for accuracy?
+2. Real-time subscriptions: Add archive filters at subscription level?
+3. Performance indexes: Defer to separate sprint or add now?
+4. Parent-child relationships: Hide all engagement on archived content?
+
+**Issues Encountered**: None yet - awaiting plan approval
 
 ### Sprint 8.04: RAG Service Layer
 **Status**: NOT STARTED
@@ -377,9 +418,9 @@ If any build issues are encountered:
 - [ ] Epic summary added to project tracker
 
 ### Progress Summary
-- **Sprints Completed**: 1/10 (10%)
+- **Sprints Completed**: 2/10 (20%)
 - **Epic Status**: On Track
-- **Next Sprint**: 8.02 - Content Archiving
+- **Next Sprint**: 8.03 - Archive Filtering
 
 ## Epic Summary for Project Tracker
 

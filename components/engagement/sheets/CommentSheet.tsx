@@ -55,87 +55,89 @@ export function CommentSheet({ postId, isVisible, onClose }: CommentSheetProps) 
       keyboardAvoidingEnabled={true}
       disableContentWrapper={true}
     >
-      {/* Header - Fixed at top */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Comments {total > 0 && `(${total})`}</Text>
-        <Pressable onPress={onClose} style={styles.closeButton}>
-          <Text style={styles.closeText}>✕</Text>
-        </Pressable>
-      </View>
+      <View style={styles.container}>
+        {/* Header - Fixed at top */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Comments {total > 0 && `(${total})`}</Text>
+          <Pressable onPress={onClose} style={styles.closeButton}>
+            <Text style={styles.closeText}>✕</Text>
+          </Pressable>
+        </View>
 
-      {/* Content area - Scrollable */}
-      <View style={styles.contentContainer}>
-        {isLoading && comments.length === 0 ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-          </View>
-        ) : comments.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>💬</Text>
-            <Text style={styles.emptyTitle}>No comments yet</Text>
-            <Text style={styles.emptyText}>Be the first to share your thoughts!</Text>
-          </View>
-        ) : (
-          <View style={styles.commentsWrapper}>
-            {comments.map((item) => (
-              <CommentItem
-                key={item.id}
-                comment={item}
-                onDelete={
-                  user && item.user_id === user.id ? () => handleDelete(item.id) : undefined
-                }
-              />
-            ))}
-            {hasMore && (
-              <Pressable onPress={loadMore} style={styles.loadMoreButton}>
-                <Text style={styles.loadMoreText}>Load more comments</Text>
-              </Pressable>
-            )}
-          </View>
-        )}
-      </View>
-
-      {/* Comment Composer - Fixed at bottom */}
-      <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-        <View style={styles.inputContainer}>
-          <TextInput
-            ref={inputRef}
-            style={styles.input}
-            placeholder="Add a comment..."
-            placeholderTextColor={Colors.text.tertiary}
-            value={comment}
-            onChangeText={setComment}
-            multiline
-            maxLength={300}
-            onSubmitEditing={handleSubmit}
-            returnKeyType="send"
-            editable={!isAdding}
-          />
-          <View style={styles.inputActions}>
-            <Text style={[styles.charCount, isOverLimit && styles.charCountError]}>
-              {remainingChars}
-            </Text>
-            <Pressable
-              onPress={handleSubmit}
-              disabled={!comment.trim() || isOverLimit || isAdding}
-              style={[
-                styles.sendButton,
-                (!comment.trim() || isOverLimit || isAdding) && styles.sendButtonDisabled,
-              ]}
-            >
-              {isAdding ? (
-                <ActivityIndicator size="small" color={Colors.white} />
-              ) : (
-                <Text
-                  style={[
-                    styles.sendText,
-                    (!comment.trim() || isOverLimit) && styles.sendTextDisabled,
-                  ]}
-                >
-                  Send
-                </Text>
+        {/* Comments Section - Takes remaining space */}
+        <View style={styles.commentsSection}>
+          {isLoading && comments.length === 0 ? (
+            <View style={styles.centerContent}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
+          ) : comments.length === 0 ? (
+            <View style={styles.centerContent}>
+              <Text style={styles.emptyIcon}>💬</Text>
+              <Text style={styles.emptyTitle}>No comments yet</Text>
+              <Text style={styles.emptyText}>Be the first to share your thoughts!</Text>
+            </View>
+          ) : (
+            <>
+              {comments.map((item) => (
+                <CommentItem
+                  key={item.id}
+                  comment={item}
+                  onDelete={
+                    user && item.user_id === user.id ? () => handleDelete(item.id) : undefined
+                  }
+                />
+              ))}
+              {hasMore && (
+                <Pressable onPress={loadMore} style={styles.loadMoreButton}>
+                  <Text style={styles.loadMoreText}>Load more comments</Text>
+                </Pressable>
               )}
-            </Pressable>
+            </>
+          )}
+        </View>
+
+        {/* Comment Input - Always at bottom */}
+        <View style={[styles.inputSection, { paddingBottom: insets.bottom || 8 }]}>
+          <View style={styles.inputContainer}>
+            <TextInput
+              ref={inputRef}
+              style={styles.input}
+              placeholder="Add a comment..."
+              placeholderTextColor={Colors.text.tertiary}
+              value={comment}
+              onChangeText={setComment}
+              multiline
+              maxLength={300}
+              onSubmitEditing={handleSubmit}
+              returnKeyType="send"
+              editable={!isAdding}
+            />
+            <View style={styles.inputActions}>
+              <Text style={[styles.charCount, isOverLimit && styles.charCountError]}>
+                {remainingChars}
+              </Text>
+              <Pressable
+                onPress={handleSubmit}
+                disabled={!comment.trim() || isOverLimit || isAdding}
+                style={[
+                  styles.sendButton,
+                  (!comment.trim() || isOverLimit || isAdding) && styles.sendButtonDisabled,
+                ]}
+              >
+                {isAdding ? (
+                  <ActivityIndicator size="small" color={Colors.white} />
+                ) : (
+                  <Text
+                    style={[
+                      styles.sendText,
+                      (!comment.trim() || isOverLimit) && styles.sendTextDisabled,
+                    ]}
+                  >
+                    Send
+                  </Text>
+                )}
+              </Pressable>
+            </View>
           </View>
         </View>
       </View>
@@ -144,6 +146,10 @@ export function CommentSheet({ postId, isVisible, onClose }: CommentSheetProps) 
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.white,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -152,7 +158,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border.light,
-    backgroundColor: Colors.white,
   },
   title: {
     fontSize: 18,
@@ -166,24 +171,15 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: Colors.text.secondary,
   },
-  contentContainer: {
+  commentsSection: {
     flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  commentsWrapper: {
-    paddingVertical: 16,
     paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  emptyState: {
+  centerContent: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 60,
   },
   emptyIcon: {
     fontSize: 48,
@@ -200,11 +196,21 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     textAlign: 'center',
   },
-  composer: {
+  loadMoreButton: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  loadMoreText: {
+    color: Colors.primary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  inputSection: {
     borderTopWidth: 1,
     borderTopColor: Colors.border.light,
     backgroundColor: Colors.white,
-    paddingTop: 12,
+    paddingTop: 8,
+    paddingHorizontal: 0,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -256,14 +262,5 @@ const styles = StyleSheet.create({
   },
   sendTextDisabled: {
     color: Colors.gray[400],
-  },
-  loadMoreButton: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  loadMoreText: {
-    color: Colors.primary,
-    fontSize: 14,
-    fontWeight: '600',
   },
 });
