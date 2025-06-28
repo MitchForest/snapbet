@@ -294,7 +294,7 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
       // Create a bet for the pick
       const betType = (['spread', 'moneyline', 'total'] as const)[Math.floor(Math.random() * 3)];
       const betDetails = generateBetDetails(betType, game);
-      const stake = [100, 250, 500][Math.floor(Math.random() * 3)];
+      const stake = [500, 750, 1000][Math.floor(Math.random() * 3)];
 
       const bet = {
         id: crypto.randomUUID(),
@@ -304,7 +304,7 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
         bet_details: betDetails,
         odds: -110,
         stake,
-        potential_win: (stake * 100) / 110,
+        potential_win: Math.floor((stake * 100) / 110),
         status: 'pending' as const,
         created_at: new Date(Date.now() - i * 2 * 60 * 60 * 1000).toISOString(),
       };
@@ -346,7 +346,7 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
           mockMediaUrls[category as keyof typeof mockMediaUrls][
             Math.floor(Math.random() * mockMediaUrls[category as keyof typeof mockMediaUrls].length)
           ],
-        post_type: 'regular',
+        post_type: 'content',
       });
     }
   }
@@ -388,16 +388,17 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
     for (let i = 0; i < winCount; i++) {
       const game = games[Math.floor(Math.random() * games.length)];
       const daysAgo = Math.floor(Math.random() * getDaysSinceMonday());
+      const stake = Math.floor(Math.random() * 2000) + 500;
       settledBets.push({
         id: crypto.randomUUID(),
         user_id: bettor.id,
         game_id: game.id,
         bet_type: 'spread' as const,
         bet_details: generateBetDetails('spread', game),
-        stake: Math.floor(Math.random() * 2000) + 500,
+        stake: stake,
         odds: -110,
-        potential_win: 909,
-        actual_win: 1909,
+        potential_win: Math.floor((stake * 100) / 110),
+        actual_win: stake + Math.floor((stake * 100) / 110),
         status: 'won' as const,
         settled_at: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString(),
         created_at: new Date(Date.now() - (daysAgo + 1) * 24 * 60 * 60 * 1000).toISOString(),
@@ -409,15 +410,16 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
     for (let i = 0; i < lossCount; i++) {
       const game = games[Math.floor(Math.random() * games.length)];
       const daysAgo = Math.floor(Math.random() * getDaysSinceMonday());
+      const stake = Math.floor(Math.random() * 1000) + 500; // 500-1500
       settledBets.push({
         id: crypto.randomUUID(),
         user_id: bettor.id,
         game_id: game.id,
         bet_type: 'moneyline' as const,
         bet_details: generateBetDetails('moneyline', game),
-        stake: Math.floor(Math.random() * 1000) + 200,
+        stake: stake,
         odds: -110,
-        potential_win: 182,
+        potential_win: Math.floor((stake * 100) / 110),
         actual_win: 0,
         status: 'lost' as const,
         settled_at: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString(),
@@ -443,6 +445,7 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
     for (let i = 0; i < betCount; i++) {
       const game = games[Math.floor(Math.random() * games.length)];
       const isWin = i < winCount;
+      const stake = 1500;
       const betId = crypto.randomUUID();
 
       // All bets settled within current week
@@ -463,10 +466,10 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
         game_id: game.id,
         bet_type: betType,
         bet_details: generateBetDetails(betType, game),
-        stake: 1500,
+        stake: stake,
         odds: -110,
-        potential_win: 1364,
-        actual_win: isWin ? 2864 : 0,
+        potential_win: Math.floor((stake * 100) / 110),
+        actual_win: isWin ? stake + Math.floor((stake * 100) / 110) : 0,
         status: isWin ? ('won' as const) : ('lost' as const),
         settled_at: settledAt.toISOString(),
         created_at: createdAt.toISOString(),
@@ -486,6 +489,7 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
     for (let i = 0; i < betCount; i++) {
       const game = games[Math.floor(Math.random() * games.length)];
       const isWin = i < winCount;
+      const stake = 3000;
       const betId = crypto.randomUUID();
       const daysAgo = Math.floor(Math.random() * 14) + 1; // Spread over 2 weeks
 
@@ -493,12 +497,12 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
         id: betId,
         user_id: fadeGod.id,
         game_id: game.id,
-        bet_type: 'moneyline' as const,
-        bet_details: generateBetDetails('moneyline', game),
-        stake: 3000,
+        bet_type: 'total' as const,
+        bet_details: generateBetDetails('total', game),
+        stake: stake,
         odds: -110,
-        potential_win: 2727,
-        actual_win: isWin ? 5727 : 0,
+        potential_win: Math.floor((stake * 100) / 110),
+        actual_win: isWin ? stake + Math.floor((stake * 100) / 110) : 0,
         status: isWin ? ('won' as const) : ('lost' as const),
         settled_at: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString(),
         created_at: new Date(Date.now() - (daysAgo + 1) * 24 * 60 * 60 * 1000).toISOString(),
@@ -529,6 +533,7 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
     for (let i = 0; i < betCount; i++) {
       const game = games[Math.floor(Math.random() * games.length)];
       const isWin = i < winCount;
+      const stake = 1500;
       const betId = crypto.randomUUID();
 
       bets.push({
@@ -537,10 +542,10 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
         game_id: game.id,
         bet_type: 'moneyline' as const,
         bet_details: generateBetDetails('moneyline', game),
-        stake: 1500,
+        stake: stake,
         odds: -110,
-        potential_win: 1364,
-        actual_win: isWin ? 2864 : 0,
+        potential_win: Math.floor((stake * 100) / 110),
+        actual_win: isWin ? stake + Math.floor((stake * 100) / 110) : 0,
         status: isWin ? ('won' as const) : ('lost' as const),
         settled_at: new Date(Date.now() - (i + 1) * 24 * 60 * 60 * 1000).toISOString(),
         created_at: new Date(Date.now() - (i + 2) * 24 * 60 * 60 * 1000).toISOString(),
@@ -600,6 +605,7 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
       const betType = Math.random() > 0.5 ? 'spread' : 'moneyline';
       const team = Math.random() > 0.5 ? game.home_team : game.away_team;
       const spread = betType === 'spread' ? (Math.random() * 10 - 5).toFixed(1) : undefined;
+      const stake = Math.floor(Math.random() * 5000) + 1000;
 
       bets.push({
         id: betId,
@@ -607,9 +613,9 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
         game_id: game.id,
         bet_type: betType as 'spread' | 'moneyline',
         bet_details: generateBetDetails(betType, game),
-        stake: Math.floor(Math.random() * 5000) + 1000,
+        stake: stake,
         odds: -110,
-        potential_win: 909,
+        potential_win: Math.floor((stake * 100) / 110),
         status: 'pending' as const,
         created_at: postTime.toISOString(),
       });
@@ -661,44 +667,46 @@ async function createPostsWithEngagement(userId: string, mockUsers: MockUser[], 
   }
 
   if (posts.length > 0) {
-    const { error } = await supabase.from('posts').insert(posts);
-    if (error) console.error('Error creating posts:', error);
-  }
+    const { data: insertedPosts, error } = await supabase.from('posts').insert(posts).select();
+    if (error) {
+      console.error('Error creating posts:', error);
+    } else if (insertedPosts) {
+      // Create pick actions for trending picks using actual post IDs
+      const pickPosts = insertedPosts.filter((p) => p.post_type === 'pick').slice(0, 10); // Top 10 pick posts
 
-  // Create pick actions for trending picks (tails and fades)
-  const pickPosts = posts.filter((p) => p.post_type === 'pick').slice(0, 10); // Top 10 pick posts
+      for (const pickPost of pickPosts) {
+        // Create 2-5 tail/fade actions per pick
+        const actionCount = Math.floor(Math.random() * 4) + 2;
+        const tailingUsers = mockUsers
+          .filter((u) => u.id !== pickPost.user_id)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, actionCount);
 
-  for (const pickPost of pickPosts) {
-    // Create 2-5 tail/fade actions per pick
-    const actionCount = Math.floor(Math.random() * 4) + 2;
-    const tailingUsers = mockUsers
-      .filter((u) => u.id !== pickPost.user_id)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, actionCount);
+        for (const tailer of tailingUsers) {
+          // 70% chance to tail, 30% to fade
+          const isTail = Math.random() > 0.3;
+          pickActions.push({
+            post_id: pickPost.id,
+            user_id: tailer.id,
+            action_type: isTail ? 'tail' : 'fade',
+          });
+        }
+      }
 
-    for (const tailer of tailingUsers) {
-      // 70% chance to tail, 30% to fade
-      const isTail = Math.random() > 0.3;
-      pickActions.push({
-        post_id: pickPost.id!,
-        user_id: tailer.id,
-        action_type: isTail ? 'tail' : 'fade',
-      });
-    }
-  }
-
-  // Insert pick actions AFTER posts are created
-  if (pickActions.length > 0) {
-    console.log(`  📊 Attempting to create ${pickActions.length} pick actions...`);
-    const { data: pickData, error: pickError } = await supabase
-      .from('pick_actions')
-      .insert(pickActions)
-      .select();
-    if (pickError) {
-      console.error('❌ Error creating pick actions:', pickError);
-      console.error('Sample pick action:', JSON.stringify(pickActions[0], null, 2));
-    } else {
-      console.log(`  ✅ Successfully created ${pickData?.length || 0} pick actions`);
+      // Insert pick actions AFTER posts are created
+      if (pickActions.length > 0) {
+        console.log(`  📊 Attempting to create ${pickActions.length} pick actions...`);
+        const { data: pickData, error: pickError } = await supabase
+          .from('pick_actions')
+          .insert(pickActions)
+          .select();
+        if (pickError) {
+          console.error('❌ Error creating pick actions:', pickError);
+          console.error('Sample pick action:', JSON.stringify(pickActions[0], null, 2));
+        } else {
+          console.log(`  ✅ Successfully created ${pickData?.length || 0} pick actions`);
+        }
+      }
     }
   }
 

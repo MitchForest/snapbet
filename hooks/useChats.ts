@@ -145,6 +145,19 @@ export function useChats() {
           },
           handleNewMessage
         )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chat_members',
+            filter: `user_id=eq.${user.id}`,
+          },
+          async () => {
+            // When we're added to a new chat, reload the chat list
+            await loadChats();
+          }
+        )
         .on('broadcast', { event: 'typing' }, handleTypingEvent)
         .subscribe();
 

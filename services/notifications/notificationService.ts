@@ -22,6 +22,7 @@ export interface Notification {
   data: {
     actorId?: string;
     actorUsername?: string;
+    actorAvatarUrl?: string;
     postId?: string;
     betId?: string;
     amount?: number;
@@ -29,13 +30,16 @@ export interface Notification {
     gameInfo?: Record<string, unknown>;
     followerId?: string;
     followerUsername?: string;
+    followerAvatarUrl?: string;
     requesterId?: string;
     requesterUsername?: string;
+    requesterAvatarUrl?: string;
     requestId?: string;
     accepted?: boolean;
     chatId?: string;
     senderId?: string;
     senderUsername?: string;
+    senderAvatarUrl?: string;
     preview?: string;
     badgeId?: string;
     badgeName?: string;

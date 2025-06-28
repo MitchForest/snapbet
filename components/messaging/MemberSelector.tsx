@@ -9,6 +9,40 @@ import { useAuthStore } from '@/stores/authStore';
 import { useBlockedUsers } from '@/hooks/useBlockedUsers';
 import { Colors } from '@/theme';
 
+const styles = StyleSheet.create({
+  userItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  userItemPressed: {
+    backgroundColor: Colors.gray[100],
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: Colors.text.primary,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.gray[300],
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.white,
+  },
+  checkboxSelected: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  checkmark: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+});
+
 interface User {
   id: string;
   username: string;
@@ -23,6 +57,49 @@ interface MemberSelectorProps {
   maxMembers?: number;
 }
 
+interface UserItemProps {
+  user: User;
+  isSelected: boolean;
+  onToggle: (userId: string) => void;
+}
+
+const UserItem: React.FC<UserItemProps> = ({ user, isSelected, onToggle }) => {
+  console.log(`Rendering UserItem for ${user.username}, selected: ${isSelected}`);
+
+  return (
+    <Pressable
+      onPress={() => {
+        console.log('UserItem pressed:', user.id);
+        onToggle(user.id);
+      }}
+      style={({ pressed }) => [styles.userItem, pressed && styles.userItemPressed]}
+    >
+      <View flexDirection="row" alignItems="center" gap="$3">
+        <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
+          {isSelected && (
+            <RNText style={styles.checkmark} allowFontScaling={false}>
+              ✓
+            </RNText>
+          )}
+        </View>
+        <Avatar
+          src={user.avatar_url || undefined}
+          fallback={user.username[0].toUpperCase()}
+          size={40}
+        />
+        <View flex={1}>
+          <Text fontSize="$4" fontWeight="600">
+            {user.display_name || user.username}
+          </Text>
+          <Text fontSize="$3" color="$gray11">
+            @{user.username}
+          </Text>
+        </View>
+      </View>
+    </Pressable>
+  );
+};
+
 export const MemberSelector: React.FC<MemberSelectorProps> = ({
   selectedUsers,
   onSelect,
@@ -31,6 +108,7 @@ export const MemberSelector: React.FC<MemberSelectorProps> = ({
 }) => {
   const componentId = useRef(Math.random().toString(36).substr(2, 9));
   const selectedUsersRef = useRef(selectedUsers);
+  const [renderCount, setRenderCount] = useState(0);
   const currentUser = useAuthStore((state) => state.user);
   const [searchQuery, setSearchQuery] = useState('');
   const [followingUsers, setFollowingUsers] = useState<User[]>([]);
@@ -166,50 +244,12 @@ export const MemberSelector: React.FC<MemberSelectorProps> = ({
       console.log('selectedUsers in renderUser:', selectedUsers);
 
       const isSelected = selectedUsers.includes(item.id);
-      const isDisabled = !isSelected && selectedUsers.length >= maxMembers;
+      const isDisabled = selectedUsers.length >= maxMembers && !isSelected;
 
       console.log('isSelected:', isSelected);
       console.log('isDisabled:', isDisabled);
 
-      return (
-        <Pressable
-          onPress={() => {
-            console.log('=== PRESSABLE PRESSED ===');
-            console.log('Attempting to toggle user:', item.id);
-            toggleUser(item.id);
-          }}
-          style={({ pressed }) => [styles.userItem, pressed && styles.userItemPressed]}
-        >
-          <View flexDirection="row" alignItems="center" gap="$3">
-            <View
-              style={[
-                styles.checkbox,
-                isSelected && styles.checkboxSelected,
-                isDisabled && styles.checkboxDisabled,
-              ]}
-            >
-              {isSelected && (
-                <RNText style={styles.checkmark} allowFontScaling={false}>
-                  ✓
-                </RNText>
-              )}
-            </View>
-            <Avatar
-              src={item.avatar_url || undefined}
-              fallback={item.username[0].toUpperCase()}
-              size={40}
-            />
-            <View flex={1}>
-              <Text fontSize="$4" fontWeight="600">
-                {item.display_name || item.username}
-              </Text>
-              <Text fontSize="$3" color="$gray11">
-                @{item.username}
-              </Text>
-            </View>
-          </View>
-        </Pressable>
-      );
+      return <UserItem user={item} isSelected={isSelected} onToggle={toggleUser} />;
     },
     [selectedUsers, maxMembers, toggleUser]
   );
@@ -220,6 +260,12 @@ export const MemberSelector: React.FC<MemberSelectorProps> = ({
     }
     return followingUsers;
   }, [searchQuery, searchResults, followingUsers]);
+
+  // Force re-render when selectedUsers changes
+  useEffect(() => {
+    console.log(`[${componentId.current}] Force re-render due to selectedUsers change`);
+    setRenderCount((prev) => prev + 1);
+  }, [selectedUsers]);
 
   if (isLoading) {
     return (
@@ -234,6 +280,7 @@ export const MemberSelector: React.FC<MemberSelectorProps> = ({
       {/* Show current selection */}
       <View padding="$2" backgroundColor="$yellow2">
         <Text fontSize="$2">Selected IDs: {JSON.stringify(selectedUsers)}</Text>
+        <Text fontSize="$2">Render count: {renderCount}</Text>
       </View>
 
       {/* Search bar */}
@@ -302,41 +349,3 @@ export const MemberSelector: React.FC<MemberSelectorProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  userItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  userItemPressed: {
-    backgroundColor: Colors.gray[100],
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: Colors.text.primary,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: Colors.gray[300],
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.white,
-  },
-  checkboxSelected: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  checkboxDisabled: {
-    backgroundColor: Colors.gray[100],
-    borderColor: Colors.gray[200],
-  },
-  checkmark: {
-    color: Colors.white,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});

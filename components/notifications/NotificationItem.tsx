@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text } from '@tamagui/core';
 import { Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Avatar } from '@/components/common/Avatar';
 import { Notification, notificationService } from '@/services/notifications/notificationService';
 
 interface NotificationItemProps {
@@ -67,12 +68,52 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
     }
   };
 
-  const getIcon = () => {
+  // Get avatar props based on notification type
+  const getAvatarProps = () => {
+    const { data } = notification;
+
+    // For notifications with actor info
+    if (data.actorUsername) {
+      return {
+        src: data.actorAvatarUrl || undefined,
+        username: data.actorUsername,
+        fallback: data.actorUsername[0]?.toUpperCase() || '?',
+      };
+    }
+
+    // For follow notifications
+    if (data.followerUsername) {
+      return {
+        src: data.followerAvatarUrl || undefined,
+        username: data.followerUsername,
+        fallback: data.followerUsername[0]?.toUpperCase() || '?',
+      };
+    }
+
+    // For follow request notifications
+    if (data.requesterUsername) {
+      return {
+        src: data.requesterAvatarUrl || undefined,
+        username: data.requesterUsername,
+        fallback: data.requesterUsername[0]?.toUpperCase() || '?',
+      };
+    }
+
+    // For message notifications
+    if (data.senderUsername) {
+      return {
+        src: data.senderAvatarUrl || undefined,
+        username: data.senderUsername,
+        fallback: data.senderUsername[0]?.toUpperCase() || '?',
+      };
+    }
+
+    // For system notifications or milestones, show an emoji icon
+    return null;
+  };
+
+  const getSystemIcon = () => {
     switch (notification.type) {
-      case 'tail':
-        return '👆';
-      case 'fade':
-        return '👎';
       case 'bet_won':
       case 'tail_won':
       case 'fade_won':
@@ -81,12 +122,6 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
       case 'tail_lost':
       case 'fade_lost':
         return '❌';
-      case 'follow':
-        return '👤';
-      case 'message':
-        return '💬';
-      case 'mention':
-        return '@';
       case 'milestone':
         return '🏆';
       case 'system':
@@ -134,6 +169,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
     );
   };
 
+  const avatarProps = getAvatarProps();
+
   return (
     <Pressable onPress={handlePress}>
       <View
@@ -144,9 +181,28 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
         borderBottomWidth={1}
         borderBottomColor="$divider"
       >
-        <Text fontSize={24} marginRight="$3">
-          {getIcon()}
-        </Text>
+        {/* Show avatar or system icon */}
+        {avatarProps ? (
+          <Avatar
+            size={40}
+            src={avatarProps.src}
+            username={avatarProps.username}
+            fallback={avatarProps.fallback}
+            marginRight="$3"
+          />
+        ) : (
+          <View
+            width={40}
+            height={40}
+            borderRadius="$round"
+            backgroundColor="$surfaceAlt"
+            justifyContent="center"
+            alignItems="center"
+            marginRight="$3"
+          >
+            <Text fontSize={20}>{getSystemIcon()}</Text>
+          </View>
+        )}
 
         <View flex={1}>
           <Text fontSize={15} color="$textPrimary" fontWeight="600" marginBottom="$0.5">

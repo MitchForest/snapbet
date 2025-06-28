@@ -1405,6 +1405,10 @@ export type Database = {
         Args: Record<PropertyKey, never>;
         Returns: undefined;
       };
+      create_dm_chat: {
+        Args: { other_user_id: string };
+        Returns: string;
+      };
       create_group_chat: {
         Args: {
           p_name: string;
@@ -1464,6 +1468,10 @@ export type Database = {
           user_action: Database['public']['Enums']['pick_action'];
           user_reaction: string[];
         }[];
+      };
+      get_user_avatar_url: {
+        Args: { p_user_id: string };
+        Returns: string;
       };
       get_user_chats_with_counts: {
         Args: { p_user_id: string };
@@ -1543,6 +1551,10 @@ export type Database = {
       increment_counter: {
         Args: { table_name: string; column_name: string; row_id: string };
         Returns: undefined;
+      };
+      is_chat_admin: {
+        Args: { p_chat_id: string; p_user_id: string };
+        Returns: boolean;
       };
       is_chat_member: {
         Args: { p_chat_id: string; p_user_id: string };
