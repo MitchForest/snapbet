@@ -1627,6 +1627,10 @@ export type Database = {
         Args: { p_user_id: string; p_post_id: string };
         Returns: string;
       };
+      update_user_badges_batch: {
+        Args: { p_user_id: string; p_badges: string[] };
+        Returns: undefined;
+      };
       users_blocked: {
         Args: { user1_id: string; user2_id: string };
         Returns: boolean;

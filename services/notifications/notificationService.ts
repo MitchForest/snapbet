@@ -159,12 +159,12 @@ class NotificationService {
       case 'tail':
         return {
           title: 'New Tail',
-          body: `${data.actorUsername} tailed your pick for $${data.amount}`,
+          body: `@${data.actorUsername} tailed your pick for $${data.amount}`,
         };
       case 'fade':
         return {
           title: 'New Fade',
-          body: `${data.actorUsername} faded your pick for $${data.amount}`,
+          body: `@${data.actorUsername} faded your pick for $${data.amount}`,
         };
       case 'bet_won':
         return {
@@ -179,44 +179,44 @@ class NotificationService {
       case 'tail_won':
         return {
           title: 'Tail Won! 🎉',
-          body: `Your tail on ${data.actorUsername} won $${data.amount}!`,
+          body: `Your tail on @${data.actorUsername} won $${data.amount}!`,
         };
       case 'tail_lost':
         return {
           title: 'Tail Lost',
-          body: `Your tail on ${data.actorUsername} lost $${data.amount}`,
+          body: `Your tail on @${data.actorUsername} lost $${data.amount}`,
         };
       case 'fade_won':
         return {
           title: 'Fade Won! 🎉',
-          body: `Your fade on ${data.actorUsername} won $${data.amount}!`,
+          body: `Your fade on @${data.actorUsername} won $${data.amount}!`,
         };
       case 'fade_lost':
         return {
           title: 'Fade Lost',
-          body: `Your fade on ${data.actorUsername} lost $${data.amount}`,
+          body: `Your fade on @${data.actorUsername} lost $${data.amount}`,
         };
       case 'follow':
         return {
           title: data.accepted ? 'Follow Request Accepted' : 'New Follower',
           body: data.accepted
-            ? `${data.followerUsername} accepted your follow request`
-            : `${data.followerUsername} started following you`,
+            ? `@${data.followerUsername} accepted your follow request`
+            : `@${data.followerUsername} started following you`,
         };
       case 'follow_request':
         return {
           title: 'New Follow Request',
-          body: `${data.requesterUsername} requested to follow you`,
+          body: `@${data.requesterUsername} requested to follow you`,
         };
       case 'message':
         return {
           title: 'New Message',
-          body: `${data.senderUsername}: ${data.preview}`,
+          body: `@${data.senderUsername}: ${data.preview}`,
         };
       case 'mention':
         return {
           title: 'You were mentioned',
-          body: `${data.actorUsername} mentioned you`,
+          body: `@${data.actorUsername} mentioned you`,
         };
       case 'milestone':
         return {

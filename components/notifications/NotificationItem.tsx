@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text } from '@tamagui/core';
-import { Pressable } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Avatar } from '@/components/common/Avatar';
 import { Notification, notificationService } from '@/services/notifications/notificationService';
@@ -31,35 +31,34 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
       case 'tail_lost':
       case 'fade_won':
       case 'fade_lost':
-        // Navigate to the related post if available
-        if (data.postId) {
-          router.push(`/post/${data.postId}`);
-        }
+        // Navigate to the feed to see the related post
+        // TODO: When post detail page is implemented, navigate to `/post/${data.postId}`
+        router.push('/(drawer)/(tabs)');
         break;
 
       case 'follow':
       case 'mention':
         // Navigate to the actor's profile
         if (data.actorUsername) {
-          router.push(`/profile/${data.actorUsername}`);
+          router.push(`/(drawer)/profile/${data.actorUsername}`);
         }
         break;
 
       case 'follow_request':
         // Navigate to follow requests page
-        router.push('/follow-requests');
+        router.push('/(drawer)/follow-requests');
         break;
 
       case 'message':
         // Navigate to the chat
         if (data.chatId) {
-          router.push(`/chat/${data.chatId}`);
+          router.push(`/(drawer)/chat/${data.chatId}`);
         }
         break;
 
       case 'milestone':
         // Navigate to user's own profile to see badges
-        router.push('/profile');
+        router.push('/(drawer)/profile');
         break;
 
       default:
@@ -131,39 +130,134 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
     }
   };
 
-  // Make usernames clickable in the body text
-  const renderBody = () => {
-    const usernamePattern = /@(\w+)/g;
-    const parts = body.split(usernamePattern);
+  // Enhanced clickable text rendering
+  const renderClickableText = (text: string, isTitle = false) => {
+    // Pattern to match various clickable elements
+    const patterns = {
+      username: /@(\w+)/g,
+      pick: /(your pick|their pick)/gi,
+      game: /(\w+\s+vs\.?\s+\w+)/gi,
+      badge: /([\w\s]+badge)/gi,
+      amount: /\$(\d+(?:,\d{3})*(?:\.\d{2})?)/g,
+    };
+
+    // Combined pattern for splitting
+    const combinedPattern = new RegExp(
+      `(${Object.values(patterns)
+        .map((p) => p.source)
+        .join('|')})`,
+      'gi'
+    );
+
+    const parts = text.split(combinedPattern);
 
     if (parts.length === 1) {
       return (
-        <Text fontSize={14} color="$textSecondary" numberOfLines={2}>
-          {body}
+        <Text
+          fontSize={isTitle ? 15 : 14}
+          color={isTitle ? '$textPrimary' : '$textSecondary'}
+          fontWeight={isTitle ? '600' : '400'}
+          numberOfLines={isTitle ? 1 : 2}
+        >
+          {text}
         </Text>
       );
     }
 
     return (
-      <Text fontSize={14} color="$textSecondary" numberOfLines={2}>
+      <Text
+        fontSize={isTitle ? 15 : 14}
+        color={isTitle ? '$textPrimary' : '$textSecondary'}
+        fontWeight={isTitle ? '600' : '400'}
+        numberOfLines={isTitle ? 1 : 2}
+      >
         {parts.map((part, index) => {
-          // Check if this part is a username (odd indices after split)
-          if (index % 2 === 1) {
+          // Skip undefined or empty parts
+          if (!part) return null;
+
+          // Check if this part is a username
+          const usernameMatch = part.match(/^@(\w+)$/);
+          if (usernameMatch) {
+            const username = usernameMatch[1];
             return (
               <Text
                 key={index}
                 color="$primary"
                 fontWeight="600"
+                textDecorationLine="underline"
                 onPress={(e) => {
                   e.stopPropagation();
-                  router.push(`/profile/${part}`);
+                  router.push(`/(drawer)/profile/${username}`);
                 }}
               >
-                @{part}
+                {part}
               </Text>
             );
           }
-          return part;
+
+          // Check if this part is "your pick" or "their pick"
+          if (/^(your pick|their pick)$/i.test(part)) {
+            const { data } = notification;
+            if (data.postId) {
+              return (
+                <Text
+                  key={index}
+                  color="$primary"
+                  fontWeight="500"
+                  textDecorationLine="underline"
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    // Navigate to feed for now, TODO: implement post detail page
+                    router.push('/(drawer)/(tabs)');
+                  }}
+                >
+                  {part}
+                </Text>
+              );
+            }
+          }
+
+          // Check if this part is a game (e.g., "Lakers vs Warriors")
+          const gameMatch = part.match(/^(\w+\s+vs\.?\s+\w+)$/i);
+          if (gameMatch && notification.data.gameInfo) {
+            return (
+              <Text
+                key={index}
+                color="$primary"
+                fontWeight="500"
+                textDecorationLine="underline"
+                onPress={(e) => {
+                  e.stopPropagation();
+                  // Navigate to games tab
+                  router.push('/(drawer)/(tabs)/games');
+                }}
+              >
+                {part}
+              </Text>
+            );
+          }
+
+          // Check if this part is a badge
+          const badgeMatch = part.match(/^([\w\s]+badge)$/i);
+          if (badgeMatch && notification.type === 'milestone') {
+            return (
+              <Text
+                key={index}
+                color="$primary"
+                fontWeight="500"
+                textDecorationLine="underline"
+                onPress={(e) => {
+                  e.stopPropagation();
+                  router.push('/(drawer)/profile');
+                }}
+              >
+                {part}
+              </Text>
+            );
+          }
+
+          // Regular text
+          return <Text key={index}>{part}</Text>;
         })}
       </Text>
     );
@@ -172,7 +266,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
   const avatarProps = getAvatarProps();
 
   return (
-    <Pressable onPress={handlePress}>
+    <Pressable onPress={handlePress} style={styles.pressable}>
       <View
         flexDirection="row"
         paddingVertical="$3"
@@ -183,13 +277,20 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
       >
         {/* Show avatar or system icon */}
         {avatarProps ? (
-          <Avatar
-            size={40}
-            src={avatarProps.src}
-            username={avatarProps.username}
-            fallback={avatarProps.fallback}
-            marginRight="$3"
-          />
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation();
+              router.push(`/(drawer)/profile/${avatarProps.username}`);
+            }}
+          >
+            <Avatar
+              size={40}
+              src={avatarProps.src}
+              username={avatarProps.username}
+              fallback={avatarProps.fallback}
+              marginRight="$3"
+            />
+          </Pressable>
         ) : (
           <View
             width={40}
@@ -205,10 +306,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
         )}
 
         <View flex={1}>
-          <Text fontSize={15} color="$textPrimary" fontWeight="600" marginBottom="$0.5">
-            {title}
-          </Text>
-          {renderBody()}
+          {renderClickableText(title, true)}
+          {renderClickableText(body)}
           <Text fontSize={12} color="$textTertiary" marginTop="$1">
             {timeAgo}
           </Text>
@@ -240,3 +339,10 @@ function formatDistanceToNow(date: Date): string {
 
   return date.toLocaleDateString();
 }
+
+const styles = StyleSheet.create({
+  pressable: {
+    // Add hover effect on web
+    cursor: 'pointer',
+  },
+});

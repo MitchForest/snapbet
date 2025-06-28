@@ -133,7 +133,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <View flex={1} marginLeft="$3">
           <View flexDirection="row" alignItems="center" gap="$2">
             <Text fontSize={24} fontWeight="600" color="$textPrimary">
-              @{user.username}
+              {user.display_name || user.username}
             </Text>
             {isPrivate && (
               <View
@@ -148,11 +148,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               </View>
             )}
           </View>
-          {user.display_name && (
-            <Text fontSize={16} color="$textSecondary" marginTop="$1">
-              {user.display_name}
-            </Text>
-          )}
         </View>
       </View>
 

@@ -10,6 +10,7 @@ export const FeedEvents = {
   POST_UPDATED: 'POST_UPDATED',
   STORY_CREATED: 'STORY_CREATED',
   STORY_EXPIRED: 'STORY_EXPIRED',
+  FEED_SCROLL: 'FEED_SCROLL',
 } as const;
 
 /**
@@ -58,6 +59,7 @@ export interface EventData {
   [FeedEvents.POST_UPDATED]: { postId: string };
   [FeedEvents.STORY_CREATED]: { storyId: string };
   [FeedEvents.STORY_EXPIRED]: { storyId: string };
+  [FeedEvents.FEED_SCROLL]: { contentOffset: { y: number } };
   [EngagementEvents.COMMENT_ADDED]: { postId: string; commentId: string };
   [EngagementEvents.COMMENT_DELETED]: { postId: string; commentId: string };
   [EngagementEvents.REACTION_CHANGED]: { postId: string; emoji?: string };

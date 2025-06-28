@@ -1,4 +1,4 @@
-import type { Database } from '../../../types/supabase';
+import type { Database } from '../../../types/database';
 import { NBA_TEAMS as TEAMS_NBA, NFL_TEAMS as TEAMS_NFL } from '../../../data/teams';
 
 type GameInsert = Database['public']['Tables']['games']['Insert'];
@@ -271,11 +271,11 @@ export function generateMockGames(daysAhead: number = 7): GameInsert[] {
   // Track which teams have played to avoid duplicates
   const teamsPlayedByDay: Set<string>[] = [];
 
-  // Generate NBA games
-  for (let day = 0; day < daysAhead; day++) {
+  // Generate NBA games - start from 3 days ago to have some completed games
+  for (let day = -3; day < daysAhead; day++) {
     const gameDate = new Date(now);
     gameDate.setDate(gameDate.getDate() + day);
-    teamsPlayedByDay[day] = new Set();
+    teamsPlayedByDay[day + 3] = new Set();
 
     // Generate 5-10 games per day
     const gamesPerDay = Math.floor(Math.random() * 6) + 5;
@@ -291,15 +291,15 @@ export function generateMockGames(daysAhead: number = 7): GameInsert[] {
         attempts++;
       } while (
         (homeTeam === awayTeam ||
-          teamsPlayedByDay[day].has(homeTeam) ||
-          teamsPlayedByDay[day].has(awayTeam)) &&
+          teamsPlayedByDay[day + 3].has(homeTeam) ||
+          teamsPlayedByDay[day + 3].has(awayTeam)) &&
         attempts < 50
       );
 
       if (attempts >= 50) continue; // Skip if we can't find unique teams
 
-      teamsPlayedByDay[day].add(homeTeam);
-      teamsPlayedByDay[day].add(awayTeam);
+      teamsPlayedByDay[day + 3].add(homeTeam);
+      teamsPlayedByDay[day + 3].add(awayTeam);
 
       // Set game time (7:00, 7:30, 8:00, 10:00, 10:30 PM ET)
       const gameTimes = ['19:00', '19:30', '20:00', '22:00', '22:30'];
@@ -312,16 +312,18 @@ export function generateMockGames(daysAhead: number = 7): GameInsert[] {
       const spread = (Math.random() * 20 - 10).toFixed(1);
       const odds = generateOddsFromSpread(parseFloat(spread), 'NBA');
 
-      // Create game ID
-      const gameId = `nba_${gameDate.toISOString().split('T')[0]}_${awayTeam}_${homeTeam}`;
+      // Create game ID with timestamp to avoid duplicates
+      const timestamp = Math.floor(Math.random() * 1000000);
+      const gameId = `nba_${gameDate.toISOString().split('T')[0]}_${awayTeam}_${homeTeam}_${timestamp}`;
 
       // Determine game status
       let status: Database['public']['Enums']['game_status'] = 'scheduled';
       let homeScore: number | null = null;
       let awayScore: number | null = null;
 
-      // Make some games completed (for testing history)
-      if (day < 0 || (day === 0 && i < 2)) {
+      // Games in the past or earlier today are completed
+      const isPast = day < 0 || (day === 0 && gameDate < now);
+      if (isPast) {
         status = 'completed';
         // Generate realistic scores
         const baseScore = 105 + Math.floor(Math.random() * 20);
@@ -352,43 +354,6 @@ export function generateMockGames(daysAhead: number = 7): GameInsert[] {
       });
     }
   }
-
-  // Add a couple of recent completed games for testing
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  yesterday.setHours(20, 0, 0, 0);
-
-  games.push({
-    id: `nba_${yesterday.toISOString().split('T')[0]}_LAL_BOS`,
-    sport: 'basketball_nba',
-    sport_title: 'NBA',
-    home_team: NBA_TEAMS.BOS,
-    away_team: NBA_TEAMS.LAL,
-    commence_time: yesterday.toISOString(),
-    odds_data: generateOddsFromSpread(
-      -5.5,
-      'NBA'
-    ) as unknown as Database['public']['Tables']['games']['Insert']['odds_data'],
-    status: 'completed',
-    home_score: 118,
-    away_score: 112,
-  });
-
-  games.push({
-    id: `nba_${yesterday.toISOString().split('T')[0]}_GSW_DEN`,
-    sport: 'basketball_nba',
-    sport_title: 'NBA',
-    home_team: NBA_TEAMS.DEN,
-    away_team: NBA_TEAMS.GSW,
-    commence_time: yesterday.toISOString(),
-    odds_data: generateOddsFromSpread(
-      -3.5,
-      'NBA'
-    ) as unknown as Database['public']['Tables']['games']['Insert']['odds_data'],
-    status: 'completed',
-    home_score: 125,
-    away_score: 123,
-  });
 
   // Add NFL games
   const nflGames = generateNFLGames();

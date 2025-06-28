@@ -1,7 +1,11 @@
 #!/usr/bin/env bun
 
+import { config } from 'dotenv';
+import { supabase } from '../supabase-client';
 import { BaseJob, JobOptions, JobResult } from './types';
-import { supabase } from '@/services/supabase/client';
+
+// Load environment variables
+config();
 
 interface BadgeCalculator {
   id: string;
@@ -36,15 +40,19 @@ export class BadgeCalculationJob extends BaseJob {
 
     let totalBadgesAwarded = 0;
     const details: Record<string, number> = {};
+    const userBadges = new Map<string, string[]>(); // Track badges per user
 
     for (const badge of badges) {
       try {
         const userIds = await badge.calculate(options);
 
-        if (!options.dryRun && userIds.length > 0) {
-          // Award badges to users - we'll save them directly
-          // In a real implementation, we'd track which badges each user earned
-          // For now, we'll just count them
+        if (userIds.length > 0) {
+          // Track which users earned which badges
+          for (const userId of userIds) {
+            const currentBadges = userBadges.get(userId) || [];
+            currentBadges.push(badge.id);
+            userBadges.set(userId, currentBadges);
+          }
         }
 
         totalBadgesAwarded += userIds.length;
@@ -59,6 +67,37 @@ export class BadgeCalculationJob extends BaseJob {
       }
     }
 
+    // Save badges for each user
+    if (!options.dryRun && userBadges.size > 0) {
+      let savedCount = 0;
+      for (const [userId, badgeIds] of userBadges.entries()) {
+        try {
+          // Delete existing badges for this user
+          await supabase.from('user_badges').delete().eq('user_id', userId);
+
+          // Insert new badges
+          const badgesToInsert = badgeIds.map((badgeId) => ({
+            user_id: userId,
+            badge_id: badgeId,
+          }));
+
+          const { error } = await supabase.from('user_badges').insert(badgesToInsert);
+
+          if (error) {
+            console.error(`Failed to save badges for user ${userId}:`, error);
+          } else {
+            savedCount++;
+          }
+        } catch (error) {
+          console.error(`Error saving badges for user ${userId}:`, error);
+        }
+      }
+
+      if (options.verbose) {
+        console.log(`  💾 Saved badges for ${savedCount}/${userBadges.size} users`);
+      }
+    }
+
     // Update effect access based on badge counts
     if (!options.dryRun) {
       await this.updateEffectAccess(options);
@@ -66,10 +105,11 @@ export class BadgeCalculationJob extends BaseJob {
 
     return {
       success: true,
-      message: `Calculated ${badges.length} badge types, awarded ${totalBadgesAwarded} badges`,
+      message: `Calculated ${badges.length} badge types, awarded ${totalBadgesAwarded} badges to ${userBadges.size} users`,
       affected: totalBadgesAwarded,
       details: {
         ...details,
+        uniqueUsers: userBadges.size,
         timestamp: new Date().toISOString(),
       },
     };
@@ -333,16 +373,7 @@ export class BadgeCalculationJob extends BaseJob {
     // User who didn't place any bets
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    // Get all active users
-    const { data: activeUsers, error: userError } = await supabase
-      .from('users')
-      .select('id')
-      .gte('last_seen_at', oneWeekAgo);
-
-    if (userError) throw userError;
-    if (!activeUsers || activeUsers.length === 0) return [];
-
-    // Get users who placed bets
+    // Get all users who have placed bets in the past week
     const { data: bettors, error: betError } = await supabase
       .from('bets')
       .select('user_id')
@@ -352,11 +383,20 @@ export class BadgeCalculationJob extends BaseJob {
 
     const bettorIds = new Set(bettors?.map((b) => b.user_id) || []);
 
-    // Find active users who didn't bet
-    const ghosts = activeUsers.filter((user) => !bettorIds.has(user.id)).map((user) => user.id);
+    // Get all users who posted content in the past week (active users)
+    const { data: activeUsers, error: postError } = await supabase
+      .from('posts')
+      .select('user_id')
+      .gte('created_at', oneWeekAgo);
+
+    if (postError) throw postError;
+
+    // Find users who posted but didn't bet
+    const activeUserIds = new Set(activeUsers?.map((p) => p.user_id) || []);
+    const ghosts = Array.from(activeUserIds).filter((userId) => !bettorIds.has(userId));
 
     if (options.verbose) {
-      console.log(`    Ghost: ${ghosts.length} users didn't place bets`);
+      console.log(`    Ghost: ${ghosts.length} users posted but didn't place bets`);
     }
 
     // Award to all ghosts
@@ -435,8 +475,10 @@ export class BadgeCalculationJob extends BaseJob {
 // CLI execution
 if (process.argv[1] === import.meta.url.replace('file://', '')) {
   const job = new BadgeCalculationJob();
-  await job.execute({
+  const options: JobOptions = {
     dryRun: process.argv.includes('--dry-run'),
     verbose: process.argv.includes('--verbose'),
-  });
+  };
+
+  await job.execute(options);
 }

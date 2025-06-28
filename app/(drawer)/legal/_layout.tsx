@@ -6,6 +6,9 @@ export default function LegalLayout() {
       screenOptions={{
         headerShown: false,
       }}
-    />
+    >
+      <Stack.Screen name="terms" />
+      <Stack.Screen name="privacy" />
+    </Stack>
   );
 }

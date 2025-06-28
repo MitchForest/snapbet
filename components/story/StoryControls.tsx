@@ -1,12 +1,14 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Avatar } from '@/components/common/Avatar';
 import { ReactionPicker } from '@/components/engagement/ReactionPicker';
 import { Colors, OpacityColors } from '@/theme';
 import { StoryWithType } from '@/types/content';
 import { formatDistanceToNow } from '@/utils/date';
-import { toastService } from '@/services/toastService';
+import { chatService } from '@/services/messaging/chatService';
+import { useAuthStore } from '@/stores/authStore';
 
 interface StoryControlsProps {
   story: StoryWithType;
@@ -26,9 +28,30 @@ export function StoryControls({
   onReaction,
 }: StoryControlsProps) {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const user = useAuthStore((state) => state.user);
 
-  const handleReplyPress = () => {
-    toastService.showInfo('Direct messages coming soon!');
+  const handleReplyPress = async () => {
+    if (!user || !story.user_id) return;
+
+    try {
+      // Find or create DM chat with story owner
+      const chatId = await chatService.getOrCreateDMChat(user.id, story.user_id);
+      if (chatId) {
+        // Navigate to chat with story context
+        router.push({
+          pathname: '/(drawer)/chat/[id]',
+          params: {
+            id: chatId,
+            replyToStory: story.id, // Pass story context
+          },
+        });
+        // Close the story viewer
+        onClose();
+      }
+    } catch (error) {
+      console.error('Error opening chat:', error);
+    }
   };
 
   return (

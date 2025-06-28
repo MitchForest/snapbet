@@ -32,11 +32,11 @@ import { blockService } from '@/services/moderation/blockService';
 // Mention-enabled message input wrapper
 const MentionMessageInput: React.FC<{
   chatId: string;
-  onSendMessage: (content: { text?: string }) => Promise<void>;
+  onSendMessage: (content: { text?: string; mediaUrl?: string }) => Promise<void>;
   onTyping: (isTyping: boolean) => void;
   chatExpiration: number;
   members: GroupMember[];
-}> = ({ chatId: _chatId, onSendMessage, onTyping, members }) => {
+}> = ({ chatId: _chatId, onSendMessage, onTyping, chatExpiration, members }) => {
   const [message, setMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
 
@@ -61,6 +61,14 @@ const MentionMessageInput: React.FC<{
     setMessage('');
   };
 
+  const handleMediaSelect = async (uri: string) => {
+    await onSendMessage({
+      mediaUrl: uri,
+      text: message.trim() || undefined,
+    });
+    setMessage('');
+  };
+
   const handleTypingChange = (text: string) => {
     setMessage(text);
 
@@ -78,8 +86,10 @@ const MentionMessageInput: React.FC<{
       value={message}
       onChangeText={handleTypingChange}
       onSubmit={handleSend}
+      onMediaSelect={handleMediaSelect}
       members={members}
       placeholder="Type a message..."
+      chatExpiration={chatExpiration}
     />
   );
 };

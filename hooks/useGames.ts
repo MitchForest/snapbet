@@ -13,7 +13,9 @@ export function useGames(sport: Sport = 'all') {
   const fetchGames = useCallback(async () => {
     try {
       const data = await gameService.getGames({ sport });
-      setGames(data);
+      // Filter out completed games
+      const upcomingGames = data.filter((game) => game.status !== 'completed');
+      setGames(upcomingGames);
       setError(null);
     } catch (err) {
       console.error('Error fetching games:', err);
@@ -94,7 +96,7 @@ function getTimeSection(gameTime: Date): string {
   const hoursDiff = (gameTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
   if (hoursDiff < 0 && hoursDiff > -3) return 'In Progress';
-  if (hoursDiff < 0) return 'Final';
+  if (hoursDiff < 0) return 'In Progress'; // Past games that aren't completed are likely in progress
   if (hoursDiff < 1) return 'Starting Soon';
   if (isToday(gameTime)) return `Today ${format(gameTime, 'h:mm a')}`;
   if (isTomorrow(gameTime)) return `Tomorrow ${format(gameTime, 'h:mm a')}`;

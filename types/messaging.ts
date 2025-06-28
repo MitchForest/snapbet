@@ -1,4 +1,4 @@
-import { Database } from './supabase';
+import { Database } from './database';
 import { Game } from './database-helpers';
 
 // Base database types

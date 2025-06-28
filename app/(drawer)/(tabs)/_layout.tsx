@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { TabBar } from '@/components/ui/TabBar';
 import { Header } from '@/components/ui/Header';
+import { useNotifications } from '@/hooks/useNotifications';
 
 type DrawerParamList = {
   '(tabs)': undefined;
@@ -16,13 +17,14 @@ type DrawerNavProp = DrawerNavigationProp<DrawerParamList>;
 
 export default function TabsLayout() {
   const navigation = useNavigation<DrawerNavProp>();
+  const { unreadCount } = useNotifications();
 
   return (
     <>
       <Header
         onProfilePress={() => navigation.openDrawer()}
         onNotificationPress={() => navigation.navigate('notifications')}
-        notificationCount={3}
+        notificationCount={unreadCount}
       />
       <Tabs
         tabBar={(props) => <TabBar {...props} />}

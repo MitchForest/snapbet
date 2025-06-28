@@ -1,0 +1,494 @@
+# Sprint 8.06: Find Your Tribe Tracker
+
+## Sprint Overview
+
+**Status**: NOT STARTED  
+**Start Date**: [TBD]  
+**End Date**: [TBD]  
+**Epic**: 8 - RAG Implementation
+
+**Sprint Goal**: Implement "Find Your Tribe" discovery feature that uses AI embeddings to match users with similar betting patterns and interests.
+
+**User Story Contribution**: 
+- Story 2: Find Your Tribe - Users discover similar bettors based on betting patterns
+
+## 🚨 Required Development Practices
+
+### Database Management
+- **Use Supabase MCP** to inspect current database state: `mcp_supabase_get_schemas`, `mcp_supabase_get_tables`, etc.
+- **Keep types synchronized**: Run type generation after ANY schema changes
+- **Migration files required**: Every database change needs a migration file
+- **Test migrations**: Ensure migrations run cleanly on fresh database
+
+### UI/UX Consistency
+- **Use Tamagui components**: `View`, `Text`, `XStack`, `YStack`, `Stack`
+- **Follow UI/UX rules**: See `.pm/process/ui-ux-consistency-rules.md`
+- **Use Colors constant**: Import from `@/theme` - NEVER hardcode colors
+- **Standard spacing**: Use Tamagui's `$1`, `$2`, `$3`, etc. tokens
+
+### Code Quality
+- **Zero tolerance**: No lint errors, no TypeScript errors
+- **Type safety**: No `any` types without explicit justification
+- **Run before handoff**: `bun run lint && bun run typecheck`
+
+## Sprint Plan
+
+### Objectives
+1. Create friend discovery service using vector similarity
+2. Generate match reasons based on common interests
+3. Add "similar" algorithm to existing discovery system
+4. Enhance discovery cards to show match percentage
+5. Ensure user profile embeddings are current
+
+### Files to Create
+| File Path | Purpose | Status |
+|-----------|---------|--------|
+| `services/rag/friendDiscoveryService.ts` | Service for finding similar users via embeddings | NOT STARTED |
+| `components/search/SimilarUserCard.tsx` | Enhanced card showing match percentage and reasons | NOT STARTED |
+
+### Files to Modify  
+| File Path | Changes Needed | Status |
+|-----------|----------------|--------|
+| `services/search/searchService.ts` | Add getSimilarBettors function and add to discoveryAlgorithms | NOT STARTED |
+| `hooks/useDiscovery.tsx` | Ensure new algorithm is handled properly | NOT STARTED |
+| `services/rag/embeddingPipeline.ts` | Ensure updateUserProfile is working correctly | NOT STARTED |
+
+### Implementation Approach
+
+**Step 1: Create friend discovery service**
+```typescript
+// services/rag/friendDiscoveryService.ts
+import { supabase } from '@/services/supabase/client';
+import { embeddingPipeline } from './embeddingPipeline';
+
+export class FriendDiscoveryService {
+  private static instance: FriendDiscoveryService;
+  
+  static getInstance(): FriendDiscoveryService {
+    if (!FriendDiscoveryService.instance) {
+      FriendDiscoveryService.instance = new FriendDiscoveryService();
+    }
+    return FriendDiscoveryService.instance;
+  }
+
+  async findSimilarUsers(userId: string, limit: number = 20) {
+    // Ensure user has current embedding
+    const { data: user } = await supabase
+      .from('users')
+      .select('profile_embedding, last_embedding_update')
+      .eq('id', userId)
+      .single();
+
+    // Update if needed (older than 24 hours)
+    const needsUpdate = !user?.profile_embedding || 
+      !user.last_embedding_update ||
+      new Date(user.last_embedding_update) < new Date(Date.now() - 24 * 60 * 60 * 1000);
+      
+    if (needsUpdate) {
+      await embeddingPipeline.updateUserProfile(userId);
+      // Refetch embedding
+    }
+
+    // Find similar users using RPC
+    const { data: similar, error } = await supabase
+      .rpc('find_similar_users', {
+        query_embedding: user.profile_embedding,
+        user_id: userId,
+        limit_count: limit
+      });
+
+    if (error || !similar) return [];
+
+    // Generate match reasons
+    const recommendations = await Promise.all(
+      similar.map(async (match: any) => {
+        const reasons = this.generateMatchReasons(match);
+        return {
+          ...match,
+          matchReasons: reasons,
+          matchPercentage: Math.round(match.similarity * 100)
+        };
+      })
+    );
+
+    return recommendations;
+  }
+
+  private generateMatchReasons(match: any): string[] {
+    const reasons: string[] = [];
+
+    // Similar win rate
+    if (match.win_rate !== null) {
+      reasons.push(`${Math.round(match.win_rate * 100)}% win rate`);
+    }
+
+    // Common sports
+    if (match.common_sports?.length > 0) {
+      const sports = match.common_sports.slice(0, 2).join(' & ');
+      reasons.push(`Also bets ${sports}`);
+    }
+
+    // Same favorite team
+    if (match.favorite_teams?.length > 0) {
+      reasons.push(`${match.favorite_teams[0]} fan`);
+    }
+
+    // Verification status
+    if (match.is_verified) {
+      reasons.push('Verified bettor');
+    }
+
+    return reasons.slice(0, 2); // Max 2 reasons
+  }
+}
+
+export const friendDiscoveryService = FriendDiscoveryService.getInstance();
+```
+
+**Step 2: Add to search service**
+```typescript
+// services/search/searchService.ts
+import { friendDiscoveryService } from '../rag/friendDiscoveryService';
+
+// Add to discoveryAlgorithms object (around line 454)
+export const discoveryAlgorithms = {
+  hot: getHotBettors,
+  trending: getTrendingPickUsers,
+  fade: getFadeMaterial,
+  rising: getRisingStars,
+  similar: getSimilarBettors, // NEW
+};
+
+// Add new function
+async function getSimilarBettors(userId: string): Promise<DiscoveryUser[]> {
+  try {
+    const similar = await friendDiscoveryService.findSimilarUsers(userId, 15);
+    
+    return similar.map(user => ({
+      ...user,
+      algorithm: 'similar' as const,
+      algorithmDisplay: 'Find Your Tribe',
+      algorithmEmoji: '🎯',
+      description: user.matchReasons.join(' • '),
+      metric: `${user.matchPercentage}% match`,
+    }));
+  } catch (error) {
+    console.error('Error getting similar bettors:', error);
+    return [];
+  }
+}
+```
+
+**Step 3: Create enhanced discovery card**
+```typescript
+// components/search/SimilarUserCard.tsx
+import React from 'react';
+import { View, Text, YStack, XStack } from 'tamagui';
+import { Avatar } from '@/components/common/Avatar';
+import { FollowButton } from '@/components/profile/FollowButton';
+import { Colors } from '@/theme';
+
+interface SimilarUserCardProps {
+  user: {
+    id: string;
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+    matchPercentage: number;
+    matchReasons: string[];
+    win_rate: number;
+    total_bets: number;
+  };
+  onPress: () => void;
+}
+
+export function SimilarUserCard({ user, onPress }: SimilarUserCardProps) {
+  return (
+    <YStack 
+      padding="$3" 
+      backgroundColor="$background"
+      borderRadius="$2"
+      onPress={onPress}
+      pressStyle={{ opacity: 0.8 }}
+    >
+      <XStack justifyContent="space-between" alignItems="center">
+        <XStack gap="$3" alignItems="center">
+          <Avatar 
+            url={user.avatar_url} 
+            size="$5"
+            username={user.username}
+          />
+          <YStack>
+            <Text fontSize="$5" fontWeight="600">
+              {user.display_name || user.username}
+            </Text>
+            <Text fontSize="$3" color="$textSecondary">
+              @{user.username}
+            </Text>
+          </YStack>
+        </XStack>
+        
+        <YStack alignItems="flex-end" gap="$1">
+          <Text fontSize="$6" fontWeight="700" color={Colors.primary}>
+            {user.matchPercentage}%
+          </Text>
+          <Text fontSize="$2" color="$textSecondary">
+            match
+          </Text>
+        </YStack>
+      </XStack>
+      
+      <XStack gap="$2" marginTop="$2" flexWrap="wrap">
+        {user.matchReasons.map((reason, index) => (
+          <View
+            key={index}
+            backgroundColor="$backgroundHover"
+            paddingHorizontal="$2"
+            paddingVertical="$1"
+            borderRadius="$1"
+          >
+            <Text fontSize="$2" color="$textSecondary">
+              {reason}
+            </Text>
+          </View>
+        ))}
+      </XStack>
+      
+      <XStack justifyContent="space-between" marginTop="$3">
+        <Text fontSize="$3" color="$textSecondary">
+          {user.total_bets} bets • {Math.round(user.win_rate * 100)}% wins
+        </Text>
+        <FollowButton userId={user.id} size="small" />
+      </XStack>
+    </YStack>
+  );
+}
+```
+
+**Step 4: Update useDiscovery hook**
+```typescript
+// hooks/useDiscovery.tsx
+// The hook should already handle the new algorithm automatically
+// Just verify it renders the new cards properly for 'similar' algorithm
+// May need to import and use SimilarUserCard for this algorithm type
+```
+
+**Step 5: Ensure profile embeddings are generated**
+```typescript
+// services/rag/embeddingPipeline.ts
+// In updateUserProfile method, ensure it:
+// 1. Gets user's recent betting history
+// 2. Analyzes patterns (sports, teams, bet types)
+// 3. Includes bio and favorite teams
+// 4. Generates meaningful embedding text
+// 5. Updates last_embedding_update timestamp
+```
+
+**Key Technical Decisions**:
+- Update embeddings on-demand with 24hr cache
+- Show max 2 match reasons for clarity
+- Use percentage for easy understanding
+- Leverage existing discovery UI infrastructure
+- 15 user limit for performance
+
+### Dependencies & Risks
+**Dependencies**:
+- find_similar_users RPC function from Sprint 8.01
+- User profile embeddings from Sprint 8.04
+- Existing discovery system architecture
+
+**Identified Risks**:
+- Cold start problem (new users without embeddings) → Show other algorithms
+- Stale embeddings → 24hr update cycle
+- Poor matches → Iterate on embedding strategy
+
+## Implementation Log
+
+### Day-by-Day Progress
+**[Date]**:
+- Started: [What was begun]
+- Completed: [What was finished]
+- Blockers: [Any issues]
+- Decisions: [Any changes to plan]
+
+### Reality Checks & Plan Updates
+
+**Reality Check 1** - [Date]
+- Issue: [What wasn't working]
+- Options Considered:
+  1. [Option 1] - Pros/Cons
+  2. [Option 2] - Pros/Cons
+- Decision: [What was chosen]
+- Plan Update: [How sprint plan changed]
+- Epic Impact: [Any epic updates needed]
+
+### Code Quality Checks
+
+**Linting Results**:
+- [ ] Initial run: [X errors, Y warnings]
+- [ ] Final run: [Should be 0 errors]
+
+**Type Checking Results**:
+- [ ] Initial run: [X errors]
+- [ ] Final run: [Should be 0 errors]
+
+**Build Results**:
+- [ ] Development build passes
+- [ ] Production build passes
+
+## Key Code Additions
+
+### Service Methods
+```typescript
+// FriendDiscoveryService
+findSimilarUsers(userId: string, limit?: number): Promise<SimilarUser[]>
+generateMatchReasons(match: any): string[]
+
+// Integration with searchService
+getSimilarBettors(userId: string): Promise<DiscoveryUser[]>
+```
+
+### Match Reason Examples
+- "85% win rate"
+- "Also bets NFL & NBA"
+- "Lakers fan"
+- "Verified bettor"
+- "Similar risk tolerance"
+- "Prefers spreads"
+
+### Discovery Algorithm Config
+```typescript
+{
+  algorithm: 'similar',
+  algorithmDisplay: 'Find Your Tribe',
+  algorithmEmoji: '🎯',
+  description: reasons.join(' • '),
+  metric: `${matchPercentage}% match`
+}
+```
+
+## Testing Performed
+
+### Manual Testing
+- [ ] Similar users appear in search/discovery
+- [ ] Match percentages are reasonable (30-90%)
+- [ ] Match reasons make sense
+- [ ] Profile embeddings update when stale
+- [ ] Privacy filters work (no blocked/private users)
+- [ ] Follow button works on cards
+- [ ] Tapping card goes to profile
+- [ ] Empty state when no matches
+
+### Edge Cases Considered
+- New user with no betting history
+- User with stale/missing embedding
+- All similar users already followed
+- No users with >30% similarity
+- User changes betting patterns dramatically
+
+## Documentation Updates
+
+- [ ] Service methods documented
+- [ ] Match reason logic explained
+- [ ] Embedding update strategy documented
+- [ ] Integration with discovery documented
+
+## Handoff to Reviewer
+
+### What Was Implemented
+Complete "Find Your Tribe" discovery feature:
+- Friend discovery service with similarity matching
+- Match reason generation based on patterns
+- Integration with existing discovery system
+- Enhanced cards showing match percentage
+- On-demand embedding updates with caching
+
+### Files Modified/Created
+**Created**:
+- `services/rag/friendDiscoveryService.ts` - Core discovery logic
+- `components/search/SimilarUserCard.tsx` - Enhanced discovery card
+
+**Modified**:
+- `services/search/searchService.ts` - Added similar algorithm
+- `hooks/useDiscovery.tsx` - Verified integration
+- `services/rag/embeddingPipeline.ts` - Ensured profile updates work
+
+### Key Decisions Made
+1. **On-demand updates**: Update embeddings when accessed, not batch
+2. **24hr cache**: Balance freshness with API costs
+3. **2 match reasons**: Clear without overwhelming
+4. **15 user limit**: Good discovery without overload
+
+### Deviations from Original Plan
+- None anticipated
+
+### Known Issues/Concerns
+- Match quality depends on embedding quality
+- Cold start problem for new users
+- Need to monitor similarity thresholds
+
+### Suggested Review Focus
+- Match reason generation logic
+- Integration with existing discovery
+- UI/UX of match percentage display
+- Performance of similarity queries
+
+**Sprint Status**: READY FOR REVIEW
+
+---
+
+## Reviewer Section
+
+**Reviewer**: [R persona]  
+**Review Date**: [Date]
+
+### Review Checklist
+- [ ] Code matches sprint objectives
+- [ ] All planned files created/modified
+- [ ] Follows established patterns
+- [ ] No unauthorized scope additions
+- [ ] Code is clean and maintainable
+- [ ] No obvious bugs or issues
+- [ ] Integrates properly with existing code
+
+### Review Outcome
+
+**Status**: APPROVED | NEEDS REVISION
+
+### Feedback
+[If NEEDS REVISION, specific feedback here]
+
+**Required Changes**:
+1. **File**: `[filename]`
+   - Issue: [What's wrong]
+   - Required Change: [What to do]
+   - Reasoning: [Why it matters]
+
+### Post-Review Updates
+[Track changes made in response to review]
+
+**Update 1** - [Date]
+- Changed: [What was modified]
+- Result: [New status]
+
+---
+
+## Sprint Metrics
+
+**Duration**: Planned 3 hours | Actual [Y] hours  
+**Scope Changes**: [Number of plan updates]  
+**Review Cycles**: [Number of review rounds]  
+**Files Touched**: 5  
+**Lines Added**: ~400  
+**Lines Removed**: ~0
+
+## Learnings for Future Sprints
+
+1. [Learning 1]: [How to apply in future]
+2. [Learning 2]: [How to apply in future]
+
+---
+
+*Sprint Started: [Date]*  
+*Sprint Completed: [Date]*  
+*Final Status: [APPROVED/IN PROGRESS/BLOCKED]* 

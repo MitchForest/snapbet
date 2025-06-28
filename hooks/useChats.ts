@@ -22,6 +22,7 @@ export function useChats() {
   const [totalUnreadCount, setTotalUnreadCount] = useState(0);
   const [typingUsers, setTypingUsers] = useState<Map<string, Set<string>>>(new Map());
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const chatIdsRef = useRef<string[]>([]);
 
   // Load chats
   const loadChats = useCallback(async () => {
@@ -39,6 +40,9 @@ export function useChats() {
 
       setChats(chatList);
       setTotalUnreadCount(unreadCount);
+
+      // Update chat IDs ref
+      chatIdsRef.current = chatList.map((chat) => chat.chat_id);
     } catch (err) {
       console.error('Failed to load chats:', err);
       setError(err as Error);
@@ -111,10 +115,7 @@ export function useChats() {
 
   // Set up real-time subscriptions
   useEffect(() => {
-    if (!user?.id || chats.length === 0) return;
-
-    // Get all chat IDs for subscription
-    const chatIds = chats.map((chat) => chat.chat_id);
+    if (!user?.id) return;
 
     // Create a cleanup function
     const cleanup = async () => {
@@ -132,34 +133,29 @@ export function useChats() {
       // Small delay to ensure cleanup completes
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // Subscribe to messages in user's chats
-      const channel = supabase
-        .channel(`user-chats:${user.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'messages',
-            filter: `chat_id=in.(${chatIds.join(',')})`,
-          },
-          handleNewMessage
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'chat_members',
-            filter: `user_id=eq.${user.id}`,
-          },
-          async () => {
-            // When we're added to a new chat, reload the chat list
-            await loadChats();
-          }
-        )
-        .on('broadcast', { event: 'typing' }, handleTypingEvent)
-        .subscribe();
+      // Create the channel
+      const channel = supabase.channel(`user-chats:${user.id}`);
+
+      // Subscribe to new chats (when user is added to a chat)
+      channel.on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_members',
+          filter: `user_id=eq.${user.id}`,
+        },
+        async () => {
+          console.log('New chat detected, reloading chats...');
+          await loadChats();
+        }
+      );
+
+      // Subscribe to typing events
+      channel.on('broadcast', { event: 'typing' }, handleTypingEvent);
+
+      // Subscribe to the channel
+      await channel.subscribe();
 
       channelRef.current = channel;
     };
@@ -171,7 +167,39 @@ export function useChats() {
     return () => {
       cleanup();
     };
-  }, [user?.id, chats.length, handleNewMessage, handleTypingEvent]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.id, handleTypingEvent, loadChats]);
+
+  // Set up message subscription separately when chat IDs change
+  useEffect(() => {
+    if (!user?.id || chatIdsRef.current.length === 0) return;
+
+    const setupMessageSubscription = async () => {
+      const channel = supabase.channel(`user-messages:${user.id}`);
+
+      channel.on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `chat_id=in.(${chatIdsRef.current.join(',')})`,
+        },
+        handleNewMessage
+      );
+
+      await channel.subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    };
+
+    const cleanupPromise = setupMessageSubscription();
+
+    return () => {
+      cleanupPromise.then((cleanup) => cleanup?.());
+    };
+  }, [user?.id, handleNewMessage, chats.length]); // Only re-subscribe when number of chats changes
 
   // Archive a chat
   const archiveChat = useCallback(

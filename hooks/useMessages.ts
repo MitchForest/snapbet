@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { realtimeManager } from '@/services/realtime/realtimeManager';
 import { offlineQueue } from '@/services/realtime/offlineQueue';
 import { getChatChannelName } from '@/utils/realtime/channelHelpers';
-import type { Json } from '@/types/supabase';
+import type { Json } from '@/types/database';
 
 // Extended message type with optimistic flag
 interface OptimisticMessage extends Omit<Message, 'bet_id' | 'media_url' | 'message_type'> {

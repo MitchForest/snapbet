@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, Text } from '@tamagui/core';
+import { View, Text, Stack } from '@tamagui/core';
 import {
   TextInput,
   Pressable,
@@ -7,32 +7,41 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import { Avatar } from '@/components/common/Avatar';
 import { GroupMember } from '@/types/messaging';
 import { useMentions } from '@/hooks/useMentions';
 import { Colors } from '@/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
+import * as Haptics from 'expo-haptics';
 
 interface MentionInputProps {
   value: string;
   onChangeText: (text: string) => void;
   onSubmit: () => void;
+  onMediaSelect?: (uri: string) => void;
   members: GroupMember[];
   placeholder?: string;
   maxLength?: number;
+  chatExpiration?: number;
 }
 
 export const MentionInput: React.FC<MentionInputProps> = ({
   value,
   onChangeText,
   onSubmit,
+  onMediaSelect,
   members,
   placeholder = 'Type a message...',
   maxLength = 500,
+  chatExpiration = 24,
 }) => {
   const inputRef = useRef<TextInput>(null);
   const [cursorPosition, setCursorPosition] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const insets = useSafeAreaInsets();
 
   const { mentionState, suggestions, handleTextChange, selectMention, cancelMention } =
@@ -71,6 +80,53 @@ export const MentionInput: React.FC<MentionInputProps> = ({
         selection: { start: newPosition, end: newPosition },
       });
     }, 0);
+  };
+
+  const handleSend = async () => {
+    const trimmedText = value.trim();
+    if (!trimmedText || isSending) return;
+
+    // Haptic feedback
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    setIsSending(true);
+    try {
+      await onSubmit();
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleMediaPress = async () => {
+    if (!onMediaSelect) return;
+
+    // Request permissions
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      alert('Sorry, we need camera roll permissions to send photos!');
+      return;
+    }
+
+    // Launch image picker
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: false,
+      quality: 0.85,
+      videoMaxDuration: 60, // 1 minute max for videos
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      setIsUploading(true);
+
+      try {
+        await onMediaSelect(asset.uri);
+      } catch (error) {
+        console.error('Failed to send media:', error);
+      } finally {
+        setIsUploading(false);
+      }
+    }
   };
 
   // Render mention suggestion
@@ -117,20 +173,71 @@ export const MentionInput: React.FC<MentionInputProps> = ({
           Platform.OS === 'ios' && { paddingBottom: insets.bottom + 8 },
         ]}
       >
-        <TextInput
-          ref={inputRef}
-          style={styles.input}
-          value={value}
-          onChangeText={handleChange}
-          onSelectionChange={handleSelectionChange}
-          onSubmitEditing={onSubmit}
-          placeholder={placeholder}
-          placeholderTextColor={Colors.gray[400]}
-          maxLength={maxLength}
-          multiline
-          returnKeyType="send"
-          blurOnSubmit={false}
-        />
+        <Stack flexDirection="row" alignItems="flex-end" gap="$2">
+          {/* Media button - show when no text */}
+          {!value.trim() && onMediaSelect && (
+            <Pressable
+              onPress={handleMediaPress}
+              disabled={isUploading || isSending}
+              style={({ pressed }) => [
+                styles.mediaButton,
+                pressed && styles.mediaButtonPressed,
+                (isUploading || isSending) && styles.mediaButtonDisabled,
+              ]}
+            >
+              {isUploading ? (
+                <ActivityIndicator size="small" color={Colors.primary} />
+              ) : (
+                <Text fontSize={20}>📷</Text>
+              )}
+            </Pressable>
+          )}
+
+          {/* Text input */}
+          <View flex={1} style={styles.textInputContainer}>
+            <TextInput
+              ref={inputRef}
+              style={styles.input}
+              value={value}
+              onChangeText={handleChange}
+              onSelectionChange={handleSelectionChange}
+              onSubmitEditing={handleSend}
+              placeholder={placeholder}
+              placeholderTextColor={Colors.gray[400]}
+              maxLength={maxLength}
+              multiline
+              returnKeyType="send"
+              blurOnSubmit={false}
+              editable={!isSending}
+            />
+          </View>
+
+          {/* Send button - show when text exists */}
+          {value.trim().length > 0 && (
+            <Pressable
+              onPress={handleSend}
+              disabled={isSending}
+              style={({ pressed }) => [
+                styles.sendButton,
+                pressed && styles.sendButtonPressed,
+                isSending && styles.sendButtonDisabled,
+              ]}
+            >
+              {isSending ? (
+                <ActivityIndicator size="small" color={Colors.white} />
+              ) : (
+                <Text color={Colors.white} fontSize="$3" fontWeight="600">
+                  Send
+                </Text>
+              )}
+            </Pressable>
+          )}
+        </Stack>
+
+        {/* Expiration notice */}
+        <Text fontSize="$2" color={Colors.text.tertiary} textAlign="center" marginTop="$2">
+          Messages expire after {chatExpiration} hours
+        </Text>
       </View>
     </KeyboardAvoidingView>
   );
@@ -170,11 +277,47 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.gray[200],
   },
+  textInputContainer: {
+    backgroundColor: Colors.gray[100],
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    minHeight: 44,
+    maxHeight: 100,
+  },
   input: {
     fontSize: 16,
     color: Colors.text.primary,
-    maxHeight: 100,
-    minHeight: 40,
-    paddingVertical: 8,
+    lineHeight: 22,
+    paddingTop: Platform.OS === 'ios' ? 2 : 0,
+    paddingBottom: Platform.OS === 'ios' ? 2 : 0,
+  },
+  mediaButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.gray[100],
+  },
+  mediaButtonPressed: {
+    backgroundColor: Colors.gray[200],
+  },
+  mediaButtonDisabled: {
+    opacity: 0.5,
+  },
+  sendButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: Colors.primary,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  sendButtonPressed: {
+    backgroundColor: Colors.primaryDark,
+  },
+  sendButtonDisabled: {
+    opacity: 0.7,
   },
 });

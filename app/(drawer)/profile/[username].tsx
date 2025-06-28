@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text } from '@tamagui/core';
-import { TouchableOpacity, StyleSheet } from 'react-native';
+import { TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/services/supabase/client';
@@ -211,7 +211,7 @@ function ProfileScreenContent() {
   if (isUserBlocked) {
     return (
       <View flex={1} backgroundColor="$background">
-        <ScreenHeader title={profileUser.display_name || profileUser.username} />
+        <ScreenHeader title={`@${profileUser.username}`} />
         <ProfileHeader
           user={profileUser}
           stats={null}
@@ -253,7 +253,7 @@ function ProfileScreenContent() {
   if (profileUser.is_private && !canViewContent && !isOwnProfile) {
     return (
       <View flex={1} backgroundColor="$background">
-        <ScreenHeader title={profileUser.display_name || profileUser.username} />
+        <ScreenHeader title={`@${profileUser.username}`} />
         <ProfileHeader
           user={profileUser}
           stats={null}
@@ -284,8 +284,11 @@ function ProfileScreenContent() {
 
   return (
     <View flex={1} backgroundColor="$background">
-      <ScreenHeader title={profileUser.display_name || profileUser.username} />
-      <View flex={1}>
+      <ScreenHeader title={`@${profileUser.username}`} />
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollViewContent}
+      >
         <ProfileHeader
           user={profileUser}
           stats={userStats}
@@ -301,14 +304,20 @@ function ProfileScreenContent() {
 
         <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
-        <View flex={1}>
-          {activeTab === 'posts' ? (
-            <PostsList userId={profileUser.id} canView={canViewContent || isOwnProfile} />
-          ) : (
-            <BetsList userId={profileUser.id} canView={canViewContent || isOwnProfile} />
-          )}
-        </View>
-      </View>
+        {activeTab === 'posts' ? (
+          <PostsList
+            userId={profileUser.id}
+            canView={canViewContent || isOwnProfile}
+            scrollable={false}
+          />
+        ) : (
+          <BetsList
+            userId={profileUser.id}
+            canView={canViewContent || isOwnProfile}
+            scrollable={false}
+          />
+        )}
+      </ScrollView>
 
       {/* Block Confirmation */}
       <BlockConfirmation
@@ -342,5 +351,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: Colors.primary,
+  },
+  scrollViewContent: {
+    flexGrow: 1,
   },
 });

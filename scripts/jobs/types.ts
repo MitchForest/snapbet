@@ -1,4 +1,4 @@
-import { supabase } from '@/services/supabase/client';
+import { supabase } from '../supabase-client';
 import type { Json } from '@/types/database';
 
 export interface JobConfig {

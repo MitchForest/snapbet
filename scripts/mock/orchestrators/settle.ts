@@ -17,6 +17,8 @@ import {
   getPersonalityFromBehavior,
   mockMediaUrls,
 } from '../templates';
+import { BadgeCalculationJob } from '../../jobs/badge-calculation';
+import { AVAILABLE_REACTIONS } from '@/utils/constants/reactions';
 
 // Define bet details types
 interface SpreadBetDetails {
@@ -100,6 +102,9 @@ async function settleMockGames() {
 
     // Add more new activity
     await generateProgressionActivity();
+
+    // Calculate badges for users who placed bets
+    await calculateBadgesForActiveUsers();
   } catch (error) {
     console.error('❌ Error in settlement:', error);
   }
@@ -447,7 +452,7 @@ async function addProgressionEngagement() {
       await supabase.from('reactions').insert({
         post_id: post.id,
         user_id: reactor.id,
-        emoji: ['🔥', '💰', '💯', '🎯'][Math.floor(Math.random() * 4)],
+        emoji: AVAILABLE_REACTIONS[Math.floor(Math.random() * AVAILABLE_REACTIONS.length)],
       });
       reactionsAdded++;
     }
@@ -529,6 +534,24 @@ async function addProgressionMessages() {
   if (messages.length > 0) {
     await supabase.from('messages').insert(messages);
     console.log(`✅ Added ${messages.length} new messages`);
+  }
+}
+
+async function calculateBadgesForActiveUsers() {
+  console.log('\n🏆 Calculating badges for active users...');
+
+  try {
+    // Run badge calculation job
+    const badgeJob = new BadgeCalculationJob();
+    const result = await badgeJob.execute({ verbose: false });
+
+    if (result.success) {
+      console.log(`✅ ${result.message}`);
+    } else {
+      console.error('❌ Badge calculation failed:', result.message);
+    }
+  } catch (error) {
+    console.error('❌ Error calculating badges:', error);
   }
 }
 

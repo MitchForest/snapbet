@@ -9,9 +9,14 @@ import { Colors } from '@/theme';
 interface PostsListProps {
   userId?: string;
   canView?: boolean;
+  scrollable?: boolean;
 }
 
-export const PostsList: React.FC<PostsListProps> = ({ userId, canView = true }) => {
+export const PostsList: React.FC<PostsListProps> = ({
+  userId,
+  canView = true,
+  scrollable = true,
+}) => {
   const [posts, setPosts] = useState<PostWithType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,6 +106,20 @@ export const PostsList: React.FC<PostsListProps> = ({ userId, canView = true }) 
     );
   }
 
+  if (!scrollable) {
+    return (
+      <View style={styles.nonScrollableContainer}>
+        {posts.map((post) => (
+          <PostCard
+            key={post.id}
+            post={post}
+            onPress={() => console.log('Post pressed:', post.id)}
+          />
+        ))}
+      </View>
+    );
+  }
+
   return (
     <FlatList
       data={posts}
@@ -116,6 +135,9 @@ export const PostsList: React.FC<PostsListProps> = ({ userId, canView = true }) 
 const styles = StyleSheet.create({
   listContent: {
     paddingVertical: 8,
-    paddingBottom: 150, // Increased from 100 to ensure full visibility
+    paddingBottom: 150,
+  },
+  nonScrollableContainer: {
+    paddingVertical: 8,
   },
 });

@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 interface BetsListProps {
   userId: string;
   canView?: boolean;
+  scrollable?: boolean;
 }
 
 // Simple BetCard component inline
@@ -216,7 +217,11 @@ function BetStats({ userId: _userId }: { userId: string }) {
   );
 }
 
-export const BetsList: React.FC<BetsListProps> = ({ userId, canView = true }) => {
+export const BetsList: React.FC<BetsListProps> = ({
+  userId,
+  canView = true,
+  scrollable = true,
+}) => {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
 
@@ -315,37 +320,59 @@ export const BetsList: React.FC<BetsListProps> = ({ userId, canView = true }) =>
       </Stack>
 
       {/* Bet List */}
-      <FlashList
-        data={bets}
-        renderItem={({ item }) => <BetCard bet={item} />}
-        keyExtractor={(item) => item.id}
-        estimatedItemSize={140}
-        onEndReached={activeTab === 'history' ? historyData.loadMore : undefined}
-        onEndReachedThreshold={0.5}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={Colors.primary}
-          />
-        }
-        ListEmptyComponent={
-          <View padding="$8" alignItems="center">
-            <Text fontSize="$6" marginBottom="$2">
-              🎲
-            </Text>
-            <Text fontSize="$5" color="$textSecondary" textAlign="center">
-              {emptyMessage}
-            </Text>
-            {activeTab === 'history' && (
-              <Text fontSize="$3" color="$textSecondary" textAlign="center" marginTop="$1">
-                Place your first bet to see it here
+      {!scrollable ? (
+        <View style={styles.nonScrollableContainer}>
+          {bets.length === 0 ? (
+            <View padding="$8" alignItems="center">
+              <Text fontSize="$6" marginBottom="$2">
+                🎲
               </Text>
-            )}
-          </View>
-        }
-        contentContainerStyle={styles.listContent}
-      />
+              <Text fontSize="$5" color="$textSecondary" textAlign="center">
+                {emptyMessage}
+              </Text>
+              {activeTab === 'history' && (
+                <Text fontSize="$3" color="$textSecondary" textAlign="center" marginTop="$1">
+                  Place your first bet to see it here
+                </Text>
+              )}
+            </View>
+          ) : (
+            bets.map((bet) => <BetCard key={bet.id} bet={bet} />)
+          )}
+        </View>
+      ) : (
+        <FlashList
+          data={bets}
+          renderItem={({ item }) => <BetCard bet={item} />}
+          keyExtractor={(item) => item.id}
+          estimatedItemSize={140}
+          onEndReached={activeTab === 'history' ? historyData.loadMore : undefined}
+          onEndReachedThreshold={0.5}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={Colors.primary}
+            />
+          }
+          ListEmptyComponent={
+            <View padding="$8" alignItems="center">
+              <Text fontSize="$6" marginBottom="$2">
+                🎲
+              </Text>
+              <Text fontSize="$5" color="$textSecondary" textAlign="center">
+                {emptyMessage}
+              </Text>
+              {activeTab === 'history' && (
+                <Text fontSize="$3" color="$textSecondary" textAlign="center" marginTop="$1">
+                  Place your first bet to see it here
+                </Text>
+              )}
+            </View>
+          }
+          contentContainerStyle={styles.listContent}
+        />
+      )}
     </Stack>
   );
 };
@@ -361,5 +388,8 @@ const styles = StyleSheet.create({
   },
   activeTab: {
     backgroundColor: Colors.primary,
+  },
+  nonScrollableContainer: {
+    padding: 16,
   },
 });

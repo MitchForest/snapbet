@@ -102,58 +102,23 @@ export async function calculateWeeklyBadges(userId: string): Promise<string[]> {
 
 export async function saveWeeklyBadges(userId: string, badges: string[]): Promise<void> {
   try {
-    // Get current week start
-    const { data: weekStartData, error: weekStartError } = await supabase.rpc(
-      'get_week_start' as never
-    );
+    console.log('[Badge Debug] Saving badges for user:', userId, badges);
 
-    if (weekStartError || !weekStartData) {
-      console.error('Error getting week start:', weekStartError);
-      return;
+    // Use the secure RPC function to update badges
+    const { error } = await supabase.rpc('update_user_badges_batch', {
+      p_user_id: userId,
+      p_badges: badges,
+    });
+
+    if (error) {
+      console.error('[Badge Debug] Error saving badges:', error);
+      throw error;
     }
 
-    const weekStart = weekStartData as string;
-
-    // Get week end for expiration
-    const { data: weekEndData, error: weekEndError } = await supabase.rpc('get_week_end' as never);
-
-    if (weekEndError || !weekEndData) {
-      console.error('Error getting week end:', weekEndError);
-      return;
-    }
-
-    const weekEnd = weekEndData as string;
-
-    // First, remove any existing badges for this week
-    const { error: deleteError } = await supabase
-      .from('user_badges')
-      .update({ lost_at: new Date().toISOString() })
-      .eq('user_id', userId)
-      .eq('week_start_date', weekStart)
-      .is('lost_at', null);
-
-    if (deleteError) {
-      console.error('Error removing old badges:', deleteError);
-    }
-
-    // Insert new badges
-    if (badges.length > 0) {
-      const badgeInserts = badges.map((badgeId) => ({
-        user_id: userId,
-        badge_id: badgeId,
-        week_start_date: weekStart,
-        weekly_reset_at: weekEnd,
-        earned_at: new Date().toISOString(),
-      }));
-
-      const { error: insertError } = await supabase.from('user_badges').insert(badgeInserts);
-
-      if (insertError) {
-        console.error('Error inserting badges:', insertError);
-      }
-    }
+    console.log('[Badge Debug] Successfully saved badges');
   } catch (error) {
     console.error('Error saving weekly badges:', error);
+    throw error;
   }
 }
 
