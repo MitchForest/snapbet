@@ -113,6 +113,7 @@ export type Database = {
           bet_details: Json;
           bet_type: Database['public']['Enums']['bet_type'];
           created_at: string | null;
+          deleted_at: string | null;
           embedding: string | null;
           expires_at: string | null;
           game_id: string;
@@ -133,6 +134,7 @@ export type Database = {
           bet_details: Json;
           bet_type: Database['public']['Enums']['bet_type'];
           created_at?: string | null;
+          deleted_at?: string | null;
           embedding?: string | null;
           expires_at?: string | null;
           game_id: string;
@@ -153,6 +155,7 @@ export type Database = {
           bet_details?: Json;
           bet_type?: Database['public']['Enums']['bet_type'];
           created_at?: string | null;
+          deleted_at?: string | null;
           embedding?: string | null;
           expires_at?: string | null;
           game_id?: string;
@@ -861,6 +864,7 @@ export type Database = {
           action_type: Database['public']['Enums']['pick_action'];
           archived: boolean | null;
           created_at: string | null;
+          deleted_at: string | null;
           id: string;
           post_id: string;
           resulting_bet_id: string | null;
@@ -870,6 +874,7 @@ export type Database = {
           action_type: Database['public']['Enums']['pick_action'];
           archived?: boolean | null;
           created_at?: string | null;
+          deleted_at?: string | null;
           id?: string;
           post_id: string;
           resulting_bet_id?: string | null;
@@ -879,6 +884,7 @@ export type Database = {
           action_type?: Database['public']['Enums']['pick_action'];
           archived?: boolean | null;
           created_at?: string | null;
+          deleted_at?: string | null;
           id?: string;
           post_id?: string;
           resulting_bet_id?: string | null;
@@ -1003,6 +1009,7 @@ export type Database = {
         Row: {
           archived: boolean | null;
           created_at: string | null;
+          deleted_at: string | null;
           emoji: string;
           id: string;
           post_id: string | null;
@@ -1012,6 +1019,7 @@ export type Database = {
         Insert: {
           archived?: boolean | null;
           created_at?: string | null;
+          deleted_at?: string | null;
           emoji: string;
           id?: string;
           post_id?: string | null;
@@ -1021,6 +1029,7 @@ export type Database = {
         Update: {
           archived?: boolean | null;
           created_at?: string | null;
+          deleted_at?: string | null;
           emoji?: string;
           id?: string;
           post_id?: string | null;

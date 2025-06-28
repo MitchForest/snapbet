@@ -32,6 +32,7 @@ export function OutcomeOverlay({ bet }: OutcomeOverlayProps) {
     original_pick_id: null,
     archived: false,
     embedding: null,
+    deleted_at: null,
     game: bet.game,
   };
 
