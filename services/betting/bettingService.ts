@@ -13,6 +13,7 @@ import {
 } from './types';
 import { getOddsData } from '@/types/betting';
 import { withActiveContent } from '@/utils/database/archiveFilter';
+import { embeddingPipeline } from '@/services/rag/embeddingPipeline';
 
 class BettingService {
   // Place a new bet
@@ -71,6 +72,11 @@ class BettingService {
       if (!bet) {
         throw new BettingError('Failed to retrieve placed bet', 'UNKNOWN');
       }
+
+      // Generate embedding asynchronously - don't block the UI
+      embeddingPipeline.embedBet(bet.id, { ...bet, game }).catch((error) => {
+        console.error('Failed to generate bet embedding:', error);
+      });
 
       return bet;
     } catch (error) {

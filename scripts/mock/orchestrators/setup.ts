@@ -26,6 +26,106 @@ import type { Database } from '@/types/database';
 
 type Tables = Database['public']['Tables'];
 type User = Tables['users']['Row'];
+type Game = Tables['games']['Row'];
+
+async function createHistoricalContent(mockUsers: User[], games: Game[]) {
+  console.log('\n📚 Creating historical content for RAG processing...');
+
+  const historicalPosts = [];
+  const historicalBets = [];
+  const twentyFiveHoursAgo = new Date(Date.now() - 25 * 60 * 60 * 1000);
+
+  // Create historical posts (content type)
+  for (const user of mockUsers.slice(0, 10)) {
+    // 2-3 posts per user
+    const postCount = Math.floor(Math.random() * 2) + 2;
+
+    for (let i = 0; i < postCount; i++) {
+      const createdAt = new Date(twentyFiveHoursAgo.getTime() - i * 60 * 60 * 1000);
+
+      historicalPosts.push({
+        id: crypto.randomUUID(),
+        user_id: user.id,
+        caption: `Historical post ${i + 1} from ${user.username} - This content will be archived for RAG processing`,
+        created_at: createdAt.toISOString(),
+        expires_at: new Date(createdAt.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+        media_type: 'photo' as const,
+        media_url: 'https://picsum.photos/400/400',
+        post_type: 'content' as const,
+      });
+    }
+  }
+
+  // Create historical bets
+  for (const user of mockUsers.slice(0, 15)) {
+    // 3-5 bets per user
+    const betCount = Math.floor(Math.random() * 3) + 3;
+
+    for (let i = 0; i < betCount; i++) {
+      const game = games[Math.floor(Math.random() * games.length)];
+      const createdAt = new Date(twentyFiveHoursAgo.getTime() - i * 2 * 60 * 60 * 1000);
+      const isWin = Math.random() > 0.5;
+
+      historicalBets.push({
+        id: crypto.randomUUID(),
+        user_id: user.id,
+        game_id: game.id,
+        bet_type: Math.random() > 0.5 ? ('spread' as const) : ('total' as const),
+        bet_details: {
+          team: Math.random() > 0.5 ? game.home_team : game.away_team,
+          line: Math.random() > 0.5 ? -3.5 : 3.5,
+        },
+        odds: -110,
+        stake: Math.floor(Math.random() * 5000) + 1000,
+        potential_win: Math.floor((Math.floor(Math.random() * 5000) + 1000) * 0.91),
+        actual_win: isWin ? Math.floor((Math.floor(Math.random() * 5000) + 1000) * 1.91) : 0,
+        status: (isWin ? 'won' : 'lost') as 'won' | 'lost',
+        created_at: createdAt.toISOString(),
+        settled_at: new Date(createdAt.getTime() + 3 * 60 * 60 * 1000).toISOString(),
+      });
+    }
+  }
+
+  // Insert historical content
+  if (historicalPosts.length > 0) {
+    const { error } = await supabase.from('posts').insert(historicalPosts);
+    if (error) {
+      console.error('Error creating historical posts:', error);
+    } else {
+      console.log(`  ✅ Created ${historicalPosts.length} historical posts`);
+    }
+  }
+
+  if (historicalBets.length > 0) {
+    const { error } = await supabase.from('bets').insert(historicalBets);
+    if (error) {
+      console.error('Error creating historical bets:', error);
+    } else {
+      console.log(`  ✅ Created ${historicalBets.length} historical bets`);
+    }
+  }
+}
+
+async function runProductionJobs() {
+  console.log('\n🔧 Running production jobs to process historical content...');
+
+  try {
+    const { execSync } = await import('child_process');
+
+    // Run content expiration to archive old content
+    console.log('  📦 Running content expiration job...');
+    execSync('bun run scripts/jobs/content-expiration.ts', { stdio: 'inherit' });
+
+    // Run embedding generation on archived content
+    console.log('  🤖 Running embedding generation job...');
+    execSync('bun run scripts/jobs/embedding-generation.ts', { stdio: 'inherit' });
+
+    console.log('  ✅ Production jobs completed successfully');
+  } catch (error) {
+    console.error('Error running production jobs:', error);
+    console.log('  ⚠️  Continuing without job processing - some features may not work fully');
+  }
+}
 
 async function createFollowRelationships(userId: string, mockUsers: User[]) {
   console.log('\n👥 Creating follow relationships...');
@@ -195,34 +295,43 @@ export async function setupMockData(userId: string) {
       return;
     }
 
-    // 3. Create follow relationships
+    // 3. Phase 1: Create historical content for RAG processing
+    await createHistoricalContent(mockUsers, games);
+
+    // 4. Run production jobs to archive and embed historical content
+    await runProductionJobs();
+
+    // 5. Phase 2: Create fresh content
+    console.log('\n🚀 Creating fresh content...');
+
+    // 6. Create follow relationships
     await createFollowRelationships(userId, mockUsers);
 
-    // 4. Create stories
+    // 7. Create stories
     await createStoriesForMockUsers(mockUsers);
 
-    // 5. Create badge-worthy betting patterns
+    // 8. Create badge-worthy betting patterns
     const badgeBets = await createBetsForBadges(mockUsers, games);
 
-    // 6. Create rising star bets for new users
+    // 9. Create rising star bets for new users
     const risingStarBets = await createRisingStarBets(mockUsers, games);
 
-    // 7. Create successful fade bets for fade god badge
+    // 10. Create successful fade bets for fade god badge
     await createSuccessfulFadeBets(mockUsers, games);
 
-    // 8. Create hot bettor patterns
+    // 11. Create hot bettor patterns
     const hotBettorBets = await createHotBettorBets(mockUsers, games);
 
-    // 9. Create fade god patterns (users with bad records to fade)
+    // 12. Create fade god patterns (users with bad records to fade)
     const fadeGodBets = await createFadeGodBets(mockUsers, games);
 
-    // 10. Create varied betting activity
+    // 13. Create varied betting activity
     const { settledBets } = await createVariedBets(
       mockUsers.slice(MOCK_CONFIG.badges.totalPersonas),
       games
     );
 
-    // 11. Create posts (including outcome posts)
+    // 14. Create posts (including outcome posts)
     const allSettledBets = [
       ...badgeBets,
       ...fadeGodBets,
@@ -232,7 +341,7 @@ export async function setupMockData(userId: string) {
     ];
     const posts = await createPostsForMockUsers(userId, mockUsers, games, allSettledBets);
 
-    // 11a. Ensure fade-worthy users create pick posts
+    // 14a. Ensure fade-worthy users create pick posts
     const fadeWorthyUsers = mockUsers.filter(
       (u) => u.mock_personality_id === 'square-bob' || u.mock_personality_id === 'public-pete'
     );
@@ -289,20 +398,20 @@ export async function setupMockData(userId: string) {
       }
     }
 
-    // 12. Create engagement
+    // 15. Create engagement
     if (posts.length > 0) {
       await createEngagementForPosts(posts, mockUsers);
       await createTrendingPicks(posts, mockUsers);
       await createFadeActions(userId, mockUsers, posts);
     }
 
-    // 13. Create messaging
+    // 16. Create messaging
     await createMessaging(userId, mockUsers);
 
-    // 14. Create notifications for the main user
+    // 17. Create notifications for the main user
     await createNotificationsForUser(userId, mockUsers);
 
-    // 15. Run badge calculation job
+    // 18. Run badge calculation job
     console.log('\n🏆 Running badge calculation...');
 
     // First, update all bankrolls based on actual bets
@@ -361,7 +470,7 @@ export async function setupMockData(userId: string) {
       console.error('Error calculating badges:', badgeError);
     }
 
-    // 16. Ensure badge users are searchable
+    // 19. Ensure badge users are searchable
     console.log('\n🔍 Making badge users searchable...');
 
     // Check if we have users that meet the search criteria
