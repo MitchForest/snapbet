@@ -370,9 +370,10 @@ console.log('  - Consensus Alerts (multiple users same bet)');
 
 ### Dependencies & Risks
 **Dependencies**:
-- All previous RAG sprints must be complete
-- OpenAI API key must be configured
-- Embedding pipeline must be functional
+- Production jobs from Sprint 8.04 (embedding-generation.ts)
+- Archive filtering from Sprint 8.03
+- Mock data generation infrastructure
+- Two-phase mock setup pattern from Sprint 8.04
 
 **Identified Risks**:
 - OpenAI API costs during demo generation

@@ -2,7 +2,6 @@ import { supabase } from '@/services/supabase';
 import { PostType, PostWithType, CreatePostParams, Comment } from '@/types/content';
 import { calculateExpiration } from '@/utils/content/postTypeHelpers';
 import { withActiveContent } from '@/utils/database/archiveFilter';
-import { embeddingPipeline } from '@/services/rag/embeddingPipeline';
 
 export async function createPost(params: CreatePostParams): Promise<PostWithType> {
   const { post_type = PostType.CONTENT, bet_id, settled_bet_id, expires_at, ...rest } = params;
@@ -38,10 +37,8 @@ export async function createPost(params: CreatePostParams): Promise<PostWithType
 
   const post = data as PostWithType;
 
-  // Generate embedding asynchronously - don't block the UI
-  embeddingPipeline.embedPost(post.id, post).catch((error) => {
-    console.error('Failed to generate post embedding:', error);
-  });
+  // Note: Embedding generation is handled by production jobs, not in the app
+  // The embedding-generation.ts job processes archived content
 
   return post;
 }

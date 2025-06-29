@@ -76,24 +76,37 @@
 - Various caption styles (funny, serious, emoji-heavy, etc.)
 - Different sports/betting contexts
 - Timestamps spanning 30+ days
+- Include archived stories, reactions, comments, and pick actions
+- Add bet messages in chat history
 
 **Similar User Patterns**:
 - Groups of 3-5 users with similar betting patterns
 - Shared favorite teams
 - Similar bet amounts and frequencies
 - Overlapping active times
+- Historical betting records with embeddings
 
 **Consensus Scenarios**:
 - Multiple users betting same game/outcome within 1 hour
 - Various group sizes (2-10 users)
 - Different bet amounts but same picks
 - Mix of followed and non-followed users
+- Historical consensus patterns for learning
 
 **Feed Testing Data**:
 - 70% content from followed users (active)
 - 30% slots for AI-discovered content
 - Mix of bet types and post types
 - Realistic engagement patterns
+- Sufficient archived content with embeddings for discovery
+
+**Missing Content Types to Add**:
+- Story reactions and views
+- Story captions
+- Video content samples
+- Bet-related messages in chats
+- Auto milestone/recap stories
+- Rich metadata usage
 
 ### Performance Optimization Plan
 

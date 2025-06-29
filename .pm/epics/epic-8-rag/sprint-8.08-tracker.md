@@ -31,6 +31,11 @@
 - **Type safety**: No `any` types without explicit justification
 - **Run before handoff**: `bun run lint && bun run typecheck`
 
+### 🚨 Architecture Constraint (from Sprint 8.04)
+- **OpenAI SDK cannot run in React Native** - All AI/embedding operations must be server-side
+- **RPC calls must be through production jobs** - Consensus checking happens server-side
+- **Notifications created by server jobs** - Not directly from the app
+
 ## Sprint Plan
 
 ### Objectives
@@ -41,11 +46,13 @@
 5. Add AI visual indicators to consensus notifications
 6. Test with various consensus scenarios
 7. Ensure mock data includes consensus scenarios for demo
+8. Historical phase should include consensus betting scenarios for testing
 
 ### Files to Create
 | File Path | Purpose | Status |
 |-----------|---------|--------|
-| `services/rag/consensusService.ts` | Service for detecting betting consensus among followed users | NOT STARTED |
+| `scripts/jobs/consensus-detection.ts` | Production job for detecting betting consensus | NOT STARTED |
+| `hooks/useBetWithConsensus.ts` | Client hook that triggers server-side consensus check | NOT STARTED |
 
 ### Files to Modify  
 | File Path | Changes Needed | Status |
@@ -58,16 +65,14 @@
 
 ### Implementation Approach
 
-**Step 1: Create consensus service**
+**Step 1: Create production job for consensus detection**
 ```typescript
-// services/rag/consensusService.ts
-import { supabase } from '@/services/supabase/client';
-import { createClient } from '@supabase/supabase-js';
+// scripts/jobs/consensus-detection.ts
+#!/usr/bin/env bun
 
-const supabaseAdmin = createClient(
-  process.env.EXPO_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY!
-);
+import { BaseJob, JobOptions, JobResult } from './types';
+import { supabase } from '../supabase-client';
+import type { Database } from '@/types/database';
 
 export class ConsensusService {
   private static instance: ConsensusService;
@@ -175,9 +180,6 @@ export const consensusService = ConsensusService.getInstance();
 **Step 2: Update betting service**
 ```typescript
 // services/betting/bettingService.ts
-import { consensusService } from '../rag/consensusService';
-import { embeddingPipeline } from '../rag/embeddingPipeline';
-
 // In placeBet method, after successful bet placement
 async placeBet(betData: PlaceBetData): Promise<Bet> {
   // ... existing bet placement logic ...
@@ -190,18 +192,16 @@ async placeBet(betData: PlaceBetData): Promise<Bet> {
 
   if (error) throw error;
 
-  // Async tasks after bet placement
-  Promise.all([
-    // Generate embedding (from Sprint 8.04)
-    embeddingPipeline.embedBet(bet.id, bet),
-    // Check for consensus
-    consensusService.checkAndNotifyConsensus(bet, bet.user_id)
-  ]).catch(error => {
-    console.error('Post-bet processing error:', error);
-  });
+  // Mark bet for consensus checking (will be processed by job)
+  await supabase
+    .from('bets')
+    .update({ needs_consensus_check: true })
+    .eq('id', bet.id);
 
   return bet;
 }
+
+// Note: Consensus detection happens via production job, not directly
 ```
 
 **Step 3: Update notification types**
@@ -318,9 +318,11 @@ if (notification.type === 'consensus') {
 
 ### Dependencies & Risks
 **Dependencies**:
-- check_bet_consensus RPC function from Sprint 8.01
+- check_bet_consensus RPC function from Sprint 8.01 (server-side only)
 - Notification system infrastructure
 - Betting service hooks
+- Production job infrastructure from Sprint 8.04
+- Database flag for consensus processing
 
 **Identified Risks**:
 - Notification spam → Limit to one per bet/game combo
