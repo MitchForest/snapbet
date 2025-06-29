@@ -11,10 +11,10 @@ This final sprint creates a comprehensive demo showcasing AI integration:
 1. All AI features appear IN existing UI (not separate sections)
 2. Visual indicators (AIBadge) clearly mark AI-powered content
 3. Two-phase mock data creates rich behavioral patterns
-4. `bun run mock:setup --username:USERNAME` demonstrates all features
+4. Enhanced orchestrator demonstrates all features
 
 **KEY DEMO POINTS**:
-- Find Your Tribe appears at TOP of Explore tab
+- Find Your Tribe appears in Search tab with existing discovery sections
 - AI posts appear naturally in the main feed (30%)
 - AI notifications appear in regular notification list
 - All AI content has subtle visual indicators
@@ -22,48 +22,34 @@ This final sprint creates a comprehensive demo showcasing AI integration:
 
 ## Detailed Implementation Steps
 
-### Part 1: Complete Mock Setup Script (1.5 hours)
+### Part 1: Enhance Mock Orchestrator for RAG Demo (1.5 hours)
 
-#### Step 1.1: Enhance Main Mock Setup Script
+#### Step 1.1: Update Unified Setup Orchestrator
 
-**File**: `scripts/mock/setup-mock-data.ts`
+**File**: Update `scripts/mock/orchestrators/unified-setup.ts`
+
+Enhance the existing orchestrator to showcase all RAG features:
 
 ```typescript
-#!/usr/bin/env bun
+// Add to existing unified-setup.ts
 import { execSync } from 'child_process';
-import { createClient } from '@supabase/supabase-js';
 import { 
-  createMockUsers,
-  createMockGames,
-  createMockPosts,
-  createMockBets,
-  createMockMessages,
-  createMockNotifications,
-  createMockFollowers,
-  createMockReactions,
-  createMockComments,
-  createDiscoveryScenarios,
-  createConsensusScenarios,
-  createDiscoveryContent
-} from './generators';
+  generateMockUsers,
+  generateMockGames,
+  generateMockPosts,
+  generateMockBets,
+  generateMockMessages,
+  generateMockNotifications,
+  generateMockFollowers,
+  generateMockReactions,
+  generateMockComments
+} from '../generators';
+import { createBehavioralPatterns } from './behavioral-patterns';
 
-const supabaseUrl = process.env.PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-// Parse command line arguments
-const args = process.argv.slice(2);
-const usernameArg = args.find(arg => arg.startsWith('--username:'));
-const targetUsername = usernameArg ? usernameArg.split(':')[1] : null;
-
-if (!targetUsername) {
-  console.error('Error: Username required. Usage: bun run mock:setup --username:YOUR_USERNAME');
-  process.exit(1);
-}
-
-async function setupMockData() {
-  console.log(`🚀 Setting up SnapBet mock data for user: ${targetUsername}`);
-  console.log('This will create a rich demo environment showcasing all RAG features\n');
+// Enhanced setup with RAG features
+export async function setupWithRAGFeatures(options: SetupOptions) {
+  console.log(`🚀 Setting up SnapBet with RAG features for user: ${options.username}`);
+  console.log('This will create rich behavioral patterns for AI discovery\n');
   
   try {
     // Verify target user exists
@@ -84,9 +70,12 @@ async function setupMockData() {
     console.log('\n📅 PHASE 1: Creating historical behavioral patterns...');
     console.log('This creates rich user histories that AI will learn from\n');
     
-    // 1.1: Create mock users WITHOUT preferences
+    // 1.1: Create mock users with behavioral diversity
     console.log('Creating 30 diverse mock users...');
-    const mockUsers = await createMockUsers(); // No favorite_teams or preferences!
+    const mockUsers = await generateMockUsers({ 
+      count: 30,
+      includeBehavioralMetadata: true 
+    });
     
     // 1.2: Create historical games (2 weeks old)
     console.log('Creating historical games...');
@@ -98,21 +87,17 @@ async function setupMockData() {
     
     // 1.3: Create BEHAVIORAL betting patterns
     console.log('Creating rich betting histories with natural patterns...');
-    await createBehavioralBettingHistory({
+    await generateMockBets({
       users: mockUsers,
       games: historicalGames,
-      patterns: {
-        // Some users naturally bet Lakers games
-        lakersFrequent: ['mock_sarah_sharp', 'mock_emma_analyst', 'mock_alex_stats'],
-        // Some bet high on weekends
-        weekendWarriors: ['mock_tyler_weekend', 'mock_jake_sunday', 'mock_mike_nfl'],
-        // Some are late night bettors
-        nightOwls: ['mock_chris_degen', 'mock_ryan_late', 'mock_david_night'],
-        // Some always bet unders
-        underSpecialists: ['mock_lisa_under', 'mock_tom_totals', 'mock_amy_unders'],
-        // Some follow primetime only
-        primetimers: ['mock_brad_prime', 'mock_kelly_mnf', 'mock_steve_snf']
-      }
+      includeBehavioralPatterns: true,
+      patterns: [
+        { type: 'team_loyalty', teams: ['Lakers', 'Warriors'], users: 5 },
+        { type: 'bet_type_preference', betTypes: ['total'], selection: 'under', users: 5 },
+        { type: 'time_based', timeSlots: [19, 20, 21], users: 5 }, // Primetime
+        { type: 'high_stakes', minBet: 150, users: 5 },
+        { type: 'weekend_only', days: [0, 6], users: 5 }
+      ]
     });
     
     // 1.4: Create social graphs based on behavior
@@ -142,21 +127,9 @@ async function setupMockData() {
     console.log('\n🧠 Generating behavioral AI embeddings...');
     console.log('AI learns from actual user actions, not stated preferences');
     
-    // Generate user profile embeddings FROM BEHAVIOR
-    console.log('- Analyzing betting patterns for each user...');
-    execSync('bun run scripts/jobs/embedding-generation.ts --type users --force', { 
-      stdio: 'inherit' 
-    });
-    
-    // Generate post embeddings
-    console.log('- Embedding post content and context...');
-    execSync('bun run scripts/jobs/embedding-generation.ts --type posts --force', { 
-      stdio: 'inherit' 
-    });
-    
-    // Generate bet embeddings
-    console.log('- Embedding betting decisions...');
-    execSync('bun run scripts/jobs/embedding-generation.ts --type bets --force', { 
+    // Run embedding generation for all content types
+    console.log('- Generating embeddings for users, posts, and bets...');
+    execSync('bun run scripts/jobs/embedding-generation.ts --type=all --force', { 
       stdio: 'inherit' 
     });
     
@@ -225,9 +198,9 @@ async function setupMockData() {
       count: 15
     });
     
-    // 2.9: Run consensus detection for fresh data
-    console.log('Running consensus detection...');
-    execSync('bun run scripts/jobs/consensus-detection.ts', { stdio: 'inherit' });
+    // 2.9: Run smart notification job for fresh data
+    console.log('Running smart notification generation...');
+    execSync('bun run scripts/jobs/smart-notifications.ts', { stdio: 'inherit' });
     
     // PHASE 3: Verify Behavioral AI Features
     console.log('\n✅ PHASE 3: Verifying behavioral AI features...');
@@ -393,21 +366,60 @@ function findConsensusPatterns(bets: any[]): any[] {
     .map(([pattern, count]) => ({ pattern, count }));
 }
 
-// Run the setup
-setupMockData();
+// Export enhanced setup function
+export { setupWithRAGFeatures };
 ```
 
-#### Step 1.2: Update package.json Scripts
+#### Step 1.2: Create Behavioral Pattern Helper
 
-**File**: `package.json`
+**File**: Create `scripts/mock/orchestrators/behavioral-patterns.ts`
 
-```json
-{
-  "scripts": {
-    // ... existing scripts ...
-    "mock:setup": "bun run scripts/mock/setup-mock-data.ts",
-    "mock:clean": "bun run scripts/mock/clean-mock-data.ts",
-    "mock:refresh": "bun run mock:clean && bun run mock:setup"
+```typescript
+import { supabase } from '@/scripts/supabase-client';
+
+export async function createBehavioralPatterns(users: any[]) {
+  console.log('Creating natural behavioral clusters...');
+  
+  // Define behavioral archetypes
+  const archetypes = [
+    {
+      name: 'NBA_UNDERS',
+      filter: (username: string) => username.includes('sharp') || username.includes('analyst'),
+      behavior: {
+        sports: ['NBA'],
+        betTypes: ['total'],
+        preferences: { selection: 'under' },
+        timing: 'evening'
+      }
+    },
+    {
+      name: 'NFL_WEEKEND',
+      filter: (username: string) => username.includes('weekend') || username.includes('sunday'),
+      behavior: {
+        sports: ['NFL'],
+        betTypes: ['spread', 'moneyline'],
+        timing: 'weekend',
+        stakes: 'high'
+      }
+    },
+    {
+      name: 'LATE_NIGHT',
+      filter: (username: string) => username.includes('degen') || username.includes('late'),
+      behavior: {
+        timing: 'late_night',
+        postFrequency: 'high',
+        betFrequency: 'high'
+      }
+    }
+  ];
+  
+  // Apply behaviors naturally through actions
+  for (const archetype of archetypes) {
+    const matchingUsers = users.filter(u => archetype.filter(u.username));
+    console.log(`- Creating ${archetype.name} pattern for ${matchingUsers.length} users`);
+    
+    // Behaviors will emerge from their betting and posting patterns
+    // No need to store preferences - AI will discover them!
   }
 }
 ```
@@ -416,7 +428,9 @@ setupMockData();
 
 #### Step 2.1: Add Database Indexes
 
-**File**: Create new migration `supabase/migrations/034_rag_performance_indexes.sql`
+**File**: Create new migration `supabase/migrations/036_rag_performance_indexes.sql`
+
+**Note**: Using 036 since 034 and 035 already exist
 
 ```sql
 -- Performance indexes for RAG features
@@ -539,36 +553,69 @@ async getHybridFeed(
 
 ### Part 3: Documentation & Demo Guide (30 minutes)
 
-#### Step 3.1: Create Behavioral AI Demo Guide
+#### Step 3.1: Update README with RAG Features
 
-**File**: `docs/BEHAVIORAL_AI_DEMO_GUIDE.md`
+**File**: Update `README.md` to include RAG setup
+
+Add section for RAG features:
+
+```markdown
+## RAG Features Demo
+
+To see all AI features in action:
+
+```bash
+# Run the unified setup with your username
+bun run scripts/mock/orchestrators/unified-setup.ts --username=YOUR_USERNAME
+
+# This creates:
+# - 30 mock users with behavioral patterns
+# - Rich betting history demonstrating preferences
+# - Posts and engagement showing natural clusters
+# - All embeddings for AI discovery
+```
+
+### What You'll See:
+
+1. **Find Your Tribe** - In Search tab, see users with similar betting behavior
+2. **Smart Feed** - 30% of posts from behaviorally similar users you don't follow
+3. **Smart Notifications** - Alerts when similar users make consensus bets
+
+All features use behavioral AI - no stored preferences!
+```
+
+#### Step 3.2: Create Behavioral AI Architecture Doc
+
+**File**: Create `docs/BEHAVIORAL_AI_ARCHITECTURE.md`
 
 ```markdown
 # SnapBet Behavioral AI Demo Guide
 
 ## Overview
-This guide demonstrates how SnapBet's AI learns from USER BEHAVIOR, not preferences. After running `bun run mock:setup --username:YOUR_USERNAME`, the AI will have analyzed behavioral patterns to power discovery features.
+This document explains how SnapBet's behavioral AI system works. The AI learns from USER BEHAVIOR, not stored preferences. All user preferences are discovered dynamically from embeddings.
 
 ## Key Concept: Behavioral AI
 - AI learns from what users DO, not what they SAY they like
 - No "favorite teams" or "preferences" - just actions
 - Patterns emerge naturally from betting history, social graph, and engagement
 
-## Setup
-1. Sign up with your username
-2. Run: `bun run mock:setup --username:YOUR_USERNAME`
-3. AI analyzes ~2 minutes of behavioral data
-4. Login to see personalized features based on YOUR behavior
+## Architecture Overview
+
+### Core Principles
+1. **No stored preferences** - removed favorite_teams column
+2. **Behavioral embeddings** - 1536-dimensional vectors from user actions
+3. **Dynamic discovery** - preferences inferred from embeddings at query time
+4. **Integrated UI** - AI features enhance existing screens
 
 ## Behavioral AI Features
 
 ### 1. Find Your Tribe (AI User Discovery)
-**Location**: Explore Tab → TOP SECTION (first thing you see)
+**Location**: Search Tab → Integrated with existing discovery sections
 
 **Integration**:
-- Appears as the FIRST section in existing Explore tab
-- Has "Find Your Tribe" title with small AI badge
-- Shows 5 horizontally scrollable user cards
+- Uses existing DiscoverySection and UserSearchCard components
+- Has "Find Your Tribe" title with AIBadge indicator
+- Shows behaviorally similar users
 
 **What You'll See**:
 - User cards with match percentage (e.g., "87% match")
@@ -845,18 +892,21 @@ Expected performance:
 
 **No consensus alerts?**
 - Create some bets matching mock user bets
-- Run: `bun run scripts/jobs/consensus-detection.ts`
+- Run: `bun run scripts/jobs/smart-notifications.ts`
 
 ## Resetting Demo
 
 To start fresh:
 ```bash
-bun run mock:clean
-bun run mock:setup --username:YOUR_USERNAME
+# Clean existing mock data
+bun run scripts/mock/clean-mock-data.ts
+
+# Run unified setup again
+bun run scripts/mock/orchestrators/unified-setup.ts --username=YOUR_USERNAME
 ```
 ```
 
-#### Step 3.2: Update Epic Tracker
+#### Step 3.3: Update Epic Tracker
 
 **File**: Update `.pm/epics/epic-8-rag/epic-tracker.md`
 
@@ -869,12 +919,17 @@ Update the sprint statuses and add completion notes:
 | 8.02 | Content Archiving | COMPLETED | 2024-12-29 | 2024-12-29 | Modify content-expiration job to archive |
 | 8.03 | Archive Filtering | COMPLETED | 2024-12-29 | 2024-12-29 | Update all queries to filter archived content |
 | 8.04 | RAG Service Layer | COMPLETED | 2024-12-30 | 2024-12-30 | OpenAI integration and embedding pipeline |
-| 8.05 | Infrastructure & Discovery | COMPLETED | [Date] | [Date] | Profile embeddings, Find Your Tribe feature |
-| 8.06 | Enhanced Feed & Consensus | COMPLETED | [Date] | [Date] | 70/30 smart feed, consensus alerts |
-| 8.07 | Demo & Polish | COMPLETED | [Date] | [Date] | Complete mock:setup script, performance optimization |
+| 8.05 | Infrastructure & Discovery | COMPLETED | [Date] | [Date] | Profile embeddings, Find Your Tribe in Search tab |
+| 8.06 | Enhanced Feed & Smart Notifications | COMPLETED | [Date] | [Date] | 70/30 smart feed, behavioral alerts |
+| 8.07 | Demo & Polish | COMPLETED | [Date] | [Date] | Enhanced orchestrator, performance optimization |
 
 ## Deferred Features
 - **AI Caption Generation**: Deferred due to Edge Function infrastructure requirements. UI components created but require server deployment.
+
+## Key Architecture Decisions
+- **Removed favorite_teams column**: All preferences discovered from behavioral embeddings
+- **Extended existing services**: Enhanced feedService and notificationService rather than creating new ones
+- **Integrated UI**: All AI features appear within existing screens with visual indicators
 ```
 
 ### Part 4: Final Testing Checklist

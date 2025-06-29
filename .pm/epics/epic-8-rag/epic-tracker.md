@@ -30,9 +30,9 @@
 ### Consolidated Sprint Plan (NEW)
 | Sprint # | Sprint Name | Status | Est. Duration | Key Deliverable |
 |----------|-------------|--------|---------------|-----------------|
-| 8.05 | Complete Infrastructure & Find Your Tribe | NOT STARTED | 3-4 hours | Profile embeddings, Find Your Tribe feature, mock user scenarios |
-| 8.06 | Enhanced Feed & Consensus | NOT STARTED | 4-5 hours | 70/30 smart feed mixing, consensus alerts, production jobs |
-| 8.07 | Comprehensive Demo & Polish | NOT STARTED | 2-3 hours | Complete mock:setup script, performance optimization, documentation |
+| 8.05-NEW | Complete Infrastructure & Find Your Tribe | NOT STARTED | 3-4 hours | Remove favorite_teams, behavioral embeddings, Find Your Tribe in Search tab |
+| 8.06-NEW | Enhanced Feed & Smart Notifications | NOT STARTED | 4-5 hours | Extend existing services, 70/30 smart feed, behavioral notifications |
+| 8.07-NEW | Comprehensive Demo & Polish | NOT STARTED | 2-3 hours | Enhanced orchestrator, performance optimization, architecture docs |
 
 ### Deferred Features
 | Feature | Original Sprint | Reason | Future Plan |
@@ -50,6 +50,24 @@
 - **No Module System**: Following existing service-based architecture pattern
 
 ### Key Design Decisions
+
+**NEW - Consolidated Sprint Decisions**:
+1. **Pure Behavioral AI**: Remove favorite_teams column entirely
+   - Alternatives considered: Keep column for backward compatibility
+   - Rationale: True behavioral discovery without stored preferences
+   - Trade-offs: Migration required but cleaner architecture
+
+2. **Extend Existing Services**: Enhance rather than replace
+   - Alternatives considered: Create parallel AI services
+   - Rationale: Better integration, less code duplication
+   - Trade-offs: More complex services but unified architecture
+
+3. **Integrate UI Components**: AI features in existing screens
+   - Alternatives considered: Separate AI screens/tabs
+   - Rationale: Seamless user experience, no context switching
+   - Trade-offs: Requires careful UI integration
+
+### Original Design Decisions
 1. **Service Architecture vs Modules**: Use existing service pattern, not module system
    - Alternatives considered: Module-based architecture
    - Rationale: Consistency with existing codebase structure
@@ -94,11 +112,13 @@
 ### File Structure for Epic
 ```
 services/rag/
-├── ragService.ts              # Core AI/OpenAI integration
-├── embeddingPipeline.ts       # Embedding generation pipeline
-├── friendDiscoveryService.ts  # Find Your Tribe logic
-├── smartFeedService.ts        # Enhanced feed mixing
-└── consensusService.ts        # Consensus detection
+├── ragService.ts              # Core AI/OpenAI integration ✅
+├── embeddingPipeline.ts       # Embedding generation pipeline ✅
+└── friendDiscoveryService.ts  # Find Your Tribe logic (NEW)
+
+services/
+├── feed/feedService.ts        # EXTENDED with getHybridFeed method
+└── notifications/notificationService.ts  # EXTENDED with smart notifications
 
 components/
 ├── common/
@@ -139,7 +159,7 @@ ALTER TABLE posts ADD COLUMN embedding vector(1536);
 ALTER TABLE bets ADD COLUMN embedding vector(1536);
 ALTER TABLE users ADD COLUMN profile_embedding vector(1536);
 ALTER TABLE users ADD COLUMN last_embedding_update TIMESTAMP;
-ALTER TABLE users ADD COLUMN favorite_teams TEXT[];
+-- favorite_teams column REMOVED in migration 035 (Sprint 8.05-NEW)
 
 -- New table for tracking embeddings
 CREATE TABLE embedding_metadata (
@@ -159,12 +179,12 @@ CREATE TABLE embedding_metadata (
 - `embeddingPipeline.embedBet()` - Bet embedding pipeline - Sprint 8.04 ✅
 - `embeddingPipeline.updateUserProfile()` - User profile embeddings - Sprint 8.04 ✅
 - `friendDiscoveryService.findSimilarUsers()` - User discovery - Sprint 8.05 (NEW)
-- `smartFeedService.getHybridFeed()` - 70/30 feed mixing - Sprint 8.06 (NEW)
-- `consensusService.checkAndNotifyConsensus()` - Consensus detection - Sprint 8.06 (NEW)
+- `feedService.getHybridFeed()` - 70/30 feed mixing - Sprint 8.06-NEW
+- `notificationService.generateSmartNotifications()` - Behavioral notifications - Sprint 8.06-NEW
 - `AIBadge` - Unified AI indicator component - Sprint 8.04 ✅
 - `AICaptionButton` - AI caption button with sparkle icon - DEFERRED
-- `SimilarUserCard` - User card with AI match percentage - Sprint 8.05 (NEW)
-- `DiscoveryBadge` - AI suggested post indicator - Sprint 8.06 (NEW)
+- Integration with existing `UserSearchCard` component - Sprint 8.05-NEW
+- `DiscoveryBadge` - AI suggested post indicator - Sprint 8.06-NEW
 - `useAICaption` - Hook for caption generation - DEFERRED
 - `withActiveContent()` - Filter helper for active content - Sprint 8.03 ✅
 - `withArchivedContent()` - Filter helper for archived content - Sprint 8.03 ✅
@@ -323,41 +343,41 @@ CREATE TABLE embedding_metadata (
 
 ## NEW CONSOLIDATED SPRINT PLAN
 
-### Sprint 8.05 (NEW): Complete Infrastructure & Find Your Tribe
+### Sprint 8.05-NEW: Complete Infrastructure & Find Your Tribe
 **Status**: NOT STARTED
 **Estimated Duration**: 3-4 hours
-**Summary**: Complete profile embeddings and implement Find Your Tribe discovery feature
+**Summary**: Remove favorite_teams column and implement pure behavioral discovery
 
 **Key Deliverables**:
-- Generate embeddings for all 30 mock users with betting preferences
-- Implement friendDiscoveryService with similarity matching
-- Create SimilarUserCard component with AI badges
-- Integrate into Explore tab with discovery scenarios
-- Test with mock user clusters (Lakers fans, NFL parlayers, etc.)
+- Migration to remove favorite_teams column (no stored preferences)
+- Update embeddingPipeline.ts to capture ALL behavioral signals
+- Create friendDiscoveryService for behavioral similarity matching
+- Integrate into Search tab using existing DiscoverySection component
+- Enhance mock generators with behavioral patterns (not preferences)
 
-### Sprint 8.06 (NEW): Enhanced Feed & Consensus
+### Sprint 8.06-NEW: Enhanced Feed & Smart Notifications
 **Status**: NOT STARTED  
 **Estimated Duration**: 4-5 hours
-**Summary**: Implement 70/30 smart feed mixing and consensus betting alerts
+**Summary**: Extend existing services for smart feed and notifications
 
 **Key Deliverables**:
-- Create smartFeedService for 70/30 following/discovered content mix
-- Implement consensusService for betting pattern detection
-- Add production job for consensus checking (runs every 5 minutes)
-- Create DiscoveryBadge component for AI-suggested posts
-- Build mock scenarios for consensus alerts and discovery content
+- Extend existing feedService.ts with getHybridFeed method (70/30 mix)
+- Enhance notificationService.ts with generateSmartNotifications
+- Update useFeed hook to support smart feed option
+- Add DiscoveryBadge to existing PostCard component
+- Create smart-notifications.ts job (runs every 5 minutes)
 
-### Sprint 8.07 (NEW): Comprehensive Demo & Polish
+### Sprint 8.07-NEW: Comprehensive Demo & Polish
 **Status**: NOT STARTED
 **Estimated Duration**: 2-3 hours  
-**Summary**: Create polished demo experience with complete mock:setup integration
+**Summary**: Enhance existing orchestrator for comprehensive RAG demo
 
 **Key Deliverables**:
-- Complete `bun run mock:setup --username:USERNAME` script
-- Two-phase approach: historical → archive → embed → fresh content
-- Add performance indexes deferred from Sprint 8.03
-- Create comprehensive demo documentation
-- Verify all production jobs work with mock and real data
+- Enhance scripts/mock/orchestrators/unified-setup.ts with RAG features
+- Create behavioral-patterns.ts helper for natural clustering
+- Add migration 036 for performance indexes (034/035 already exist)
+- Update README.md with RAG setup instructions
+- Create BEHAVIORAL_AI_ARCHITECTURE.md documentation
 
 ## Testing & Quality
 
@@ -472,9 +492,9 @@ If any build issues are encountered:
 - [x] Sprint 8.02 completed and approved  
 - [x] Sprint 8.03 completed and approved
 - [x] Sprint 8.04 completed and approved
-- [ ] Sprint 8.05 (NEW) - Complete Infrastructure & Find Your Tribe
-- [ ] Sprint 8.06 (NEW) - Enhanced Feed & Consensus
-- [ ] Sprint 8.07 (NEW) - Comprehensive Demo & Polish
+- [ ] Sprint 8.05-NEW - Complete Infrastructure & Find Your Tribe
+- [ ] Sprint 8.06-NEW - Enhanced Feed & Smart Notifications
+- [ ] Sprint 8.07-NEW - Comprehensive Demo & Polish
 - [ ] User stories for this epic fully addressed (3/4 - Caption Generation deferred)
 - [ ] Code refactored and cleaned up
 - [ ] Documentation updated
@@ -486,7 +506,7 @@ If any build issues are encountered:
 ### Progress Summary
 - **Sprints Completed**: 4/7 (57% - using consolidated plan)
 - **Epic Status**: On Track with revised scope
-- **Next Sprint**: 8.05 (NEW) - Complete Infrastructure & Find Your Tribe
+- **Next Sprint**: 8.05-NEW - Complete Infrastructure & Find Your Tribe
 - **Total Estimated Time Remaining**: 9-12 hours
 
 ## Epic Summary for Project Tracker
@@ -512,7 +532,7 @@ If any build issues are encountered:
 - Historical content lacks embeddings (can backfill later)
 - Simple feed mixing could be enhanced with ML
 - Rate limiting is basic, might need queue system at scale
-- No hooks for discovery/feed features (integrated directly in services)
+- Services becoming more complex with AI features integrated
 
 ---
 

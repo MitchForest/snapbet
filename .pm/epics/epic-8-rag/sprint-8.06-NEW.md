@@ -22,13 +22,15 @@ This sprint integrates AI features INTO existing UI components:
 
 ### Part 1: Enhanced Feed Implementation (2.5 hours)
 
-Modify the EXISTING feed to include 30% AI-discovered content mixed with 70% following content.
+Enhance the EXISTING feed service to include 30% AI-discovered content mixed with 70% following content.
 
-#### Step 1.1: Create Smart Feed Service
+#### Step 1.1: Extend Existing Feed Service
 
-**INTEGRATION NOTE**: This service will be called by the EXISTING feed component to mix in AI content.
+**INTEGRATION NOTE**: We'll enhance the existing feedService rather than creating a new one.
 
-**File**: `services/rag/smartFeedService.ts`
+**File**: Update `services/feed/feedService.ts`
+
+Add smart feed capabilities to the existing service:
 
 ```typescript
 import { supabase } from '@/services/supabase/client';
@@ -39,7 +41,11 @@ interface FeedPost extends Post {
   discovery_reason?: string;
 }
 
-export class SmartFeedService {
+// Add to existing feedService.ts
+export class FeedService {
+  // ... existing code ...
+  
+  // Add new properties for smart feed
   private readonly FOLLOWING_RATIO = 0.7;
   private readonly DISCOVERY_RATIO = 0.3;
   
@@ -316,64 +322,82 @@ export class SmartFeedService {
   }
 }
 
-export const smartFeedService = new SmartFeedService();
+// The existing feedService singleton is already exported
 ```
 
-#### Step 1.2: Modify EXISTING Feed Component
+#### Step 1.2: Update Feed Hook and Component
 
-**File**: Update `components/feed/FeedList.tsx`
+**File**: Update `hooks/useFeed.ts`
 
-**CRITICAL**: We're MODIFYING the existing feed loader, not replacing it:
+**CRITICAL**: We're enhancing the existing useFeed hook to support smart feed:
 
 ```typescript
-import { smartFeedService } from '@/services/rag/smartFeedService';
+// In useFeed hook, add smart feed option:
+export function useFeed() {
+  const { user } = useAuth();
+  const [enableSmartFeed, setEnableSmartFeed] = useState(true);
+  
+  // Modify existing loadPosts function
+  const loadPosts = async (refresh = false) => {
+    try {
+      let posts;
+      if (enableSmartFeed && user?.profile_embedding) {
+        // Use enhanced feed with AI content
+        posts = await feedService.getHybridFeed(
+          user.id,
+          limit,
+          refresh ? 0 : offset
+        );
+      } else {
+        // Fallback to regular following feed
+        posts = await feedService.getFollowingFeed(
+          user.id,
+          limit,
+          refresh ? 0 : offset
+        );
+      }
+      
+      // ... rest of existing logic
+    } catch (error) {
+      // ... existing error handling
+    }
+  };
+  
+  return {
+    ...existingReturns,
+    enableSmartFeed,
+    setEnableSmartFeed
+  };
+}
+
+// Update PostCard component at components/content/PostCard.tsx
+// Add discovery indicator to existing PostCard:
 import { DiscoveryBadge } from '@/components/feed/DiscoveryBadge';
 
-// MODIFY existing loadFeed function (don't create new one):
-const loadFeed = async (isRefresh = false) => {
-  try {
-    const offset = isRefresh ? 0 : posts.length;
-    
-    // CHANGE: Use smart feed service to get mixed content
-    const feedPosts = await smartFeedService.getHybridFeed(
-      user.id,
-      20,
-      offset
-    );
-    
-    if (isRefresh) {
-      setPosts(feedPosts);
-    } else {
-      setPosts(prev => [...prev, ...feedPosts]);
-    }
-  } catch (error) {
-    console.error('Error loading feed:', error);
-    // FALLBACK: Load following-only feed if AI fails
-    await loadFollowingOnlyFeed();
-  }
-};
-
-// In EXISTING PostCard component, ADD discovery indicator:
-// (This goes in the existing PostCard, not a new component)
-return (
-  <View>
-    {/* Existing post content */}
-    
-    {/* ADD: AI discovery indicator if applicable */}
-    {post.is_discovered && (
-      <DiscoveryBadge reason={post.discovery_reason} />
-    )}
-    
-    {/* Rest of existing post UI */}
-  </View>
-);
+export function PostCard({ post, ...props }) {
+  return (
+    <View style={styles.container}>
+      {/* Existing post header */}
+      
+      {/* ADD: AI discovery indicator if applicable */}
+      {post.is_discovered && (
+        <DiscoveryBadge 
+          reason={post.discovery_reason}
+          style={styles.discoveryBadge}
+        />
+      )}
+      
+      {/* Rest of existing post content */}
+    </View>
+  );
+}
 ```
 
 **Integration Points**:
-- Discovered posts look EXACTLY like regular posts
+- Enhances existing feedService and useFeed hook
+- Discovered posts use the same PostCard component
 - Only difference is the small DiscoveryBadge overlay
-- Users see ONE unified feed
-- If AI fails, fallback to following-only feed
+- Graceful fallback if user has no embedding
 
 #### Step 1.3: Create Discovery Badge Component
 
@@ -415,15 +439,21 @@ export function DiscoveryBadge({ reason = 'Suggested' }: DiscoveryBadgeProps) {
 
 Integrate AI notifications INTO the existing notification system - they appear in the same list with visual indicators.
 
-#### Step 2.1: Create Smart Notification Service
+#### Step 2.1: Extend Notification Service
 
-**File**: `services/rag/smartNotificationService.ts`
+**File**: Update `services/notifications/notificationService.ts`
+
+Add smart notification capabilities to existing service:
 
 ```typescript
 import { supabase } from '@/services/supabase/client';
-import { notificationService } from '@/services/notificationService';
+// Using the existing notification service imports
 
-export class SmartNotificationService {
+// Add to existing NotificationService class:
+export class NotificationService {
+  // ... existing code ...
+  
+  // Add smart notification methods
   /**
    * Generate smart notifications based on behavioral patterns
    * Called by production job every 5 minutes
@@ -701,20 +731,20 @@ export class SmartNotificationService {
   }
 }
 
-export const consensusService = new ConsensusService();
+// Use the existing notificationService singleton
 ```
 
 #### Step 2.2: Update Notification Display
 
-**File**: Update `screens/NotificationsScreen.tsx`
+**File**: Update `/app/(drawer)/notifications.tsx` and `/components/notifications/NotificationItem.tsx`
 
 **CRITICAL**: AI notifications appear IN the existing notification list with visual indicators:
 
 ```typescript
+// In NotificationItem.tsx, add AI indicator:
 import { AIBadge } from '@/components/common/AIBadge';
 
-// In the existing NotificationItem component, ADD AI indicator:
-const NotificationItem = ({ notification }) => {
+export function NotificationItem({ notification }: NotificationItemProps) {
   const isAINotification = [
     'similar_user_bet',
     'behavioral_consensus',
@@ -722,17 +752,26 @@ const NotificationItem = ({ notification }) => {
   ].includes(notification.type);
 
   return (
-    <View>
-      {/* Existing notification UI */}
-      <View flexDirection="row" alignItems="center" gap="$2">
-        <Text>{notification.title}</Text>
-        {isAINotification && <AIBadge variant="small" />}
+    <Pressable onPress={handlePress} style={styles.container}>
+      <View style={styles.content}>
+        {/* Existing icon/avatar */}
+        
+        <View style={styles.textContent}>
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>{notification.title}</Text>
+            {isAINotification && (
+              <AIBadge variant="tiny" style={styles.aiBadge} />
+            )}
+          </View>
+          <Text style={styles.message}>{notification.message}</Text>
+          <Text style={styles.timestamp}>
+            {formatRelativeTime(notification.created_at)}
+          </Text>
+        </View>
       </View>
-      <Text>{notification.message}</Text>
-      {/* Rest of notification UI */}
-    </View>
+    </Pressable>
   );
-};
+}
 ```
 
 **Integration Points**:
@@ -743,20 +782,20 @@ const NotificationItem = ({ notification }) => {
 
 #### Step 2.3: Create Smart Notification Job
 
-**File**: `scripts/jobs/smart-notifications.ts`
+**File**: Create new job `scripts/jobs/smart-notifications.ts`
 
 **NOTE**: This job creates notifications that appear in the regular notification list.
 
 ```typescript
 #!/usr/bin/env bun
 import { createClient } from '@supabase/supabase-js';
-import { ConsensusService } from '@/services/rag/consensusService';
+import { notificationService } from '@/services/notifications/notificationService';
 
 const supabaseUrl = process.env.PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
-const consensusService = new ConsensusService();
+// Use the enhanced notification service
 
 async function runConsensusDetection() {
   console.log(`[${new Date().toISOString()}] Starting consensus detection job...`);
@@ -783,7 +822,7 @@ async function runConsensusDetection() {
     // Process each user
     for (const userId of userIds) {
       try {
-        await consensusService.checkAndNotifyConsensus(userId);
+        await notificationService.generateSmartNotifications(userId);
       } catch (error) {
         console.error(`Error processing user ${userId}:`, error);
       }
@@ -810,18 +849,23 @@ runConsensusDetection();
 */5 * * * * cd /path/to/snapbet && bun run scripts/jobs/smart-notifications.ts >> logs/smart-notifications.log 2>&1
 ```
 
-### Part 3: Mock Data Scenarios (1.5 hours)
+### Part 3: Enhance Mock Data with Smart Features (1.5 hours)
 
-#### Step 3.1: Create Consensus Scenarios
+#### Step 3.1: Add Consensus Scenarios to Existing Generators
 
-**File**: `scripts/mock/generators/createConsensusScenarios.ts`
+**File**: Update `scripts/mock/generators/bets.ts`
+
+Add consensus patterns to existing bet generation:
 
 ```typescript
 import { supabase } from '@/scripts/supabase-client';
 import { mockGames } from '../data/games';
 
-export async function createConsensusScenarios() {
-  console.log('Creating consensus betting scenarios...');
+// Add to existing bet generator
+export async function generateMockBetsWithConsensus(options: MockBetOptions & {
+  consensusPatterns?: ConsensusPattern[]
+}) {
+  console.log('Creating bets with consensus patterns...');
   
   // Scenario 1: Lakers consensus (5 users bet Lakers spread)
   const lakersGame = mockGames.nba.find(g => 
@@ -887,26 +931,24 @@ export async function createConsensusScenarios() {
 }
 ```
 
-#### Step 3.2: Create Feed Discovery Content
+#### Step 3.2: Enhance Post Generator for Discovery
 
-**File**: `scripts/mock/generators/createDiscoveryContent.ts`
+**File**: Update `scripts/mock/generators/posts.ts`
+
+Add discovery-worthy content patterns:
 
 ```typescript
-export async function createDiscoveryContent() {
+// Add to existing post generator
+export async function generateDiscoveryPosts(options: MockPostOptions) {
   console.log('Creating discovery-worthy content...');
   
-  // Create posts from non-followed users that match interests
+  // Create posts that will match behavioral patterns
   
-  // 1. Posts about user's favorite teams from strangers
-  const { data: users } = await supabase
-    .from('users')
-    .select('id, favorite_teams')
-    .like('username', 'mock_%');
-    
-  for (const user of users || []) {
-    if (user.favorite_teams?.length > 0) {
-      // Create posts mentioning those teams from other users
-      const team = user.favorite_teams[0];
+  // 1. Posts from users with different behavioral patterns
+  const behavioralPatterns = [
+    { type: 'nba_focus', keywords: ['Lakers', 'Warriors', 'NBA'], betTypes: ['total'] },
+    { type: 'nfl_weekend', keywords: ['NFL', 'Sunday', 'RedZone'], betTypes: ['spread'] },
+    { type: 'late_night', keywords: ['late night', 'degen hours', '🦉'], timing: [22, 23, 0, 1] }
       
       await createPost({
         user_id: getRandomNonFollowedUser(user.id),
@@ -926,21 +968,28 @@ export async function createDiscoveryContent() {
 }
 ```
 
-#### Step 3.3: Update Main Mock Setup
+#### Step 3.3: Update Mock Orchestrator
 
-**File**: Update `scripts/mock/setup-mock-data.ts`
+**File**: Update `scripts/mock/orchestrators/unified-setup.ts`
 
 ```typescript
-// In Phase 1 (Historical):
-await createConsensusScenarios();
-await createDiscoveryContent();
+// In the existing orchestrator, enhance with smart features:
+const mockOptions = {
+  ...existingOptions,
+  // Add smart feed patterns
+  includeBehavioralPatterns: true,
+  consensusScenarios: [
+    { game: 'Lakers vs Warriors', betType: 'spread', team: 'Lakers', userCount: 5 },
+    { game: 'Chiefs vs Bills', betType: 'total', selection: 'under', userCount: 4 }
+  ],
+  discoveryContent: {
+    crossBehavioralPosts: true, // Posts that appeal across behavioral groups
+    trendingTopics: ['playoffs', 'injury report', 'weather impact']
+  }
+};
 
-// Run embedding generation after content creation
-await execSync('bun run scripts/jobs/embedding-generation.ts --type posts --limit 200');
-
-// In Phase 2 (Fresh):
-// Create some new consensus opportunities for demo
-await createFreshConsensusOpportunities();
+// After generating content, create embeddings
+await execSync('bun run scripts/jobs/embedding-generation.ts --type=all --force');
 ```
 
 ### Part 4: Testing & Verification
@@ -949,7 +998,7 @@ await createFreshConsensusOpportunities();
 
 ```typescript
 // Test query to verify 70/30 mix
-const testFeed = await smartFeedService.getHybridFeed('test-user-id', 20);
+const testFeed = await feedService.getHybridFeed('test-user-id', 20);
 const followingCount = testFeed.filter(p => !p.is_discovered).length;
 const discoveredCount = testFeed.filter(p => p.is_discovered).length;
 
@@ -960,8 +1009,8 @@ console.log(`Following: ${followingCount}, Discovered: ${discoveredCount}`);
 #### Step 4.2: Test Consensus Detection
 
 ```bash
-# Run consensus job manually
-bun run scripts/jobs/consensus-detection.ts
+# Run smart notifications job manually
+bun run scripts/jobs/smart-notifications.ts
 
 # Check notifications created
 ```
@@ -999,11 +1048,11 @@ ORDER BY created_at DESC;
 Add these to your cron/scheduler:
 
 ```bash
-# Consensus detection - every 5 minutes
-*/5 * * * * bun run scripts/jobs/consensus-detection.ts
+# Smart notifications - every 5 minutes
+*/5 * * * * bun run scripts/jobs/smart-notifications.ts
 
-# Feed cache warming (optional) - every hour
-0 * * * * bun run scripts/jobs/warm-feed-cache.ts
+# Embedding updates - every hour for active users
+0 * * * * bun run scripts/jobs/embedding-generation.ts --type=users --active-only
 ```
 
 ## Success Criteria
@@ -1027,10 +1076,10 @@ Add these to your cron/scheduler:
 
 ## Integration Notes
 
-- Smart feed service integrates with existing feed queries
-- Consensus service uses existing notification infrastructure
+- Enhanced feedService integrates with existing feed infrastructure
+- Smart notifications use existing notification system and UI
 - Both features gracefully degrade if AI features unavailable
-- Mock data provides comprehensive test scenarios
+- Mock data extends existing generators with behavioral patterns
 
 ## Next Sprint Preview
 

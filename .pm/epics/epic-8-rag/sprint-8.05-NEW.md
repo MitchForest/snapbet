@@ -3,19 +3,19 @@
 **Status**: NOT STARTED  
 **Estimated Duration**: 3-4 hours  
 **Dependencies**: Sprints 8.01-8.04 completed  
-**Primary Goal**: Generate behavioral embeddings and integrate Find Your Tribe into Explore tab
+**Primary Goal**: Generate behavioral embeddings and integrate Find Your Tribe into Search tab
 
 ## Sprint Overview
 
 This sprint implements behavioral embeddings and integrates AI user discovery INTO existing UI:
 1. Generate user profile embeddings from ACTUAL ACTIONS (bets, follows, posts, engagement)
-2. Add "Find Your Tribe" section to EXISTING Explore tab (not a new screen)
+2. Add "Find Your Tribe" section to EXISTING Search tab at `/app/(drawer)/(tabs)/search.tsx`
 3. AI discovers ALL patterns from behavior - NO stored preferences
 
 **CRITICAL**: 
-- NO favorite_teams column or UI - team preferences are discovered dynamically
-- AI analyzes betting history to find patterns in real-time
-- All AI content has visual indicators (AIBadge component)
+- Remove favorite_teams column completely via migration
+- Team preferences are discovered dynamically from embeddings
+- All AI content has visual indicators (AIBadge component already exists)
 
 ## How the RAG/AI Algorithm Works:
 
@@ -36,6 +36,23 @@ User Actions → Behavioral Profile Text → Embedding (1536d vector) → Vector
 
 ## Detailed Implementation Steps
 
+### Part 0: Remove ALL Team Preference Columns (15 minutes)
+
+#### Step 0.1: Create Migration to Remove Team Columns
+
+**File**: Create new migration `supabase/migrations/035_remove_favorite_teams.sql`
+
+```sql
+-- Remove BOTH team columns for pure behavioral AI approach
+ALTER TABLE users DROP COLUMN IF EXISTS favorite_team;    -- singular
+ALTER TABLE users DROP COLUMN IF EXISTS favorite_teams;   -- plural array
+
+-- Add index for faster embedding queries if not exists
+CREATE INDEX IF NOT EXISTS idx_users_last_embedding_update 
+ON users(last_embedding_update) 
+WHERE profile_embedding IS NOT NULL;
+```
+
 ### Part 1: Generate Behavioral Profile Embeddings (1.5 hours)
 
 **Context**: We need to generate embeddings based on actual user behavior, not static preferences.
@@ -44,22 +61,32 @@ User Actions → Behavioral Profile Text → Embedding (1536d vector) → Vector
 
 **File**: `services/rag/embeddingPipeline.ts`
 
-**IMPORTANT**: Remove the `favorite_teams` column entirely - team preferences should be discovered by AI, not stored:
-- DELETE the `extractFavoriteTeams()` function 
-- DO NOT populate any `favorite_teams` column
-- Team preferences are discovered dynamically from embeddings
-
-Update the user profile embedding to capture ALL behavioral signals:
+**CRITICAL**: Remove ALL team preference extraction/storage logic and implement pure behavioral approach:
 
 ```typescript
 export async function updateUserProfileEmbedding(userId: string): Promise<void> {
   try {
+    // Check if user needs early update (20+ new bets)
+    const { data: recentBets } = await supabase
+      .from('bets')
+      .select('id')
+      .eq('user_id', userId)
+      .gte('created_at', userData.last_embedding_update || '1970-01-01')
+      .limit(21);
+    
+    const needsEarlyUpdate = recentBets && recentBets.length > 20;
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    
+    if (!needsEarlyUpdate && userData.last_embedding_update > sevenDaysAgo) {
+      return; // Skip update
+    }
+
     // Gather ALL behavioral data
     const { data: userData } = await supabase
       .from('users')
       .select(`
         *,
-        bets(*),
+        bets(*, game:games(*)),
         posts(*),
         followers!follower_id(*),
         followers!following_id(*),
@@ -71,54 +98,42 @@ export async function updateUserProfileEmbedding(userId: string): Promise<void> 
 
     if (!userData) return;
 
-    // Extract behavioral patterns
+    // Extract behavioral patterns - NO stored preferences
     const bettingPatterns = analyzeBettingBehavior(userData.bets || []);
     const socialPatterns = analyzeSocialBehavior(userData);
     const engagementPatterns = analyzeEngagement(userData);
     const temporalPatterns = analyzeTemporalActivity(userData);
+    const bettingStyle = categorizeBettingStyle(bettingPatterns);
 
-    // Create rich behavioral text representation
+    // Create rich behavioral text representation (per reviewer guidance)
     const behavioralProfile = `
-      User ${userData.username} behavioral profile:
+      ${userData.username} betting behavior:
+      - Frequently bets on: ${bettingPatterns.topTeams.join(', ')}
+      - Prefers ${bettingPatterns.dominantBetType} bets (${bettingPatterns.betTypePercentage}%)
+      - Active during ${temporalPatterns.activeTimeSlots}
+      - Average stake: $${bettingPatterns.avgStake}
+      - Betting style: ${bettingStyle}
+      - Social connections: follows ${socialPatterns.similarBettorCount} similar bettors
       
-      BETTING BEHAVIOR:
+      DETAILED PATTERNS:
       Total bets: ${userData.bets?.length || 0}
-      Sports bet on: ${bettingPatterns.sports.join(', ')}
-      Teams frequently bet: ${bettingPatterns.topTeams.join(', ')}
-      Bet types: ${bettingPatterns.betTypes.join(', ')}
-      Average stake: $${bettingPatterns.avgStake}
-      Typical bet timing: ${bettingPatterns.timing}
+      Sports: ${bettingPatterns.sports.join(', ')}
       Win rate: ${bettingPatterns.winRate}%
-      Recent bets: ${bettingPatterns.recentBets.join('; ')}
-      
-      SOCIAL BEHAVIOR:
-      Follows ${socialPatterns.followingCount} users
-      Followed by ${socialPatterns.followersCount}
-      Key connections: ${socialPatterns.topConnections.join(', ')}
-      Engagement rate: ${socialPatterns.engagementRate}
-      
-      CONTENT PATTERNS:
-      Posts created: ${userData.posts?.length || 0}
-      Typical captions: ${engagementPatterns.captionStyle}
-      Active times: ${temporalPatterns.activeTimes}
-      Tailing frequency: ${engagementPatterns.tailingRate}
-      
-      RECENT ACTIVITY:
-      ${userData.bets?.slice(0, 10).map(b => 
-        `Bet ${b.amount} on ${b.bet_details.team} ${b.bet_type}`
-      ).join(', ')}
+      Recent activity: ${bettingPatterns.recentBets.join('; ')}
+      Engagement rate: ${socialPatterns.engagementRate}%
+      Content style: ${engagementPatterns.captionStyle}
     `;
 
     // Generate embedding
     const embedding = await ragService.generateEmbedding(behavioralProfile);
     
-    // Update user profile - ONLY embedding, no favorite_teams!
+    // Update ONLY embedding fields - NO team preferences
     await supabase
       .from('users')
       .update({
         profile_embedding: embedding,
         last_embedding_update: new Date().toISOString()
-        // NO favorite_teams - discovered dynamically from embedding
+        // NO favorite_team or favorite_teams updates!
       })
       .eq('id', userId);
 
@@ -127,78 +142,19 @@ export async function updateUserProfileEmbedding(userId: string): Promise<void> 
   }
 }
 
-function analyzeBettingBehavior(bets: any[]) {
-  const sports = new Set<string>();
-  const teams = new Map<string, number>();
-  const betTypes = new Map<string, number>();
-  let totalAmount = 0;
-  let wins = 0;
-
-  bets.forEach(bet => {
-    // Extract sport from game
-    if (bet.game?.sport) sports.add(bet.game.sport);
-    
-    // Count team frequency
-    const team = bet.bet_details?.team;
-    if (team) teams.set(team, (teams.get(team) || 0) + 1);
-    
-    // Count bet types
-    betTypes.set(bet.bet_type, (betTypes.get(bet.bet_type) || 0) + 1);
-    
-    // Track amounts and wins
-    totalAmount += bet.amount;
-    if (bet.status === 'won') wins++;
-  });
-
-  // Get top teams (most frequently bet on)
-  const topTeams = Array.from(teams.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([team]) => team);
-
-  return {
-    sports: Array.from(sports),
-    topTeams,
-    betTypes: Array.from(betTypes.keys()),
-    avgStake: bets.length > 0 ? Math.round(totalAmount / bets.length) : 0,
-    winRate: bets.length > 0 ? Math.round((wins / bets.length) * 100) : 0,
-    timing: extractBetTiming(bets),
-    recentBets: bets.slice(0, 5).map(b => 
-      `${b.bet_details.team} ${b.bet_type} ${b.amount}`
-    )
-  };
-}
-
-function analyzeSocialBehavior(userData: any) {
-  const following = userData.followers?.filter(f => f.follower_id === userData.id) || [];
-  const followers = userData.followers?.filter(f => f.following_id === userData.id) || [];
-  
-  // Find most interacted with users
-  const interactions = new Map<string, number>();
-  userData.reactions?.forEach(r => {
-    const userId = r.post?.user_id;
-    if (userId) interactions.set(userId, (interactions.get(userId) || 0) + 1);
-  });
-  
-  const topConnections = Array.from(interactions.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([userId]) => userId); // Would need username lookup
-
-  return {
-    followingCount: following.length,
-    followersCount: followers.length,
-    topConnections,
-    engagementRate: calculateEngagementRate(userData)
-  };
+function categorizeBettingStyle(patterns: BettingPatterns): string {
+  if (patterns.avgStake > 100) return 'aggressive';
+  if (patterns.avgStake < 25) return 'conservative';
+  if (patterns.betTypes.includes('parlay')) return 'risk-taker';
+  return 'balanced';
 }
 ```
 
-#### Step 1.2: Update Embedding Generation Job
+#### Step 1.2: Enhance Existing Embedding Generation Job
 
 **File**: `scripts/jobs/embedding-generation.ts`
 
-Ensure the job uses the new behavioral approach:
+The job already exists and processes embeddings. Ensure it uses the behavioral approach:
 
 ```typescript
 // In the embedUserProfiles function
@@ -241,14 +197,14 @@ SELECT username,
 FROM users 
 WHERE username LIKE 'mock_%'
 ORDER BY created_at;
--- Note: NO favorite_teams column - preferences discovered from embeddings!
+-- favorite_teams column should be removed by migration 035
 ```
 
 ### Part 2: Implement Find Your Tribe Feature (2 hours)
 
 #### Step 2.1: Create Friend Discovery Service
 
-**File**: `services/rag/friendDiscoveryService.ts`
+**File**: Create new service `services/rag/friendDiscoveryService.ts`
 
 ```typescript
 import { supabase } from '@/services/supabase/client';
@@ -367,25 +323,25 @@ export class FriendDiscoveryService {
     const reasons: string[] = [];
     const insights: string[] = [];
 
-    // Betting behavior analysis
+    // Betting behavior analysis - PURE BEHAVIORAL
     const user1Bets = user1.bets || [];
     const user2Bets = user2.bets || [];
 
-    // Find common betting patterns
+    // Dynamically find common betting patterns from actual bets
+    const commonTeams = this.findCommonlyBetTeams(user1Bets, user2Bets);
     const commonSports = this.findCommonSports(user1Bets, user2Bets);
-    const commonTeams = this.findCommonTeams(user1Bets, user2Bets);
     const avgBet1 = this.calculateAvgBet(user1Bets);
     const avgBet2 = this.calculateAvgBet(user2Bets);
     const betTiming1 = this.analyzeBetTiming(user1Bets);
     const betTiming2 = this.analyzeBetTiming(user2Bets);
 
-    // Generate natural language reasons
-    if (commonSports.length > 0) {
-      reasons.push(`Both actively bet on ${commonSports.join(' and ')}`);
+    // Generate natural language reasons (per reviewer guidance)
+    if (commonTeams.length > 0) {
+      reasons.push(`Both frequently bet on ${commonTeams[0]} games`);
     }
 
-    if (commonTeams.length > 0) {
-      insights.push(`Frequently bet on ${commonTeams[0]} games`);
+    if (commonSports.length > 0) {
+      reasons.push(`Both actively bet on ${commonSports.join(' and ')}`);
     }
 
     if (Math.abs(avgBet1 - avgBet2) < 20) {
@@ -428,17 +384,125 @@ export class FriendDiscoveryService {
     };
   }
 
-  private findCommonTeams(teams1: string[], teams2: string[]): string[] {
-    return teams1.filter(team => teams2.includes(team));
+  // Dynamically extract teams from betting history
+  private findCommonlyBetTeams(bets1: any[], bets2: any[]): string[] {
+    const teams1 = new Map<string, number>();
+    const teams2 = new Map<string, number>();
+    
+    // Count team frequencies in user 1's bets
+    bets1.forEach(bet => {
+      const team = bet.bet_details?.team;
+      if (team) teams1.set(team, (teams1.get(team) || 0) + 1);
+    });
+    
+    // Count team frequencies in user 2's bets
+    bets2.forEach(bet => {
+      const team = bet.bet_details?.team;
+      if (team) teams2.set(team, (teams2.get(team) || 0) + 1);
+    });
+    
+    // Find teams both users bet on frequently (3+ times each)
+    const commonTeams: string[] = [];
+    teams1.forEach((count1, team) => {
+      const count2 = teams2.get(team) || 0;
+      if (count1 >= 3 && count2 >= 3) {
+        commonTeams.push(team);
+      }
+    });
+    
+    return commonTeams.sort((a, b) => {
+      const scoreA = (teams1.get(a) || 0) + (teams2.get(b) || 0);
+      const scoreB = (teams1.get(b) || 0) + (teams2.get(b) || 0);
+      return scoreB - scoreA;
+    });
   }
 
-  private analyzeBetTypes(bets: any[]): string[] {
-    const types = bets.map(bet => bet.bet_type);
-    return [...new Set(types)];
+  private findCommonSports(bets1: any[], bets2: any[]): string[] {
+    const sports1 = new Map<string, number>();
+    const sports2 = new Map<string, number>();
+    
+    // Count sports frequencies in user 1's bets
+    bets1.forEach(bet => {
+      const sport = bet.game?.sport;
+      if (sport) sports1.set(sport, (sports1.get(sport) || 0) + 1);
+    });
+    
+    // Count sports frequencies in user 2's bets
+    bets2.forEach(bet => {
+      const sport = bet.game?.sport;
+      if (sport) sports2.set(sport, (sports2.get(sport) || 0) + 1);
+    });
+    
+    // Find sports both users bet on frequently (3+ times each)
+    const commonSports: string[] = [];
+    sports1.forEach((count1, sport) => {
+      const count2 = sports2.get(sport) || 0;
+      if (count1 >= 3 && count2 >= 3) {
+        commonSports.push(sport);
+      }
+    });
+    
+    return commonSports.sort((a, b) => {
+      const scoreA = (sports1.get(a) || 0) + (sports2.get(b) || 0);
+      const scoreB = (sports1.get(b) || 0) + (sports2.get(b) || 0);
+      return scoreB - scoreA;
+    });
   }
 
-  private findCommonBetTypes(types1: string[], types2: string[]): string[] {
-    return types1.filter(type => types2.includes(type));
+  private calculateAvgBet(bets: any[]): number {
+    if (bets.length === 0) return 0;
+    const totalAmount = bets.reduce((total, bet) => total + bet.amount, 0);
+    return totalAmount / bets.length;
+  }
+
+  private analyzeBetTiming(bets: any[]): {
+    primetime: boolean;
+    activeTimeSlots: string;
+  } {
+    const primetime = bets.some(bet => {
+      const gameTime = new Date(bet.game?.start_time);
+      const hour = gameTime.getHours();
+      return hour >= 18 && hour <= 23;
+    });
+
+    const activeTimeSlots = bets
+      .map(bet => {
+        const gameTime = new Date(bet.game?.start_time);
+        const hour = gameTime.getHours();
+        if (hour >= 18 && hour <= 23) return 'primetime';
+        if (hour >= 0 && hour <= 5) return 'night';
+        if (hour >= 6 && hour <= 11) return 'morning';
+        if (hour >= 12 && hour <= 17) return 'afternoon';
+        return 'evening';
+      })
+      .join(', ');
+
+    return {
+      primetime,
+      activeTimeSlots
+    };
+  }
+
+  private findMutualFollows(followers1: any[], followers2: any[]): string[] {
+    const mutualFollows = new Map<string, number>();
+    
+    // Count mutual follows
+    followers1.forEach(follower => {
+      if (followers2.includes(follower.following_id)) {
+        const count = mutualFollows.get(follower.following_id) || 0;
+        mutualFollows.set(follower.following_id, count + 1);
+      }
+    });
+    
+    // Filter mutual follows with count >= 3
+    const result: string[] = [];
+    mutualFollows.forEach((count, userId) => {
+      if (count >= 3) {
+        result.push(userId);
+      }
+    });
+    
+    return result;
   }
 
   /**
@@ -578,88 +642,97 @@ export function SimilarUserCard({ similarUser, currentUserId }: SimilarUserCardP
 }
 ```
 
-#### Step 2.3: Integrate into EXISTING Explore Tab
+#### Step 2.3: Integrate into EXISTING Search Tab
 
-**File**: Update `screens/ExploreScreen.tsx`
+**File**: Update `/app/(drawer)/(tabs)/search.tsx`
 
-Add "Find Your Tribe" as the FIRST section in the existing Explore tab:
+Integrate with the existing discovery hook and add "Find Your Tribe" section:
 
 ```typescript
+// Extend the existing useDiscovery hook
+import { useDiscovery } from '@/hooks/useDiscovery';
 import { friendDiscoveryService } from '@/services/rag/friendDiscoveryService';
-import { SimilarUserCard } from '@/components/search/SimilarUserCard';
+import { AIBadge } from '@/components/common/AIBadge';
 
-// In the ExploreScreen component, add state:
-const [similarUsers, setSimilarUsers] = useState<SimilarUser[]>([]);
-const [loadingSimilar, setLoadingSimilar] = useState(true);
+// In the Search tab component, enhance the existing discovery data:
+export default function SearchScreen() {
+  const { data: existingDiscovery, loading } = useDiscovery();
+  const [similarUsers, setSimilarUsers] = useState<SimilarUser[]>([]);
+  const [loadingSimilar, setLoadingSimilar] = useState(true);
+  const { user } = useAuth();
 
-useEffect(() => {
-  loadSimilarUsers();
-}, [user.id]);
+  useEffect(() => {
+    if (user?.id) {
+      loadSimilarUsers();
+    }
+  }, [user?.id]);
 
-const loadSimilarUsers = async () => {
-  setLoadingSimilar(true);
-  try {
-    const similar = await friendDiscoveryService.findSimilarUsers(user.id, 5);
-    setSimilarUsers(similar);
-  } finally {
-    setLoadingSimilar(false);
-  }
-};
+  const loadSimilarUsers = async () => {
+    try {
+      const similar = await friendDiscoveryService.findSimilarUsers(user.id, 5);
+      setSimilarUsers(similar);
+    } finally {
+      setLoadingSimilar(false);
+    }
+  };
 
-// In the render, ADD AS FIRST SECTION (before "Top Bettors"):
-return (
-  <ScrollView>
-    {/* Find Your Tribe - AI Discovery Section */}
-    <View marginBottom="$4">
-      <View flexDirection="row" alignItems="center" gap="$2" marginBottom="$3">
-        <Text fontSize="$6" fontWeight="700">Find Your Tribe</Text>
-        <AIBadge variant="small" text="AI" opacity={0.8} />
-      </View>
-      
-      {loadingSimilar ? (
-        <ActivityIndicator />
-      ) : similarUsers.length > 0 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {similarUsers.map(similarUser => (
-            <SimilarUserCard 
-              key={similarUser.user.id}
-              similarUser={similarUser}
-              currentUserId={user.id}
-            />
-          ))}
-        </ScrollView>
-      ) : (
-        <Text color="$gray10">Make more bets to discover similar bettors</Text>
-      )}
-    </View>
+  return (
+    <ScrollView>
+      {/* Find Your Tribe - NEW AI Discovery Section */}
+      <DiscoverySection
+        title="Find Your Tribe"
+        icon={<AIBadge variant="small" />}
+        loading={loadingSimilar}
+        data={similarUsers}
+        renderItem={(item) => (
+          <UserSearchCard
+            user={item.user}
+            showStats
+            additionalInfo={
+              <View flexDirection="row" alignItems="center" gap="$1">
+                <AIBadge variant="tiny" />
+                <Text fontSize="$2" color="$gray10">
+                  {Math.round(item.similarity_score * 100)}% match
+                </Text>
+              </View>
+            }
+            subtitle={item.similarity_reasons[0]}
+          />
+        )}
+        emptyMessage="Make more bets to discover similar bettors"
+      />
 
-    {/* EXISTING SECTIONS CONTINUE BELOW */}
-    {/* Top Bettors This Week */}
-    {/* Trending Picks */}
-    {/* etc... */}
-  </ScrollView>
-);
+      {/* EXISTING DISCOVERY SECTIONS */}
+      {existingDiscovery?.sections.map(section => (
+        <DiscoverySection key={section.id} {...section} />
+      ))}
+    </ScrollView>
+  );
+}
 ```
 
 **Key Integration Points**:
-- Goes at the TOP of Explore tab (most prominent position)
+- Reuses existing `DiscoverySection` and `UserSearchCard` components
+- Integrates with existing `useDiscovery` hook
 - Has AIBadge to indicate AI-powered feature
 - Falls back gracefully if no similar users found
-- Doesn't create a new screen or navigation
 
-### Part 3: Mock Data Behavioral Scenarios (30 minutes)
+### Part 3: Enhance Mock Data with Behavioral Scenarios (30 minutes)
 
-#### Step 3.1: Create Behavioral Pattern Scenarios
+#### Step 3.1: Extend Existing Mock Generators
 
-**File**: `scripts/mock/generators/createBehavioralScenarios.ts`
+**File**: Update `scripts/mock/generators/bets.ts`
+
+Add behavioral pattern generation to existing bet generator:
 
 ```typescript
 import { supabase } from '@/scripts/supabase-client';
 
-export async function createBehavioralScenarios() {
-  console.log('Creating behavioral pattern scenarios...');
+// Add to existing generateMockBets function
+export async function generateMockBets(options: MockBetOptions) {
+  console.log('Creating bets with behavioral patterns...');
   
-  // DON'T set preferences - create BEHAVIORS that will cluster naturally
+  // Create natural behavioral clusters through betting patterns
   
   // Scenario 1: Users who naturally bet Lakers games and unders
   const lakersUndersBehavior = async (usernames: string[]) => {
@@ -815,26 +888,30 @@ async function createSocialClusters() {
 }
 ```
 
-#### Step 3.2: Update Main Mock Setup
+#### Step 3.2: Update Existing Mock Orchestrator
 
-**File**: `scripts/mock/setup-mock-data.ts`
+**File**: Update `scripts/mock/orchestrators/unified-setup.ts`
 
-Add to the two-phase setup:
+Enhance the existing setup to include behavioral patterns:
 
 ```typescript
-// Phase 1: Historical data with embeddings
-async function setupHistoricalPhase() {
-  // ... existing code ...
-  
-  // Add discovery scenarios
-  await createDiscoveryScenarios();
-  
-  // Generate embeddings for all historical content
-  console.log('Generating embeddings for historical mock data...');
-  await execSync('bun run scripts/jobs/embedding-generation.ts --type all --force', {
-    stdio: 'inherit'
-  });
-}
+// In the existing unified setup, add behavioral patterns:
+const setupOptions = {
+  username: args.username,
+  includeBehavioralPatterns: true, // NEW
+  behavioralClusters: [
+    { pattern: 'nba_unders', users: 5 },
+    { pattern: 'nfl_weekend', users: 5 },
+    { pattern: 'late_night', users: 5 },
+    { pattern: 'conservative', users: 5 },
+    { pattern: 'high_stakes', users: 5 }
+  ]
+};
+
+// After creating mock data, generate embeddings
+await execSync('bun run scripts/jobs/embedding-generation.ts --type=users --force');
+await execSync('bun run scripts/jobs/embedding-generation.ts --type=posts --force');
+await execSync('bun run scripts/jobs/embedding-generation.ts --type=bets --force');
 ```
 
 ### Part 4: Testing & Verification
@@ -863,7 +940,7 @@ WHERE username LIKE 'mock_%';
 1. **Profile Embeddings**:
    - [ ] All 30 mock users have profile_embedding populated
    - [ ] last_embedding_update is recent
-   - [ ] favorite_teams array is populated
+   - [ ] favorite_teams column has been removed
 
 2. **Discovery Feature**:
    - [ ] "Find Your Tribe" section appears in Explore
@@ -892,7 +969,7 @@ WHERE username LIKE 'mock_%';
 **Solution**: Check profile_embedding is populated, run embedding-generation job
 
 **Issue**: Similarity scores all very low
-**Solution**: Ensure favorite_teams and betting history provide enough signal
+**Solution**: Ensure betting history and user actions provide enough behavioral signal
 
 **Issue**: RPC function fails with permission error  
 **Solution**: Check RLS policies from Sprint 8.01 are active
@@ -900,3 +977,264 @@ WHERE username LIKE 'mock_%';
 ## Next Sprint Preview
 
 Sprint 8.06 will implement the Enhanced Feed (70/30 mixing) and Consensus Alerts, building on the embeddings and infrastructure completed here.
+
+## Implementation Log
+
+### Day-by-Day Progress
+
+**2024-12-30 - Sprint Start Investigation**:
+- Started: Deep codebase investigation as Executor
+- Completed: Comprehensive analysis of current state
+- Status: AWAITING REVIEWER APPROVAL
+
+### Investigation Findings & Implementation Plan
+
+**Date**: 2024-12-30  
+**Executor**: E
+
+#### Database State Analysis
+- **Critical Finding**: Users table has TWO team-related columns:
+  - `favorite_team` (text) - singular
+  - `favorite_teams` (ARRAY) - plural (this is the one to remove per sprint plan)
+- `profile_embedding` and `last_embedding_update` columns already exist from Sprint 8.01
+- Migration 034 already exists (caption generation), so we'll use 035
+- `find_similar_users` RPC function exists and is ready to use
+
+#### Current Architecture Analysis
+1. **Search Tab Structure**:
+   - Located at `/app/(drawer)/(tabs)/search.tsx`
+   - Uses `DiscoverySection` component for user categories
+   - Has existing hooks: `useDiscovery` and `useSearch`
+   - Uses `UserSearchCard` for user display
+   - Horizontal scroll pattern for discovery sections
+
+2. **Embedding Infrastructure**:
+   - `embeddingPipeline.ts` has `updateUserProfile` that currently:
+     - Extracts favorite teams from betting history
+     - Updates BOTH `profile_embedding` AND `favorite_teams` (needs modification)
+   - `embedding-generation.ts` job processes profiles every 4 hours
+   - Job checks for embeddings older than 7 days
+
+3. **UI Components**:
+   - `AIBadge` component exists and properly uses Tamagui
+   - Tamagui pattern: `import { View, Text } from '@tamagui/core'`
+   - Uses token spacing: `$1`, `$2`, `$3` and colors: `$gray1`, `$gray10`
+
+4. **Mock Data System**:
+   - Sophisticated betting pattern generation exists
+   - Mock orchestrator has two-phase approach (historical → fresh)
+   - Production jobs process mock data identically to real data
+
+#### Proposed Implementation Plan
+
+**Step 1: Database Migration (15 minutes)**
+- Create `supabase/migrations/035_remove_favorite_teams.sql`
+- Remove `favorite_teams` ARRAY column
+- Add index for embedding queries
+
+**Step 2: Update Embedding Pipeline (1.5 hours)**
+- Modify `services/rag/embeddingPipeline.ts`:
+  - Remove `favorite_teams` update logic
+  - Expand behavioral data collection:
+    - Betting patterns (teams, sports, types, amounts, timing)
+    - Social connections (follows, engagement)
+    - Content patterns (posts, reactions)
+    - Temporal patterns (active times)
+  - Create helper functions: `analyzeBettingBehavior`, `analyzeSocialBehavior`, etc.
+
+**Step 3: Create Friend Discovery Service (2 hours)**
+- Create `services/rag/friendDiscoveryService.ts`:
+  - Use existing `find_similar_users` RPC
+  - Add behavioral interpretation layer
+  - Generate natural language similarity reasons
+  - Handle edge cases (no bets, new users)
+
+**Step 4: Integrate into Search Tab (30 minutes)**
+- Update `/app/(drawer)/(tabs)/search.tsx`:
+  - Add "Find Your Tribe" as FIRST discovery section
+  - Use existing `DiscoverySection` and `UserSearchCard`
+  - Add AIBadge integration for match percentage
+  - Handle loading/error states
+
+**Step 5: Enhance Mock Data (30 minutes)**
+- Update `scripts/mock/generators/bets.ts`:
+  - Add behavioral clustering functions
+  - Create 5 distinct patterns:
+    - Lakers/unders cluster
+    - NFL weekend warriors
+    - Late night degenerates
+    - Conservative bettors
+    - High stakes players
+  - Build social connections within clusters
+
+### Questions Requiring Reviewer Clarification
+
+1. **AIBadge Display Options**
+   - **Context**: AIBadge component exists with `variant` and `text` props
+   - **Question**: For inline display (e.g., "85% match"), should I:
+     a) Use existing `variant="small"` with custom text?
+     b) Add a new `variant="tiny"` for inline use?
+     c) Create a separate component for match percentage?
+   - **My Recommendation**: Option A - use existing small variant
+
+2. **Behavioral Analysis Depth**
+   - **Context**: Can analyze multiple behavioral dimensions
+   - **Question**: How detailed should similarity reasons be?
+   - **Options**:
+     a) Simple: "Similar betting style"
+     b) Specific: "Both bet Lakers unders frequently"
+     c) Detailed: "75% of bets on NBA unders, avg $50 stakes, active late nights"
+   - **My Recommendation**: Option B - specific but concise
+
+3. **Discovery Section Placement**
+   - **Context**: Search tab has 4 existing sections (Hot Bettors, Trending, Fade, Rising)
+   - **Question**: Should Find Your Tribe:
+     a) Replace an existing section?
+     b) Be added as 5th section at the top?
+     c) Be added at the bottom?
+   - **My Recommendation**: Option B - add as first section (most personalized)
+
+4. **Embedding Update Frequency**
+   - **Context**: Current job updates profiles older than 7 days
+   - **Question**: For behavioral embeddings, should we:
+     a) Keep 7-day update cycle?
+     b) Update more frequently (e.g., daily)?
+     c) Update on significant activity (e.g., 10+ new bets)?
+   - **My Recommendation**: Option A for now, monitor and adjust
+
+5. **Similar User Count**
+   - **Context**: RPC function accepts a limit parameter
+   - **Question**: How many similar users to show initially?
+     a) 5 users (quick to load, focused)
+     b) 10 users (more options)
+     c) 20 users (comprehensive)
+   - **My Recommendation**: Option A - 5 users for performance
+
+6. **Empty State Behavior**
+   - **Context**: New users or users with few bets won't have good matches
+   - **Question**: What to show when no similar users found?
+     a) Hide the section entirely
+     b) Show "Make more bets to discover similar bettors"
+     c) Show generic popular users instead
+   - **My Recommendation**: Option B - educational empty state
+
+### Technical Decisions Made
+1. **Use existing RPC function** - `find_similar_users` already handles privacy/blocking
+2. **Extend existing components** - Reuse `DiscoverySection` and `UserSearchCard`
+3. **Service architecture** - Create new `friendDiscoveryService` following existing patterns
+4. **Behavioral over static** - Remove stored preferences, derive everything from actions
+
+### Risk Mitigation
+- **Performance**: Limit to 5 users, use existing ivfflat indexes
+- **Empty data**: Graceful handling with educational messaging
+- **Type safety**: Define all interfaces upfront
+- **Testing**: Use mock data clusters to verify algorithm
+
+**Sprint Status**: AWAITING REVIEWER APPROVAL
+
+---
+
+## Reviewer Section
+
+**Reviewer**: R (Project Reviewer)  
+**Review Date**: 2024-12-30
+
+### Review Outcome
+
+**Status**: APPROVED WITH CORRECTIONS
+
+### Critical Correction Required
+
+**Remove BOTH team-related columns** for true behavioral AI:
+- `favorite_team` (text) - singular
+- `favorite_teams` (ARRAY) - plural
+
+The sprint plan originally mentioned only `favorite_teams`, but for pure behavioral AI, we should not store ANY team preferences. Team affinity should be discovered dynamically from behavioral embeddings.
+
+### Answers to Questions
+
+1. **AIBadge Display** → **Approved: Option A**
+   - Use existing `variant="small"` with custom text like "85% match"
+   - Maintains consistency with existing UI patterns
+
+2. **Behavioral Analysis Depth** → **Approved: Option B**
+   - Specific but concise: "Both bet Lakers unders frequently"
+   - Gives users actionable insight without overwhelming detail
+
+3. **Discovery Section Placement** → **Approved: Option B**
+   - Add as FIRST section at the top
+   - Most personalized content should be most prominent
+
+4. **Embedding Update Frequency** → **Approved: Option A with modification**
+   - Keep 7-day cycle for now
+   - ADD: Check for significant activity (if user has 20+ new bets since last update, trigger early update)
+
+5. **Similar User Count** → **Approved: Option A**
+   - Show 5 users initially
+   - Good balance of performance and discovery
+
+6. **Empty State Behavior** → **Approved: Option B**
+   - Show educational message: "Make more bets to discover similar bettors"
+   - Helps users understand the feature
+
+### Additional Implementation Guidance
+
+1. **Behavioral Profile Text Structure**:
+```typescript
+const behavioralProfile = `
+  ${username} betting behavior:
+  - Frequently bets on: ${topTeams.join(', ')} 
+  - Prefers ${dominantBetType} bets (${betTypePercentage}%)
+  - Active during ${activeTimeSlots}
+  - Average stake: $${avgStake}
+  - Betting style: ${bettingStyle} // e.g., "conservative", "aggressive"
+  - Social connections: follows ${similarBettorCount} similar bettors
+`;
+```
+
+2. **Remove ALL Team Preference Logic**:
+   - Remove any code that extracts or stores team preferences
+   - Team preferences should ONLY exist as patterns within the embedding vector
+
+3. **Similarity Reason Generation**:
+```typescript
+// DON'T: Check stored favorite_teams
+// DO: Analyze betting patterns dynamically
+const commonTeams = findCommonlyBetTeams(user1Bets, user2Bets);
+if (commonTeams.length > 0) {
+  reasons.push(`Both frequently bet on ${commonTeams[0]} games`);
+}
+```
+
+### Approved Implementation Plan
+
+**Step 1: Database Migration (15 minutes)**
+- Remove BOTH `favorite_team` and `favorite_teams` columns
+- Add index for embedding queries
+
+**Step 2: Update Embedding Pipeline (1.5 hours)**
+- Remove ALL team preference extraction/storage logic
+- Implement rich behavioral profile generation
+- Add early update trigger for 20+ new bets
+
+**Step 3: Create Friend Discovery Service (2 hours)**
+- Dynamic team preference discovery from bets
+- Natural language similarity reasons
+- No stored preferences used
+
+**Step 4: Search Tab Integration (30 minutes)**
+- Add as FIRST discovery section
+- Use `variant="small"` AIBadge with match percentage
+
+**Step 5: Mock Data Enhancement (30 minutes)**
+- Create 5 behavioral clusters
+- Build natural social connections
+
+**Sprint Status**: APPROVED - READY FOR IMPLEMENTATION
+
+### Post-Review Updates
+
+**2024-12-30**: Implementation plan approved with corrections. Key changes:
+- Remove BOTH team columns (not just array)
+- Add activity-based embedding update trigger
+- Ensure pure behavioral approach throughout
