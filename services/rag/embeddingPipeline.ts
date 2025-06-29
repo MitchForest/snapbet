@@ -12,6 +12,10 @@ const supabaseAdmin = createClient<Database>(
 type Post = Database['public']['Tables']['posts']['Row'];
 type Bet = Database['public']['Tables']['bets']['Row'];
 type Game = Database['public']['Tables']['games']['Row'];
+type User = Database['public']['Tables']['users']['Row'];
+type Follow = Database['public']['Tables']['follows']['Row'];
+type Reaction = Database['public']['Tables']['reactions']['Row'];
+type Comment = Database['public']['Tables']['comments']['Row'];
 
 interface PostWithContent extends Partial<Post> {
   content?: string | null;
@@ -19,6 +23,44 @@ interface PostWithContent extends Partial<Post> {
 
 interface BetWithGame extends Bet {
   game?: Partial<Game>;
+}
+
+interface UserWithRelations extends User {
+  bets?: BetWithGame[];
+  posts?: Post[];
+  follows?: Follow[];
+  reactions?: Reaction[];
+  comments?: Comment[];
+}
+
+interface BettingPatterns {
+  sports: string[];
+  topTeams: string[];
+  betTypes: string[];
+  dominantBetType: string;
+  betTypePercentage: number;
+  avgStake: number;
+  winRate: number;
+  recentBets: string[];
+}
+
+interface SocialPatterns {
+  followingCount: number;
+  followersCount: number;
+  topConnections: string[];
+  similarBettorCount: number;
+  engagementRate: number;
+}
+
+interface EngagementPatterns {
+  captionStyle: string;
+  tailingRate: number;
+  totalEngagements: number;
+}
+
+interface TemporalPatterns {
+  activeTimeSlots: string;
+  peakHours: number[];
 }
 
 export class EmbeddingPipeline {
@@ -106,57 +148,98 @@ export class EmbeddingPipeline {
 
   async updateUserProfile(userId: string): Promise<void> {
     try {
-      // Get user's recent betting history
-      const { data: bets, error: betsError } = await supabaseAdmin
-        .from('bets')
-        .select(
-          `
-          *,
-          game:games(
-            sport,
-            home_team,
-            away_team
-          )
-        `
-        )
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      // Get user data to check last update
+      const { data: userData } = await supabaseAdmin
+        .from('users')
+        .select('username, last_embedding_update')
+        .eq('id', userId)
+        .single();
 
-      if (betsError || !bets || bets.length === 0) {
-        console.log(`No bets found for user ${userId}`);
+      if (!userData) {
+        console.log(`User ${userId} not found`);
         return;
       }
 
-      // Get user's posts for additional context
-      const { data: posts } = await supabaseAdmin
-        .from('posts')
-        .select('caption')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(20);
+      // Check if user needs early update (20+ new bets since last update)
+      if (userData.last_embedding_update) {
+        const { data: recentBets } = await supabaseAdmin
+          .from('bets')
+          .select('id')
+          .eq('user_id', userId)
+          .gte('created_at', userData.last_embedding_update)
+          .limit(21);
 
-      // Generate profile text
-      const profileText = this.formatUserProfileForEmbedding(
-        userId,
-        bets as BetWithGame[],
-        posts || []
-      );
-      const result = await ragService.generateEmbedding(profileText);
+        const needsEarlyUpdate = recentBets && recentBets.length > 20;
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const lastUpdate = new Date(userData.last_embedding_update);
+
+        if (!needsEarlyUpdate && lastUpdate > sevenDaysAgo) {
+          console.log(`User ${userData.username} embedding is up to date`);
+          return; // Skip update
+        }
+      }
+
+      // Gather ALL behavioral data
+      const { data: fullUserData } = await supabaseAdmin
+        .from('users')
+        .select(
+          `
+          *,
+          bets(*, game:games(*)),
+          posts(*),
+          followers!follower_id(*),
+          followers!following_id(*),
+          reactions(*),
+          comments(*)
+        `
+        )
+        .eq('id', userId)
+        .single();
+
+      if (!fullUserData || !fullUserData.bets || fullUserData.bets.length === 0) {
+        console.log(`No behavioral data found for user ${userId}`);
+        return;
+      }
+
+      // Extract behavioral patterns - NO stored preferences
+      const bettingPatterns = this.analyzeBettingBehavior(fullUserData.bets);
+      const socialPatterns = this.analyzeSocialBehavior(fullUserData);
+      const engagementPatterns = this.analyzeEngagement(fullUserData);
+      const temporalPatterns = this.analyzeTemporalActivity(fullUserData);
+      const bettingStyle = this.categorizeBettingStyle(bettingPatterns);
+
+      // Create rich behavioral text representation (per reviewer guidance)
+      const behavioralProfile = `
+        ${userData.username} betting behavior:
+        - Frequently bets on: ${bettingPatterns.topTeams.join(', ')}
+        - Prefers ${bettingPatterns.dominantBetType} bets (${bettingPatterns.betTypePercentage}%)
+        - Active during ${temporalPatterns.activeTimeSlots}
+        - Average stake: $${bettingPatterns.avgStake}
+        - Betting style: ${bettingStyle}
+        - Social connections: follows ${socialPatterns.similarBettorCount} similar bettors
+        
+        DETAILED PATTERNS:
+        Total bets: ${fullUserData.bets.length}
+        Sports: ${bettingPatterns.sports.join(', ')}
+        Win rate: ${bettingPatterns.winRate}%
+        Recent activity: ${bettingPatterns.recentBets.join('; ')}
+        Engagement rate: ${socialPatterns.engagementRate}%
+        Content style: ${engagementPatterns.captionStyle}
+      `;
+
+      // Generate embedding
+      const result = await ragService.generateEmbedding(behavioralProfile);
 
       // Convert embedding array to string format for pgvector
       const embeddingString = `[${result.embedding.join(',')}]`;
 
-      // Extract favorite teams from betting history
-      const favoriteTeams = this.extractFavoriteTeams(bets as BetWithGame[]);
-
-      // Update user record
+      // Update ONLY embedding fields - NO team preferences
       const { error: updateError } = await supabaseAdmin
         .from('users')
         .update({
           profile_embedding: embeddingString,
           last_embedding_update: new Date().toISOString(),
-          favorite_teams: favoriteTeams,
+          // NO favorite_team or favorite_teams updates!
         })
         .eq('id', userId);
 
@@ -165,7 +248,10 @@ export class EmbeddingPipeline {
         return;
       }
 
-      console.log(`Successfully updated profile embedding for user ${userId}`);
+      // Track metadata for cost tracking
+      await this.trackEmbedding('user', userId, result.tokenCount, result.modelVersion);
+
+      console.log(`Successfully updated profile embedding for user ${userData.username}`);
     } catch (error) {
       console.error(`Failed to update user profile ${userId}:`, error);
     }
@@ -214,96 +300,158 @@ export class EmbeddingPipeline {
     return parts.join(' ');
   }
 
-  private formatUserProfileForEmbedding(
-    _userId: string,
-    bets: BetWithGame[],
-    posts: Array<{ caption: string | null }>
-  ): string {
-    const parts: string[] = [];
-
-    // Analyze betting patterns
+  private analyzeBettingBehavior(bets: BetWithGame[]): BettingPatterns {
     const sports = new Set<string>();
     const teams = new Map<string, number>();
     const betTypes = new Map<string, number>();
+    let totalAmount = 0;
     let wins = 0;
 
     bets.forEach((bet) => {
-      // Track sports
-      if (bet.game?.sport) {
-        sports.add(bet.game.sport);
-      }
+      // Extract sport from game
+      if (bet.game?.sport) sports.add(bet.game.sport);
 
-      // Track teams
-      if (bet.bet_details) {
-        const details = bet.bet_details as Record<string, unknown>;
-        if (details.team && typeof details.team === 'string') {
-          teams.set(details.team, (teams.get(details.team) || 0) + 1);
-        }
-      }
+      // Count team frequency
+      const details = bet.bet_details as { team?: string };
+      if (details.team) teams.set(details.team, (teams.get(details.team) || 0) + 1);
 
-      // Track bet types
-      if (bet.bet_type) {
-        betTypes.set(bet.bet_type, (betTypes.get(bet.bet_type) || 0) + 1);
-      }
+      // Count bet types
+      betTypes.set(bet.bet_type, (betTypes.get(bet.bet_type) || 0) + 1);
 
-      // Track results
+      // Track amounts and wins
+      totalAmount += bet.stake || 0;
       if (bet.status === 'won') wins++;
     });
 
-    // Build profile description
-    parts.push(`User betting profile:`);
-    parts.push(`Active in ${Array.from(sports).join(', ')} betting`);
-
-    // Most bet on teams
+    // Get top teams (most frequently bet on)
     const topTeams = Array.from(teams.entries())
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([team]) => team);
-    if (topTeams.length > 0) {
-      parts.push(`Frequently bets on ${topTeams.join(', ')}`);
-    }
-
-    // Betting style
-    const topBetType = Array.from(betTypes.entries()).sort((a, b) => b[1] - a[1])[0];
-    if (topBetType) {
-      parts.push(`Prefers ${topBetType[0]} bets`);
-    }
-
-    // Win rate
-    if (bets.length > 0) {
-      const winRate = ((wins / bets.length) * 100).toFixed(1);
-      parts.push(`${winRate}% win rate over ${bets.length} bets`);
-    }
-
-    // Add some post content for personality
-    const recentCaptions = posts
-      .filter((p) => p.caption)
       .slice(0, 5)
-      .map((p) => p.caption);
-    if (recentCaptions.length > 0) {
-      parts.push(`Recent posts: ${recentCaptions.join(' | ')}`);
-    }
+      .map(([team]) => team);
 
-    return parts.join('. ');
+    // Get dominant bet type
+    const betTypeArray = Array.from(betTypes.entries()).sort((a, b) => b[1] - a[1]);
+    const dominantBetType = betTypeArray[0]?.[0] || 'spread';
+    const dominantCount = betTypeArray[0]?.[1] || 0;
+    const betTypePercentage = bets.length > 0 ? Math.round((dominantCount / bets.length) * 100) : 0;
+
+    return {
+      sports: Array.from(sports),
+      topTeams,
+      betTypes: Array.from(betTypes.keys()),
+      dominantBetType,
+      betTypePercentage,
+      avgStake: bets.length > 0 ? Math.round(totalAmount / bets.length) : 0,
+      winRate: bets.length > 0 ? Math.round((wins / bets.length) * 100) : 0,
+      recentBets: bets.slice(0, 5).map((b) => {
+        const details = b.bet_details as { team?: string };
+        return `${details.team || 'Unknown'} ${b.bet_type} $${b.stake || 0}`;
+      }),
+    };
   }
 
-  private extractFavoriteTeams(bets: BetWithGame[]): string[] {
-    const teamCounts = new Map<string, number>();
+  private analyzeSocialBehavior(userData: UserWithRelations): SocialPatterns {
+    const following = userData.follows?.filter((f) => f.follower_id === userData.id) || [];
+    const followers = userData.follows?.filter((f) => f.following_id === userData.id) || [];
 
-    bets.forEach((bet) => {
-      if (bet.bet_details) {
-        const details = bet.bet_details as Record<string, unknown>;
-        if (details.team && typeof details.team === 'string') {
-          teamCounts.set(details.team, (teamCounts.get(details.team) || 0) + 1);
-        }
+    // Find most interacted with users
+    const interactions = new Map<string, number>();
+    userData.reactions?.forEach((_r) => {
+      // reactions don't have post relation loaded, skip for now
+      // In production, would need to join with posts table
+    });
+
+    const topConnections = Array.from(interactions.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([userId]) => userId);
+
+    // Count how many followed users are similar bettors (simplified for now)
+    const similarBettorCount = following.length; // In future, could analyze their betting patterns
+
+    return {
+      followingCount: following.length,
+      followersCount: followers.length,
+      topConnections,
+      similarBettorCount,
+      engagementRate: this.calculateEngagementRate(userData),
+    };
+  }
+
+  private analyzeEngagement(userData: UserWithRelations): EngagementPatterns {
+    const posts = userData.posts || [];
+    const reactions = userData.reactions || [];
+    const comments = userData.comments || [];
+
+    // Analyze caption style
+    const captions = posts.map((p) => p.caption).filter(Boolean) as string[];
+    let captionStyle = 'minimal';
+    if (captions.length > 0) {
+      const avgLength = captions.reduce((sum, c) => sum + c.length, 0) / captions.length;
+      if (avgLength > 100) captionStyle = 'detailed';
+      else if (avgLength > 50) captionStyle = 'moderate';
+    }
+
+    // Calculate tailing rate (simplified)
+    const tailingRate =
+      posts.filter((p) => p.post_type === 'pick').length / Math.max(posts.length, 1);
+
+    return {
+      captionStyle,
+      tailingRate: Math.round(tailingRate * 100),
+      totalEngagements: reactions.length + comments.length,
+    };
+  }
+
+  private analyzeTemporalActivity(userData: UserWithRelations): TemporalPatterns {
+    const allActivity = [...(userData.bets || []), ...(userData.posts || [])];
+
+    const hourCounts = new Map<number, number>();
+
+    allActivity.forEach((item) => {
+      if (item.created_at) {
+        const date = new Date(item.created_at);
+        const hour = date.getHours();
+        hourCounts.set(hour, (hourCounts.get(hour) || 0) + 1);
       }
     });
 
-    // Return top 5 most bet on teams
-    return Array.from(teamCounts.entries())
+    // Find peak hours
+    const peakHours = Array.from(hourCounts.entries())
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([team]) => team);
+      .slice(0, 3)
+      .map(([hour]) => hour);
+
+    // Determine time slots
+    const activeTimeSlots = peakHours.map((hour) => {
+      if (hour >= 22 || hour <= 2) return 'late night';
+      if (hour >= 18 && hour <= 21) return 'primetime';
+      if (hour >= 12 && hour <= 17) return 'afternoon';
+      if (hour >= 6 && hour <= 11) return 'morning';
+      return 'overnight';
+    });
+
+    return {
+      activeTimeSlots: [...new Set(activeTimeSlots)].join(', '),
+      peakHours,
+    };
+  }
+
+  private categorizeBettingStyle(patterns: BettingPatterns): string {
+    if (patterns.avgStake > 100) return 'aggressive';
+    if (patterns.avgStake < 25) return 'conservative';
+    if (patterns.betTypes.includes('parlay')) return 'risk-taker';
+    if (patterns.winRate > 60) return 'sharp';
+    return 'balanced';
+  }
+
+  private calculateEngagementRate(userData: UserWithRelations): number {
+    const posts = userData.posts?.length || 0;
+    const reactions = userData.reactions?.length || 0;
+    const comments = userData.comments?.length || 0;
+
+    if (posts === 0) return 0;
+    return Math.round(((reactions + comments) / posts) * 100);
   }
 
   private async trackEmbedding(

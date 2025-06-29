@@ -10,6 +10,7 @@ import { SearchSkeleton } from '@/components/skeletons/SearchSkeleton';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { useSearch } from '@/hooks/useSearch';
 import { useDiscovery } from '@/hooks/useDiscovery';
+import { useFriendDiscovery } from '@/hooks/useFriendDiscovery';
 
 function SearchScreenContent() {
   const {
@@ -39,15 +40,26 @@ function SearchScreenContent() {
     refreshRising,
   } = useDiscovery();
 
-  // Combine following status from both hooks
+  const {
+    suggestions,
+    isLoading: isFriendLoading,
+    error: friendError,
+    followingStatus: friendFollowingStatus,
+    updateFollowingStatus: updateFriendFollowing,
+    refresh: refreshFriends,
+  } = useFriendDiscovery();
+
+  // Combine following status from all hooks
   const allFollowingStatus = {
     ...discoveryFollowingStatus,
     ...searchFollowingStatus,
+    ...friendFollowingStatus,
   };
 
   const handleFollowChange = (userId: string, isFollowing: boolean) => {
     updateSearchFollowing(userId, isFollowing);
     updateDiscoveryFollowing(userId, isFollowing);
+    updateFriendFollowing(userId, isFollowing);
   };
 
   // Debug logging
@@ -100,6 +112,19 @@ function SearchScreenContent() {
         searches={recentSearches}
         onSearchSelect={onRecentSearchSelect}
         onClear={clearRecentSearches}
+      />
+
+      <DiscoverySection
+        title="Find Your Tribe"
+        subtitle="Users like you"
+        emoji="🤝"
+        users={suggestions}
+        isLoading={isFriendLoading}
+        error={friendError}
+        emptyMessage="No suggestions yet - bet more to find your tribe!"
+        followingStatus={allFollowingStatus}
+        onFollowChange={handleFollowChange}
+        onRefresh={refreshFriends}
       />
 
       <DiscoverySection

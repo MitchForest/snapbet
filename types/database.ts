@@ -220,6 +220,32 @@ export type Database = {
           },
         ];
       };
+      caption_generation_usage: {
+        Row: {
+          count: number | null;
+          date: string;
+          user_id: string;
+        };
+        Insert: {
+          count?: number | null;
+          date?: string;
+          user_id: string;
+        };
+        Update: {
+          count?: number | null;
+          date?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'caption_generation_usage_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       chat_members: {
         Row: {
           chat_id: string;
@@ -1355,8 +1381,6 @@ export type Database = {
           deleted_at: string | null;
           display_name: string | null;
           email: string | null;
-          favorite_team: string | null;
-          favorite_teams: string[] | null;
           id: string;
           is_mock: boolean | null;
           is_private: boolean | null;
@@ -1382,8 +1406,6 @@ export type Database = {
           deleted_at?: string | null;
           display_name?: string | null;
           email?: string | null;
-          favorite_team?: string | null;
-          favorite_teams?: string[] | null;
           id?: string;
           is_mock?: boolean | null;
           is_private?: boolean | null;
@@ -1409,8 +1431,6 @@ export type Database = {
           deleted_at?: string | null;
           display_name?: string | null;
           email?: string | null;
-          favorite_team?: string | null;
-          favorite_teams?: string[] | null;
           id?: string;
           is_mock?: boolean | null;
           is_private?: boolean | null;

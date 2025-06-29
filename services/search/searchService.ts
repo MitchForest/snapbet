@@ -17,7 +17,6 @@ export interface UserWithStats {
   display_name: string | null;
   avatar_url: string | null;
   bio: string | null;
-  favorite_team: string | null;
   created_at: string;
   // Stats
   win_count?: number;
@@ -54,7 +53,7 @@ export async function searchUsers(query: string): Promise<UserWithStats[]> {
         display_name,
         avatar_url,
         bio,
-        favorite_team,
+        
         created_at,
         bankrolls!inner (
           win_count,
@@ -75,7 +74,6 @@ export async function searchUsers(query: string): Promise<UserWithStats[]> {
       display_name: user.display_name,
       avatar_url: user.avatar_url,
       bio: user.bio,
-      favorite_team: user.favorite_team,
       created_at: user.created_at || '',
       win_count: user.bankrolls?.win_count || 0,
       loss_count: user.bankrolls?.loss_count || 0,
@@ -113,7 +111,7 @@ export async function getHotBettors(limit: number = 10): Promise<UserWithStats[]
             display_name,
             avatar_url,
             bio,
-            favorite_team,
+            
             created_at
           )
         `
@@ -155,7 +153,7 @@ export async function getHotBettors(limit: number = 10): Promise<UserWithStats[]
               display_name,
               avatar_url,
               bio,
-              favorite_team,
+              
               created_at
             )
           `
@@ -189,7 +187,7 @@ export async function getHotBettors(limit: number = 10): Promise<UserWithStats[]
           display_name: string | null;
           avatar_url: string | null;
           bio: string | null;
-          favorite_team: string | null;
+
           created_at: string | null;
         };
         wins: number;
@@ -209,7 +207,6 @@ export async function getHotBettors(limit: number = 10): Promise<UserWithStats[]
             display_name: bet.users.display_name,
             avatar_url: bet.users.avatar_url,
             bio: bet.users.bio,
-            favorite_team: bet.users.favorite_team,
             created_at: bet.users.created_at || '',
           },
           wins: 0,
@@ -239,7 +236,6 @@ export async function getHotBettors(limit: number = 10): Promise<UserWithStats[]
         display_name: stats.user.display_name,
         avatar_url: stats.user.avatar_url,
         bio: stats.user.bio,
-        favorite_team: stats.user.favorite_team,
         created_at: stats.user.created_at || '',
         win_count: stats.wins,
         loss_count: stats.losses,
@@ -337,7 +333,7 @@ export async function getFadeMaterial(limit: number = 10): Promise<UserWithStats
         display_name,
         avatar_url,
         bio,
-        favorite_team,
+        
         created_at,
         bankrolls!inner (
           win_count,
@@ -361,7 +357,6 @@ export async function getFadeMaterial(limit: number = 10): Promise<UserWithStats
           display_name: user.display_name,
           avatar_url: user.avatar_url,
           bio: user.bio,
-          favorite_team: user.favorite_team,
           created_at: user.created_at || '',
           win_count: user.bankrolls?.win_count || 0,
           loss_count: user.bankrolls?.loss_count || 0,
@@ -400,7 +395,7 @@ export async function getRisingStars(limit: number = 10): Promise<UserWithStats[
         display_name,
         avatar_url,
         bio,
-        favorite_team,
+        
         created_at,
         bankrolls!inner (
           win_count,
@@ -425,7 +420,6 @@ export async function getRisingStars(limit: number = 10): Promise<UserWithStats[
           display_name: user.display_name,
           avatar_url: user.avatar_url,
           bio: user.bio,
-          favorite_team: user.favorite_team,
           created_at: user.created_at || '',
           win_count: user.bankrolls?.win_count || 0,
           loss_count: user.bankrolls?.loss_count || 0,

@@ -11,19 +11,19 @@ interface AICaptionButtonProps {
   remaining?: number | null;
 }
 
-export function AICaptionButton({ 
-  onPress, 
-  isLoading, 
+export function AICaptionButton({
+  onPress,
+  isLoading,
   disabled = false,
-  remaining 
+  remaining,
 }: AICaptionButtonProps) {
   return (
-    <Pressable 
-      onPress={onPress} 
+    <Pressable
+      onPress={onPress}
       disabled={disabled || isLoading}
       style={{ opacity: disabled ? 0.5 : 1 }}
     >
-      <View 
+      <View
         backgroundColor={Colors.primary}
         paddingHorizontal="$3"
         paddingVertical="$2"

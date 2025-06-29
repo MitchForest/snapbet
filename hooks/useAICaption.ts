@@ -19,40 +19,40 @@ export function useAICaption(options: UseAICaptionOptions) {
 
   const generateCaption = useCallback(async () => {
     if (!user) return;
-    
+
     // Progressive enhancement
     if (tapCount >= 2) {
       toastService.show('Try writing your own! 💭', 'info');
       setTapCount(0);
       return;
     }
-    
+
     setIsGenerating(true);
     setError(null);
-    
+
     try {
       // Call Supabase Edge Function
       const { data, error } = await supabase.functions.invoke('generate-caption', {
         body: {
           postType: options.postType,
           betDetails: options.bet,
-          regenerate: tapCount > 0
-        }
+          regenerate: tapCount > 0,
+        },
       });
-      
+
       if (error) {
         throw new Error(error.message || 'Failed to generate caption');
       }
-      
+
       setCaption(data.caption);
       setRemaining(data.remaining);
-      setTapCount(prev => prev + 1);
-      
+      setTapCount((prev) => prev + 1);
+
       // Track analytics
       trackEvent('ai_caption_generated', {
         postType: options.postType,
         captionLength: data.caption.length,
-        regenerated: tapCount > 0
+        regenerated: tapCount > 0,
       });
     } catch (err: any) {
       const message = err.message || 'Caption generation unavailable. Try again?';
@@ -69,7 +69,10 @@ export function useAICaption(options: UseAICaptionOptions) {
     error,
     remaining,
     generateCaption,
-    clearCaption: () => { setCaption(''); setTapCount(0); },
-    setCaption
+    clearCaption: () => {
+      setCaption('');
+      setTapCount(0);
+    },
+    setCaption,
   };
 }
