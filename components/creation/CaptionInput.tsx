@@ -1,12 +1,16 @@
 import React from 'react';
 import { View, TextInput, Text, StyleSheet } from 'react-native';
 import { Colors } from '@/theme';
+import { AICaptionButton } from './AICaptionButton';
 
 interface CaptionInputProps {
   value: string;
   onChange: (text: string) => void;
   maxLength?: number;
   placeholder?: string;
+  onGenerateCaption?: () => void;
+  isGeneratingCaption?: boolean;
+  showAIButton?: boolean;
 }
 
 export function CaptionInput({
@@ -14,6 +18,9 @@ export function CaptionInput({
   onChange,
   maxLength = 280,
   placeholder = 'Add a caption...',
+  onGenerateCaption,
+  isGeneratingCaption = false,
+  showAIButton = false,
 }: CaptionInputProps) {
   const charCount = value.length;
   const showCounter = charCount > 200;
@@ -36,11 +43,20 @@ export function CaptionInput({
         maxLength={maxLength}
         textAlignVertical="top"
       />
-      {showCounter && (
-        <Text style={[styles.counter, { color: getCounterColor() }]}>
-          {charCount}/{maxLength}
-        </Text>
-      )}
+      <View style={styles.bottomRow}>
+        {showAIButton && onGenerateCaption && (
+          <AICaptionButton
+            onPress={onGenerateCaption}
+            isLoading={isGeneratingCaption}
+            disabled={value.length > 0}
+          />
+        )}
+        {showCounter && (
+          <Text style={[styles.counter, { color: getCounterColor() }]}>
+            {charCount}/{maxLength}
+          </Text>
+        )}
+      </View>
     </View>
   );
 }
@@ -56,10 +72,15 @@ const styles = StyleSheet.create({
     paddingRight: 60, // Space for counter
   },
   counter: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  bottomRow: {
     position: 'absolute',
     right: 0,
     bottom: 4,
-    fontSize: 12,
-    fontWeight: '500',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
 });

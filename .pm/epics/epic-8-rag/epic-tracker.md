@@ -2,9 +2,9 @@
 
 ## Epic Overview
 
-**Status**: NOT STARTED  
-**Start Date**: [TBD]  
-**Target End Date**: [TBD]  
+**Status**: IN PROGRESS  
+**Start Date**: 2024-12-29  
+**Target End Date**: 2025-01-02 (estimated)  
 **Actual End Date**: [TBD]
 
 **Epic Goal**: Implement AI-powered features including caption generation, smart friend discovery, enhanced feed mixing, and consensus betting alerts using OpenAI embeddings and vector similarity search.
@@ -19,18 +19,25 @@
 
 ## Sprint Breakdown
 
+### Completed Sprints
 | Sprint # | Sprint Name | Status | Start Date | End Date | Key Deliverable |
 |----------|-------------|--------|------------|----------|-----------------|
 | 8.01 | Database Infrastructure | COMPLETED | 2024-12-29 | 2024-12-29 | pgvector setup, archive columns, RPC functions |
 | 8.02 | Content Archiving | COMPLETED | 2024-12-29 | 2024-12-29 | Modify content-expiration job to archive |
 | 8.03 | Archive Filtering | COMPLETED | 2024-12-29 | 2024-12-29 | Update all queries to filter archived content |
 | 8.04 | RAG Service Layer | COMPLETED | 2024-12-30 | 2024-12-30 | OpenAI integration and embedding pipeline |
-| 8.05 | AI Caption Generation | NOT STARTED | - | - | Caption UI and generation service |
-| 8.06 | Find Your Tribe | NOT STARTED | - | - | Similar user discovery in search |
-| 8.07 | Enhanced Feed | NOT STARTED | - | - | 70/30 smart feed mixing |
-| 8.08 | Consensus Alerts | NOT STARTED | - | - | Betting consensus notifications |
-| 8.09 | Mock Data & Demo | NOT STARTED | - | - | Complete RAG demo with archived content and scenarios |
-| 8.10 | RAG Mock Data Generation | NOT STARTED | - | - | Mock data generators for RAG feature demonstration |
+
+### Consolidated Sprint Plan (NEW)
+| Sprint # | Sprint Name | Status | Est. Duration | Key Deliverable |
+|----------|-------------|--------|---------------|-----------------|
+| 8.05 | Complete Infrastructure & Find Your Tribe | NOT STARTED | 3-4 hours | Profile embeddings, Find Your Tribe feature, mock user scenarios |
+| 8.06 | Enhanced Feed & Consensus | NOT STARTED | 4-5 hours | 70/30 smart feed mixing, consensus alerts, production jobs |
+| 8.07 | Comprehensive Demo & Polish | NOT STARTED | 2-3 hours | Complete mock:setup script, performance optimization, documentation |
+
+### Deferred Features
+| Feature | Original Sprint | Reason | Future Plan |
+|---------|----------------|--------|-------------|
+| AI Caption Generation | 8.05 (original) | Requires Edge Function infrastructure not currently deployed | Implement after Edge Functions are deployed |
 
 **Statuses**: NOT STARTED | IN PROGRESS | IN REVIEW | APPROVED | BLOCKED
 
@@ -146,21 +153,21 @@ CREATE TABLE embedding_metadata (
 ```
 
 ### Key Functions/Components Created
-- `ragService.generateCaption()` - AI caption generation - Sprint 8.05
-- `ragService.generateEmbedding()` - Embedding generation - Sprint 8.04
-- `embeddingPipeline.embedPost()` - Post embedding pipeline - Sprint 8.04
-- `embeddingPipeline.embedBet()` - Bet embedding pipeline - Sprint 8.04
-- `embeddingPipeline.updateUserProfile()` - User profile embeddings - Sprint 8.04
-- `friendDiscoveryService.findSimilarUsers()` - User discovery - Sprint 8.06
-- `smartFeedService.getHybridFeed()` - 70/30 feed mixing - Sprint 8.07
-- `consensusService.checkAndNotifyConsensus()` - Consensus detection - Sprint 8.08
-- `AIBadge` - Unified AI indicator component - Sprint 8.04
-- `AICaptionButton` - AI caption button with sparkle icon - Sprint 8.05
-- `SimilarUserCard` - User card with AI match percentage - Sprint 8.06
-- `DiscoveryBadge` - AI suggested post indicator - Sprint 8.07
-- `useAICaption` - Hook for caption generation - Sprint 8.05
-- `withActiveContent()` - Filter helper for active content - Sprint 8.03
-- `withArchivedContent()` - Filter helper for archived content - Sprint 8.03
+- `ragService.generateCaption()` - AI caption generation - DEFERRED
+- `ragService.generateEmbedding()` - Embedding generation - Sprint 8.04 ✅
+- `embeddingPipeline.embedPost()` - Post embedding pipeline - Sprint 8.04 ✅
+- `embeddingPipeline.embedBet()` - Bet embedding pipeline - Sprint 8.04 ✅
+- `embeddingPipeline.updateUserProfile()` - User profile embeddings - Sprint 8.04 ✅
+- `friendDiscoveryService.findSimilarUsers()` - User discovery - Sprint 8.05 (NEW)
+- `smartFeedService.getHybridFeed()` - 70/30 feed mixing - Sprint 8.06 (NEW)
+- `consensusService.checkAndNotifyConsensus()` - Consensus detection - Sprint 8.06 (NEW)
+- `AIBadge` - Unified AI indicator component - Sprint 8.04 ✅
+- `AICaptionButton` - AI caption button with sparkle icon - DEFERRED
+- `SimilarUserCard` - User card with AI match percentage - Sprint 8.05 (NEW)
+- `DiscoveryBadge` - AI suggested post indicator - Sprint 8.06 (NEW)
+- `useAICaption` - Hook for caption generation - DEFERRED
+- `withActiveContent()` - Filter helper for active content - Sprint 8.03 ✅
+- `withArchivedContent()` - Filter helper for archived content - Sprint 8.03 ✅
 
 ## Sprint Execution Log
 
@@ -298,60 +305,59 @@ CREATE TABLE embedding_metadata (
 - Mock integration creates realistic timeline
 - Ready for upcoming AI features
 
-### Sprint 8.05: AI Caption Generation
-**Status**: BLOCKED - ARCHITECTURE CLARIFICATION NEEDED
+### Sprint 8.05 (ORIGINAL): AI Caption Generation
+**Status**: DEFERRED - EDGE FUNCTION INFRASTRUCTURE REQUIRED
 **Duration**: Investigation phase complete (3 hours)
 **Started**: 2024-12-30
-**Summary**: Critical architecture mismatch discovered. Approved plan assumes SvelteKit patterns but project is React Native Expo.
+**Summary**: Feature requires real-time server processing via Edge Functions which are not deployed.
 
-**Critical Blockers Found**:
-1. No server infrastructure exists (no `app/api` or `server/` directories)
-2. Supabase Edge Functions planned but never implemented
-3. Approved plan uses patterns incompatible with project architecture
-4. OpenAI SDK issue confirmed - cannot run in React Native
+**Key Findings**:
+- Edge Function code exists at `/supabase/functions/generate-caption/index.ts`
+- No deployment infrastructure configured
+- OpenAI SDK cannot run in React Native
+- UI components (AICaptionButton, useAICaption) created but non-functional
 
-**Executor Findings**:
-- Project uses React Native Expo, not SvelteKit
-- Server-side operations currently run as scripts/jobs
-- No existing API endpoint infrastructure
-- Edge Functions directory structure missing
+**Deferred Until**: Edge Function infrastructure is deployed and configured
 
-**Blocked On**: 
-1. Clarification on Edge Functions vs alternative approach
-2. Proper server-side architecture guidance
-3. Deployment process for chosen solution
+---
 
-**Next Steps**: Awaiting reviewer guidance on architecture approach.
+## NEW CONSOLIDATED SPRINT PLAN
 
-### Sprint 8.06: Find Your Tribe
+### Sprint 8.05 (NEW): Complete Infrastructure & Find Your Tribe
 **Status**: NOT STARTED
-**Summary**: [To be completed]
-**Key Decisions**: [To be completed]
-**Issues Encountered**: [To be completed]
+**Estimated Duration**: 3-4 hours
+**Summary**: Complete profile embeddings and implement Find Your Tribe discovery feature
 
-### Sprint 8.07: Enhanced Feed
-**Status**: NOT STARTED
-**Summary**: [To be completed]
-**Key Decisions**: [To be completed]
-**Issues Encountered**: [To be completed]
+**Key Deliverables**:
+- Generate embeddings for all 30 mock users with betting preferences
+- Implement friendDiscoveryService with similarity matching
+- Create SimilarUserCard component with AI badges
+- Integrate into Explore tab with discovery scenarios
+- Test with mock user clusters (Lakers fans, NFL parlayers, etc.)
 
-### Sprint 8.08: Consensus Alerts
-**Status**: NOT STARTED
-**Summary**: [To be completed]
-**Key Decisions**: [To be completed]
-**Issues Encountered**: [To be completed]
+### Sprint 8.06 (NEW): Enhanced Feed & Consensus
+**Status**: NOT STARTED  
+**Estimated Duration**: 4-5 hours
+**Summary**: Implement 70/30 smart feed mixing and consensus betting alerts
 
-### Sprint 8.09: Mock Data & Demo
-**Status**: NOT STARTED
-**Summary**: [To be completed]
-**Key Decisions**: [To be completed]
-**Issues Encountered**: [To be completed]
+**Key Deliverables**:
+- Create smartFeedService for 70/30 following/discovered content mix
+- Implement consensusService for betting pattern detection
+- Add production job for consensus checking (runs every 5 minutes)
+- Create DiscoveryBadge component for AI-suggested posts
+- Build mock scenarios for consensus alerts and discovery content
 
-### Sprint 8.10: RAG Mock Data Generation
+### Sprint 8.07 (NEW): Comprehensive Demo & Polish
 **Status**: NOT STARTED
-**Summary**: [To be completed]
-**Key Decisions**: [To be completed]
-**Issues Encountered**: [To be completed]
+**Estimated Duration**: 2-3 hours  
+**Summary**: Create polished demo experience with complete mock:setup integration
+
+**Key Deliverables**:
+- Complete `bun run mock:setup --username:USERNAME` script
+- Two-phase approach: historical → archive → embed → fresh content
+- Add performance indexes deferred from Sprint 8.03
+- Create comprehensive demo documentation
+- Verify all production jobs work with mock and real data
 
 ## Testing & Quality
 
@@ -463,8 +469,13 @@ If any build issues are encountered:
 ## Epic Completion Checklist
 
 - [x] Sprint 8.01 completed and approved
-- [ ] All planned sprints completed and approved (1/10 complete)
-- [ ] User stories for this epic fully addressed
+- [x] Sprint 8.02 completed and approved  
+- [x] Sprint 8.03 completed and approved
+- [x] Sprint 8.04 completed and approved
+- [ ] Sprint 8.05 (NEW) - Complete Infrastructure & Find Your Tribe
+- [ ] Sprint 8.06 (NEW) - Enhanced Feed & Consensus
+- [ ] Sprint 8.07 (NEW) - Comprehensive Demo & Polish
+- [ ] User stories for this epic fully addressed (3/4 - Caption Generation deferred)
 - [ ] Code refactored and cleaned up
 - [ ] Documentation updated
 - [ ] No critical bugs remaining
@@ -473,9 +484,10 @@ If any build issues are encountered:
 - [ ] Epic summary added to project tracker
 
 ### Progress Summary
-- **Sprints Completed**: 4/10 (40%)
-- **Epic Status**: On Track
-- **Next Sprint**: 8.05 - AI Caption Generation
+- **Sprints Completed**: 4/7 (57% - using consolidated plan)
+- **Epic Status**: On Track with revised scope
+- **Next Sprint**: 8.05 (NEW) - Complete Infrastructure & Find Your Tribe
+- **Total Estimated Time Remaining**: 9-12 hours
 
 ## Epic Summary for Project Tracker
 

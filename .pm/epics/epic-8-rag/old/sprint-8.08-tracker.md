@@ -33,8 +33,9 @@
 
 ### 🚨 Architecture Constraint (from Sprint 8.04)
 - **OpenAI SDK cannot run in React Native** - All AI/embedding operations must be server-side
-- **RPC calls must be through production jobs** - Consensus checking happens server-side
-- **Notifications created by server jobs** - Not directly from the app
+- **Updated Approach**: Use production job pattern for consensus detection
+- **Notifications**: Created by job after detecting consensus patterns
+- **Async processing**: Consensus checks happen in background, not real-time
 
 ## Sprint Plan
 
@@ -52,7 +53,6 @@
 | File Path | Purpose | Status |
 |-----------|---------|--------|
 | `scripts/jobs/consensus-detection.ts` | Production job for detecting betting consensus | NOT STARTED |
-| `hooks/useBetWithConsensus.ts` | Client hook that triggers server-side consensus check | NOT STARTED |
 
 ### Files to Modify  
 | File Path | Changes Needed | Status |
@@ -179,29 +179,9 @@ export const consensusService = ConsensusService.getInstance();
 
 **Step 2: Update betting service**
 ```typescript
-// services/betting/bettingService.ts
-// In placeBet method, after successful bet placement
-async placeBet(betData: PlaceBetData): Promise<Bet> {
-  // ... existing bet placement logic ...
-  
-  const { data: bet, error } = await supabase
-    .from('bets')
-    .insert(betData)
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  // Mark bet for consensus checking (will be processed by job)
-  await supabase
-    .from('bets')
-    .update({ needs_consensus_check: true })
-    .eq('id', bet.id);
-
-  return bet;
-}
-
-// Note: Consensus detection happens via production job, not directly
+// No changes needed to betting service
+// Consensus detection job will run periodically and check recent bets
+// This avoids adding latency to bet placement
 ```
 
 **Step 3: Update notification types**
@@ -318,11 +298,10 @@ if (notification.type === 'consensus') {
 
 ### Dependencies & Risks
 **Dependencies**:
-- check_bet_consensus RPC function from Sprint 8.01 (server-side only)
+- check_bet_consensus RPC function from Sprint 8.01 (used by job)
 - Notification system infrastructure
-- Betting service hooks
 - Production job infrastructure from Sprint 8.04
-- Database flag for consensus processing
+- Job scheduler to run consensus checks periodically
 
 **Identified Risks**:
 - Notification spam → Limit to one per bet/game combo
