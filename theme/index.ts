@@ -273,6 +273,7 @@ export const Colors = {
   success: '#10B981', // Same as primary for consistency
   warning: '#FBBF24', // Amber for warnings
   info: '#60A5FA', // Blue for informational messages
+  ai: '#8B5CF6', // Purple for AI features
 
   // Action colors (for betting)
   tail: '#3B82F6', // Bright blue for tail

@@ -16,6 +16,7 @@ interface DiscoverySectionProps {
   followingStatus?: Record<string, boolean>;
   onFollowChange?: (userId: string, isFollowing: boolean) => void;
   onRefresh?: () => void;
+  showAIBadge?: boolean;
 }
 
 export function DiscoverySection({
@@ -29,6 +30,7 @@ export function DiscoverySection({
   followingStatus = {},
   onFollowChange,
   onRefresh,
+  showAIBadge = false,
 }: DiscoverySectionProps) {
   const handleRefresh = async () => {
     if (onRefresh) {
@@ -71,8 +73,15 @@ export function DiscoverySection({
         <View style={styles.header}>
           <View style={styles.titleContainer}>
             <Text style={styles.emoji}>{emoji}</Text>
-            <View>
-              <Text style={styles.title}>{title}</Text>
+            <View style={styles.titleTextContainer}>
+              <View style={styles.titleRow}>
+                <Text style={styles.title}>{title}</Text>
+                {showAIBadge && (
+                  <View style={styles.aiBadge}>
+                    <Text style={styles.aiBadgeText}>✨ Powered by AI</Text>
+                  </View>
+                )}
+              </View>
               {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
             </View>
           </View>
@@ -134,6 +143,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  titleTextContainer: {
+    flex: 1,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   emoji: {
     fontSize: 24,
   },
@@ -146,6 +163,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.text.secondary,
     marginTop: 2,
+  },
+  aiBadge: {
+    backgroundColor: Colors.ai,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  aiBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.white,
   },
   refreshHint: {
     fontSize: 12,

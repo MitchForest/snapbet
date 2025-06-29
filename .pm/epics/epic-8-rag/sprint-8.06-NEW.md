@@ -5,6 +5,236 @@
 **Dependencies**: Sprint 8.05 completed (behavioral embeddings and Find Your Tribe)  
 **Primary Goal**: Mix AI content into existing feed and notifications with visual indicators
 
+## Implementation Plan (Updated with Reviewer Feedback)
+
+### Investigation Findings
+
+**Current State Analysis:**
+1. **Feed Service**: The existing `feedService` has a `getFeedPosts` method that returns posts from followed users only. No hybrid/discovery functionality exists.
+2. **Notification Service**: Has comprehensive notification types but no AI/smart notification capabilities.
+3. **UI Components**: 
+   - `PostCard` component exists but has no discovery indicator support
+   - `NotificationItem` component uses Tamagui but has no AI badge support
+   - `AIBadge` component exists from Sprint 8.04
+4. **Hook Structure**: `useFeed` hook exists and manages feed state, can be extended with smart feed toggle
+5. **Job Infrastructure**: Robust job system exists with base class and patterns for creating new jobs
+6. **Mock Data**: Comprehensive mock data generators exist, can be extended with consensus patterns
+
+**Key Discoveries:**
+- Feed service needs significant extension to support discovery posts
+- Notification service can be extended with new methods for smart notifications
+- AIBadge component needs a "tiny" variant (currently has small/medium/large)
+- Database already has profile_embedding from Sprint 8.05
+- RPC functions `find_similar_users` and `check_bet_consensus` exist from Sprint 8.01
+- No `sendPushNotification` method exists in notificationService (will need to handle gracefully)
+
+**Sprint 8.05 Learnings Applied:**
+- Services need initialization pattern for React Native (no module-level env access)
+- Rich behavioral profile system exists in `scripts/mock/generators/profiles.ts`
+- `find_similar_users` RPC was fixed to remove non-existent columns
+- Team preferences are discovered dynamically from betting history, not stored
+- Migration 035 already used, next migration should be 036
+
+### Technical Approach Summary
+
+1. **Extend Feed Service** (1.5 hours)
+   - Add `getHybridFeed` method that fetches both following and discovered posts
+   - Implement `getDiscoveredPosts` using behavioral embeddings
+   - Create scoring algorithm based on betting patterns and engagement
+   - Mix feeds with 3:1 ratio (3 following, 1 discovered)
+   - **NEW**: Add initialization pattern for React Native compatibility
+
+2. **Update Feed Hook and PostCard** (1 hour)
+   - Add `enableSmartFeed` state to useFeed hook
+   - Modify `fetchPosts` to use hybrid feed when enabled
+   - Extend PostCard to show DiscoveryBadge when `is_discovered` is true
+
+3. **Create Discovery Badge Component** (0.5 hours)
+   - Absolute positioned overlay on PostCard
+   - **UPDATED**: Use purple AI badge matching search page design
+   - Semi-transparent background for visibility
+
+4. **Extend Notification Service** (1.5 hours)
+   - Add `generateSmartNotifications` method
+   - Implement behavioral consensus detection
+   - Create helper methods for finding interesting patterns
+   - Direct database inserts for notifications (no service method exists)
+
+5. **Update Notification Display** (0.5 hours)
+   - Add AI notification type detection
+   - **UPDATED**: Use purple AI badge inline with notification title
+   - Maintain existing layout and functionality
+
+6. **Create Smart Notifications Job** (1 hour)
+   - Extend BaseJob class
+   - Run every 5 minutes
+   - Process users who placed bets in last hour
+   - Generate behavioral consensus notifications
+
+7. **Enhance Mock Data Generators** (1 hour)
+   - Create consensus betting scenarios
+   - Generate discovery-worthy content patterns
+   - **UPDATED**: Leverage existing behavioral profile system from Sprint 8.05
+
+### Questions Resolved by Reviewer
+
+1. **AIBadge Variant** ✅
+   - **Decision**: Use "small" variant as it already exists
+   - No need to create "tiny" variant
+
+2. **Push Notifications** ✅
+   - **Decision**: Skip push notifications, add TODO comment
+   - Focus on database notifications only
+
+3. **Team Names List** ✅
+   - **Decision**: Extract dynamically from betting history
+   - Use pattern from Sprint 8.05: `const teams = bets.map(bet => bet.bet_details?.team).filter(Boolean);`
+   - No hardcoded team lists
+
+4. **Performance Thresholds** ✅
+   - **Decision**: Add console timing logs as suggested
+   - Optimize with parallel fetching and in-memory filtering
+
+5. **Notification Types** ✅
+   - **Decision**: Add new types to the notification type union
+   - Types to add: 'similar_user_bet', 'behavioral_consensus', 'smart_alert'
+   - Ensures type safety throughout system
+
+6. **Feed Service Method Name** ✅
+   - **Decision**: Keep existing `getFeedPosts` method
+   - Add new `getHybridFeed` method
+   - Maintains backward compatibility
+
+### Critical Updates from Sprint 8.05
+
+1. **Service Initialization Pattern**
+   ```typescript
+   // Required for React Native compatibility
+   export class FeedService {
+     private supabaseClient: SupabaseClient | null = null;
+     
+     initialize(client: SupabaseClient) {
+       this.supabaseClient = client;
+     }
+     
+     private getClient(): SupabaseClient {
+       if (!this.supabaseClient) {
+         throw new Error('FeedService not initialized');
+       }
+       return this.supabaseClient;
+     }
+   }
+   ```
+
+2. **Corrected RPC Function Usage**
+   ```typescript
+   const { data: similarUsers } = await supabase
+     .rpc('find_similar_users', {
+       query_embedding: userProfile.profile_embedding,
+       p_user_id: userId,
+       limit_count: 20
+     });
+   ```
+
+3. **AI Badge Design**
+   - Use purple color (#8B5CF6) from theme as `Colors.ai`
+   - Match the "Powered by AI ✨" badge from search page
+   - Style: `backgroundColor: Colors.ai, color: Colors.white`
+
+4. **Behavioral Profile Integration**
+   - Leverage `generateBehavioralProfile` from Sprint 8.05
+   - Use existing patterns for caption styles, media preferences, betting patterns
+   - Focus on discovering patterns from actual behavior, not stored preferences
+
+### Database Operations
+- No new migrations needed (using existing schema from Sprint 8.01-8.05)
+- Next migration would be 036 if needed
+- Will use existing RPC functions:
+  - `find_similar_users` for discovery (fixed version from Sprint 8.05)
+  - `check_bet_consensus` for consensus detection
+
+### Type Definitions
+```typescript
+// Extend Post type locally in feedService
+interface FeedPost extends Post {
+  is_discovered?: boolean;
+  discovery_reason?: string;
+  relevance_score?: number;
+}
+
+// Update notification types
+export interface Notification {
+  // ... existing fields ...
+  type:
+    | 'tail'
+    | 'fade'
+    | 'bet_won'
+    | 'bet_lost'
+    | 'tail_won'
+    | 'tail_lost'
+    | 'fade_won'
+    | 'fade_lost'
+    | 'follow'
+    | 'follow_request'
+    | 'message'
+    | 'mention'
+    | 'milestone'
+    | 'system'
+    | 'similar_user_bet'      // NEW
+    | 'behavioral_consensus'  // NEW
+    | 'smart_alert';         // NEW
+}
+
+// Consensus match type for notifications
+interface ConsensusMatch {
+  bet_id: string;
+  user_ids: string[];
+  team: string;
+  bet_type: string;
+  line?: number;
+  count: number;
+  usernames: string[];
+}
+```
+
+### UI/UX Implementation
+- **Discovery Badge**: Purple AI badge overlay on discovered posts with sparkle icon
+- **Notification Badge**: Inline purple AI badge next to notification title
+- **Feed Mixing**: Natural 3:1 pattern, not grouped
+- **Graceful Degradation**: Falls back to regular feed if no embeddings
+- **Consistent AI Branding**: All AI features use same purple badge style
+
+### Implementation Risks & Mitigations
+
+1. **Risk**: Feed performance degradation with dual queries
+   - **Mitigation**: Use Promise.all for parallel fetching, implement proper pagination limits
+
+2. **Risk**: Notification job overwhelming database
+   - **Mitigation**: Process in batches of 10-20 users, add rate limiting, use efficient queries
+
+3. **Risk**: Discovery content not relevant
+   - **Mitigation**: Implement comprehensive scoring algorithm based on behavioral patterns
+
+4. **Risk**: Type mismatches with extended Post interface
+   - **Mitigation**: Use local interface extension, avoid modifying global types
+
+### Success Criteria
+- [ ] All TypeScript types properly defined
+- [ ] Zero lint errors/warnings
+- [ ] Follows existing patterns
+- [ ] Database operations implemented
+- [ ] UI matches design requirements
+- [ ] All error states handled
+- [ ] 70/30 feed ratio maintained
+- [ ] Consensus alerts functional
+- [ ] Mock data creates realistic scenarios
+- [ ] Performance under 2 seconds
+- [ ] Graceful fallbacks implemented
+- [ ] Service initialization pattern applied
+- [ ] Purple AI badges consistent across features
+
+---
+
 ## Sprint Overview
 
 This sprint integrates AI features INTO existing UI components:
@@ -136,9 +366,9 @@ export class FeedService {
       // Find behaviorally similar users first
       const { data: similarUsers } = await supabase
         .rpc('find_similar_users', {
-          query_user_id: userId,
-          match_threshold: 0.65, // Slightly lower for discovery
-          limit_count: 20 // Get more users to pull content from
+          query_embedding: userProfile.profile_embedding,
+          p_user_id: userId,
+          limit_count: 20
         });
         
       if (!similarUsers?.length) return [];

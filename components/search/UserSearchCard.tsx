@@ -31,8 +31,17 @@ export function UserSearchCard({ user, isFollowing = false, onFollowChange }: Us
       return 'No bets yet';
     }
 
-    const winRate = Math.round((user.win_rate || 0) * 100);
-    return `${user.win_count}-${user.loss_count} • ${winRate}%`;
+    // Handle win_rate whether it's a decimal (0-1) or percentage (0-100)
+    let winRate = user.win_rate || 0;
+    if (winRate <= 1) {
+      // It's a decimal, convert to percentage
+      winRate = Math.round(winRate * 100);
+    } else {
+      // It's already a percentage, just round it
+      winRate = Math.round(winRate);
+    }
+    
+    return `${user.win_count || 0}-${user.loss_count || 0} • ${winRate}%`;
   };
 
   return (

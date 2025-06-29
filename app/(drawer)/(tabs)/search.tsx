@@ -116,7 +116,7 @@ function SearchScreenContent() {
 
       <DiscoverySection
         title="Find Your Tribe"
-        subtitle="Discover users similar to you • Powered by AI ✨"
+        subtitle="Discover users similar to you"
         emoji="🤝"
         users={suggestions}
         isLoading={isFriendLoading}
@@ -125,6 +125,7 @@ function SearchScreenContent() {
         followingStatus={allFollowingStatus}
         onFollowChange={handleFollowChange}
         onRefresh={refreshFriends}
+        showAIBadge={true}
       />
 
       <DiscoverySection
