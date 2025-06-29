@@ -1,5 +1,6 @@
 import { BaseJob, JobOptions, JobResult } from './types';
 import { supabase } from '../supabase-client';
+import { notificationService } from '@/services/notifications/notificationService';
 
 /**
  * Smart Notifications Job
@@ -21,6 +22,9 @@ export class SmartNotificationsJob extends BaseJob {
     let processedCount = 0;
 
     try {
+      // Initialize notification service with supabase client
+      notificationService.initialize(supabase);
+
       // Get all users with behavioral embeddings
       const { data: users, error } = await supabase
         .from('users')
@@ -52,9 +56,7 @@ export class SmartNotificationsJob extends BaseJob {
           batch.map(async (user) => {
             try {
               this.log(`Generating smart notifications for user ${user.username}`);
-              // TODO: Call notification service method here
-              // For now, we'll just simulate the work
-              await this.generateNotificationsForUser(user.id);
+              await notificationService.generateSmartNotifications(user.id);
               processedCount++;
             } catch (error) {
               console.error(`Error processing user ${user.username}:`, error);
@@ -81,15 +83,6 @@ export class SmartNotificationsJob extends BaseJob {
         affected: processedCount,
       };
     }
-  }
-
-  /**
-   * Generate notifications for a single user
-   * This is a placeholder - in production, this would call the actual notification service
-   */
-  private async generateNotificationsForUser(_userId: string): Promise<void> {
-    // Simulate work - in production, this would call notificationService.generateSmartNotifications
-    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 }
 

@@ -1,5 +1,6 @@
 import { supabase } from '@/services/supabase/client';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
+import { Database } from '@/types/database';
 
 export interface Notification {
   id: string;
@@ -59,11 +60,53 @@ export interface Notification {
   read_at: string | null;
 }
 
+// Add interface for bet details
+interface BetDetails {
+  team?: string;
+  line?: number;
+  type?: string;
+  odds?: number;
+}
+
+// Add interface for bet with relations
+interface BetWithRelations {
+  id: string;
+  user_id: string;
+  game_id: string;
+  bet_type: string;
+  bet_details: BetDetails | null;
+  stake: number;
+  created_at: string;
+  archived: boolean;
+  user: {
+    username: string;
+    display_name?: string;
+  };
+  game?: {
+    home_team: string;
+    away_team: string;
+    sport: string;
+  };
+}
+
 class NotificationService {
   private channels: Map<string, RealtimeChannel> = new Map();
+  private supabaseClient: SupabaseClient<Database> | null = null;
+
+  initialize(client: SupabaseClient<Database>) {
+    this.supabaseClient = client;
+  }
+
+  private getClient(): SupabaseClient<Database> {
+    if (!this.supabaseClient) {
+      // For singleton compatibility, fall back to imported client
+      return supabase;
+    }
+    return this.supabaseClient;
+  }
 
   async getNotifications(userId: string, limit = 20, offset = 0): Promise<Notification[]> {
-    const { data, error } = await supabase
+    const { data, error } = await this.getClient()
       .from('notifications')
       .select('*')
       .eq('user_id', userId)
@@ -79,7 +122,7 @@ class NotificationService {
   }
 
   async getUnreadCount(userId: string): Promise<number> {
-    const { count, error } = await supabase
+    const { count, error } = await this.getClient()
       .from('notifications')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
@@ -94,7 +137,7 @@ class NotificationService {
   }
 
   async markAsRead(notificationId: string): Promise<boolean> {
-    const { error } = await supabase
+    const { error } = await this.getClient()
       .from('notifications')
       .update({ read: true, read_at: new Date().toISOString() })
       .eq('id', notificationId);
@@ -108,7 +151,7 @@ class NotificationService {
   }
 
   async markAllAsRead(userId: string): Promise<boolean> {
-    const { error } = await supabase
+    const { error } = await this.getClient()
       .from('notifications')
       .update({ read: true, read_at: new Date().toISOString() })
       .eq('user_id', userId)
@@ -129,7 +172,7 @@ class NotificationService {
     // Clean up any existing subscription for this user
     this.unsubscribeFromNotifications(userId);
 
-    const channel = supabase
+    const channel = this.getClient()
       .channel(`notifications:${userId}`)
       .on(
         'postgres_changes',
@@ -272,7 +315,7 @@ class NotificationService {
   async generateSmartNotifications(userId: string): Promise<void> {
     try {
       // Get user's behavioral embedding
-      const { data: user } = await supabase
+      const { data: user } = await this.getClient()
         .from('users')
         .select('profile_embedding')
         .eq('id', userId)
@@ -281,7 +324,7 @@ class NotificationService {
       if (!user?.profile_embedding) return;
 
       // Find behaviorally similar users
-      const { data: similarUsers } = await supabase.rpc('find_similar_users', {
+      const { data: similarUsers } = await this.getClient().rpc('find_similar_users', {
         query_embedding: user.profile_embedding,
         p_user_id: userId,
         limit_count: 30,
@@ -309,7 +352,7 @@ class NotificationService {
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
 
     // Get recent bets from similar users
-    const { data: recentBets } = await supabase
+    const { data: recentBets } = await this.getClient()
       .from('bets')
       .select(
         `
@@ -329,8 +372,11 @@ class NotificationService {
 
     if (!recentBets?.length) return;
 
+    // Cast to proper type
+    const typedBets = recentBets as unknown as BetWithRelations[];
+
     // Find interesting bets with reasons
-    const interestingBets = this.findInterestingBetsWithReasons(recentBets);
+    const interestingBets = this.findInterestingBetsWithReasons(typedBets);
 
     for (const pattern of interestingBets) {
       await this.createSmartNotification(userId, {
@@ -355,7 +401,7 @@ class NotificationService {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
     // Get user's recent bets
-    const { data: userBets } = await supabase
+    const { data: userBets } = await this.getClient()
       .from('bets')
       .select('*')
       .eq('user_id', userId)
@@ -366,7 +412,13 @@ class NotificationService {
 
     // For each bet, check if similar users made the same bet
     for (const userBet of userBets) {
-      const { data: matchingBets } = await supabase
+      // Type guard for bet_details
+      if (!userBet.bet_details || typeof userBet.bet_details !== 'object') continue;
+
+      const betDetails = userBet.bet_details as BetDetails;
+      if (!betDetails.team) continue;
+
+      const { data: matchingBets } = await this.getClient()
         .from('bets')
         .select(
           `
@@ -380,17 +432,16 @@ class NotificationService {
         )
         .eq('game_id', userBet.game_id)
         .eq('bet_type', userBet.bet_type)
-        .eq('bet_details->team', userBet.bet_details.team)
+        .eq('bet_details->team', betDetails.team)
         .gte('created_at', oneHourAgo);
 
       if (matchingBets && matchingBets.length >= 2) {
-        const usernames = matchingBets.map((b) => b.user.username);
-        const team =
-          userBet.bet_details &&
-          typeof userBet.bet_details === 'object' &&
-          'team' in userBet.bet_details
-            ? userBet.bet_details.team
-            : 'selection';
+        const typedMatchingBets = matchingBets as Array<{
+          user: { username: string };
+          user_id: string;
+        }>;
+        const usernames = typedMatchingBets.map((b) => b.user.username);
+        const team = betDetails.team;
         const message =
           matchingBets.length === 2
             ? `${usernames.join(' and ')} also bet ${team} ${userBet.bet_type}`
@@ -402,7 +453,7 @@ class NotificationService {
           message,
           data: {
             betId: userBet.id,
-            similarUsers: matchingBets.map((b) => b.user_id),
+            similarUsers: typedMatchingBets.map((b) => b.user_id),
             consensusType: 'behavioral',
             matchingBets: matchingBets.length,
           },
@@ -415,15 +466,7 @@ class NotificationService {
    * Find bets that would interest this user based on behavior
    */
   private findInterestingBetsWithReasons(
-    bets: Array<{
-      id: string;
-      user_id: string;
-      game_id: string;
-      bet_type: string;
-      bet_details: { team?: string };
-      stake: number;
-      user: { username: string };
-    }>
+    bets: BetWithRelations[]
   ): Array<{ message: string; data: Record<string, unknown>; behavioralReason: string }> {
     const patterns: Array<{
       message: string;
@@ -432,7 +475,7 @@ class NotificationService {
     }> = [];
 
     // Group by game and bet type
-    const gameGroups = new Map<string, typeof bets>();
+    const gameGroups = new Map<string, BetWithRelations[]>();
     bets.forEach((bet) => {
       const key = `${bet.game_id}-${bet.bet_type}`;
       if (!gameGroups.has(key)) gameGroups.set(key, []);
@@ -444,13 +487,14 @@ class NotificationService {
       if (groupBets.length >= 3) {
         const firstBet = groupBets[0];
         const usernames = groupBets.map((b) => b.user.username).slice(0, 3);
+        const team = firstBet.bet_details?.team || 'selection';
 
         patterns.push({
-          message: `${usernames.join(', ')} all bet ${firstBet.bet_details.team} ${firstBet.bet_type}`,
+          message: `${usernames.join(', ')} all bet ${team} ${firstBet.bet_type}`,
           data: {
             gameId: firstBet.game_id,
             betType: firstBet.bet_type,
-            team: firstBet.bet_details.team,
+            team: team,
             userCount: groupBets.length,
           },
           behavioralReason: 'Multiple similar bettors on same pick',
@@ -462,8 +506,9 @@ class NotificationService {
     const highValueBets = bets.filter((b) => b.stake >= 15000); // $150+
     if (highValueBets.length > 0) {
       const bet = highValueBets[0];
+      const team = bet.bet_details?.team || 'selection';
       patterns.push({
-        message: `${bet.user.username} just placed $${bet.stake / 100} on ${bet.bet_details.team}`,
+        message: `${bet.user.username} just placed $${bet.stake / 100} on ${team}`,
         data: {
           betId: bet.id,
           amount: bet.stake,
@@ -488,16 +533,18 @@ class NotificationService {
       data: Record<string, unknown>;
     }
   ): Promise<void> {
-    await supabase.from('notifications').insert({
-      user_id: userId,
-      type: notification.type,
-      data: {
-        ...notification.data,
-        message: notification.message,
-      },
-      read: false,
-      created_at: new Date().toISOString(),
-    });
+    await this.getClient()
+      .from('notifications')
+      .insert({
+        user_id: userId,
+        type: notification.type,
+        data: {
+          ...notification.data,
+          message: notification.message,
+        },
+        read: false,
+        created_at: new Date().toISOString(),
+      });
 
     // TODO: Send push notification if enabled
     // await this.sendPushNotification(userId, notification.title, notification.message);

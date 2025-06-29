@@ -1,8 +1,11 @@
 import { supabase } from '@/services/supabase/client';
-import { PostWithType } from '@/types/content';
+import { PostWithType, PostType } from '@/types/content';
+import { MediaType, Bet, Game } from '@/types/database-helpers';
 import { getFollowingIds } from '@/services/api/followUser';
 import { Storage, StorageKeys, CacheUtils } from '@/services/storage/storageService';
 import { withActiveContent } from '@/utils/database/archiveFilter';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { Database, Json } from '@/types/database';
 
 // Types
 export interface FeedCursor {
@@ -42,6 +45,67 @@ interface UserMetrics {
   dominantBetType: string | null;
 }
 
+// Custom type for getPostById query result
+interface PostQueryResult {
+  id: string;
+  user_id: string;
+  post_type: string;
+  media_url: string;
+  media_type: string;
+  thumbnail_url: string | null;
+  caption: string | null;
+  effect_id: string | null;
+  bet_id: string | null;
+  settled_bet_id: string | null;
+  comment_count: number | null;
+  tail_count: number | null;
+  fade_count: number | null;
+  reaction_count: number | null;
+  report_count: number | null;
+  created_at: string | null;
+  expires_at: string;
+  deleted_at: string | null;
+  archived: boolean | null;
+  user: {
+    id: string;
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  } | null;
+  reactions: Array<{
+    id: string;
+    user_id: string;
+    reaction_type: string;
+  }> | null;
+  comments: Array<{
+    id: string;
+    user_id: string;
+    content: string;
+    created_at: string | null;
+    user: {
+      id: string;
+      username: string;
+      display_name: string | null;
+      avatar_url: string | null;
+    } | null;
+  }> | null;
+  bet: {
+    id: string;
+    bet_type: string;
+    bet_details: Json;
+    stake: number;
+    potential_win: number;
+    status: string;
+    game: {
+      id: string;
+      home_team: string;
+      away_team: string;
+      sport: string;
+      start_time: string;
+    } | null;
+  } | null;
+}
+
 // Constants
 const POSTS_PER_PAGE = 20;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -50,6 +114,19 @@ const MAX_FOLLOWING_FOR_REALTIME = 100;
 export class FeedService {
   private readonly FOLLOWING_RATIO = 0.7;
   private readonly DISCOVERY_RATIO = 0.3;
+  private supabaseClient: SupabaseClient<Database> | null = null;
+
+  initialize(client: SupabaseClient<Database>) {
+    this.supabaseClient = client;
+  }
+
+  private getClient(): SupabaseClient<Database> {
+    if (!this.supabaseClient) {
+      // For singleton compatibility, fall back to imported client
+      return supabase;
+    }
+    return this.supabaseClient;
+  }
 
   // Get posts from followed users with pagination
   async getFeedPosts(userId: string, cursor?: FeedCursor): Promise<FeedResponse> {
@@ -66,7 +143,7 @@ export class FeedService {
       }
 
       // Get blocked user IDs to filter out
-      const { data: blockedUsers } = await supabase.rpc('get_blocked_user_ids', {
+      const { data: blockedUsers } = await this.getClient().rpc('get_blocked_user_ids', {
         p_user_id: userId,
       });
 
@@ -74,8 +151,10 @@ export class FeedService {
 
       // Build query with privacy filter and blocked users filter
       const query = withActiveContent(
-        supabase.from('posts').select(
-          `
+        this.getClient()
+          .from('posts')
+          .select(
+            `
             *,
             user:users!user_id (
               id,
@@ -86,7 +165,7 @@ export class FeedService {
             bet:bets!bet_id (*),
             settled_bet:bets!settled_bet_id (*)
           `
-        )
+          )
       )
         .in('user_id', userIds)
         .gte('expires_at', new Date().toISOString())
@@ -216,7 +295,7 @@ export class FeedService {
   }
 
   async getPostById(postId: string): Promise<PostWithType | null> {
-    const query = supabase
+    const { data, error } = await this.getClient()
       .from('posts')
       .select(
         `
@@ -244,12 +323,12 @@ export class FeedService {
             avatar_url
           )
         ),
-        bets!inner(
+        bet:bets!bet_id(
           id,
           bet_type,
           bet_details,
-          amount,
-          potential_payout,
+          stake,
+          potential_win,
           status,
           game:games!game_id(
             id,
@@ -262,17 +341,61 @@ export class FeedService {
       `
       )
       .eq('id', postId)
+      .eq('archived', false)
+      .is('deleted_at', null)
       .single();
-
-    // Apply archive filter directly
-    const { data, error } = await query.eq('archived', false).is('deleted_at', null);
 
     if (error) {
       console.error('Error fetching post:', error);
       return null;
     }
 
-    return data as PostWithType;
+    // Convert PostQueryResult to PostWithType
+    const queryResult = data as unknown as PostQueryResult;
+
+    // Map the query result to PostWithType format
+    const postWithType: PostWithType = {
+      id: queryResult.id,
+      user_id: queryResult.user_id,
+      post_type: queryResult.post_type as PostType, // Will be validated by PostType enum
+      media_url: queryResult.media_url,
+      media_type: queryResult.media_type as MediaType,
+      thumbnail_url: queryResult.thumbnail_url,
+      caption: queryResult.caption,
+      effect_id: queryResult.effect_id,
+      bet_id: queryResult.bet_id,
+      settled_bet_id: queryResult.settled_bet_id,
+      comment_count: queryResult.comment_count || 0,
+      tail_count: queryResult.tail_count || 0,
+      fade_count: queryResult.fade_count || 0,
+      reaction_count: queryResult.reaction_count || 0,
+      report_count: queryResult.report_count || undefined,
+      created_at: queryResult.created_at || new Date().toISOString(),
+      expires_at: queryResult.expires_at,
+      deleted_at: queryResult.deleted_at,
+      user: queryResult.user || undefined,
+      bet: queryResult.bet
+        ? ({
+            ...queryResult.bet,
+            // Add required fields that might be missing
+            actual_win: null,
+            archived: false,
+            created_at: null,
+            deleted_at: null,
+            expires_at: null,
+            game_id: queryResult.bet.game?.id || '',
+            is_fade: false,
+            is_tail: false,
+            odds: 0,
+            original_pick_id: null,
+            settled_at: null,
+            user_id: queryResult.user_id,
+            game: queryResult.bet.game || undefined,
+          } as Bet & { game?: Game })
+        : undefined,
+    };
+
+    return postWithType;
   }
 
   /**
@@ -320,7 +443,7 @@ export class FeedService {
   private async getDiscoveredPosts(userId: string, limit: number): Promise<FeedPost[]> {
     try {
       // Get user's behavioral embedding
-      const { data: userProfile } = await supabase
+      const { data: userProfile } = await this.getClient()
         .from('users')
         .select('profile_embedding')
         .eq('id', userId)
@@ -331,7 +454,7 @@ export class FeedService {
       }
 
       // Find behaviorally similar users first
-      const { data: similarUsers } = await supabase.rpc('find_similar_users', {
+      const { data: similarUsers } = await this.getClient().rpc('find_similar_users', {
         query_embedding: userProfile.profile_embedding,
         p_user_id: userId,
         limit_count: 20,
@@ -340,7 +463,7 @@ export class FeedService {
       if (!similarUsers?.length) return [];
 
       // Get recent posts from similar users (not followed)
-      const { data: followedUsers } = await supabase
+      const { data: followedUsers } = await this.getClient()
         .from('follows')
         .select('following_id')
         .eq('follower_id', userId);
@@ -353,7 +476,7 @@ export class FeedService {
       if (!similarNotFollowed.length) return [];
 
       // Get posts from behaviorally similar users
-      const postsQuery = supabase
+      const postsQuery = this.getClient()
         .from('posts')
         .select(
           `
@@ -423,11 +546,11 @@ export class FeedService {
     posts: PostWithType[]
   ): Promise<Array<{ post: PostWithType; score: number; reason: string }>> {
     // Get user's behavioral data for comparison
-    const { data: userBehavior } = await supabase
+    const { data: userBehavior } = await this.getClient()
       .from('users')
       .select(
         `
-        bets(bet_type, bet_details, stake, created_at, game:games(sport)),
+        bets(bet_type, bet_details, stake, created_at, status, game:games(sport)),
         reactions(post_id, reaction_type),
         posts(caption)
       `
@@ -444,11 +567,11 @@ export class FeedService {
 
     // Calculate user's behavioral metrics
     const userMetrics = this.calculateUserMetrics({
-      bets: userBehavior.bets?.map((bet: any) => ({
+      bets: userBehavior.bets?.map((bet) => ({
         bet_type: bet.bet_type,
-        bet_details: bet.bet_details,
+        bet_details: bet.bet_details as { team?: string } | null,
         stake: bet.stake,
-        created_at: bet.created_at,
+        created_at: bet.created_at || '',
         status: bet.status || 'pending',
       })),
     });
@@ -478,7 +601,7 @@ export class FeedService {
         }
 
         // Get post author's metrics for comparison
-        const { data: authorBets } = await supabase
+        const { data: authorBets } = await this.getClient()
           .from('bets')
           .select('stake')
           .eq('user_id', post.user_id)
