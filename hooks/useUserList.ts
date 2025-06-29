@@ -7,7 +7,6 @@ interface User {
   id: string;
   username: string;
   avatar_url?: string;
-  favorite_team?: string;
   display_name?: string;
   bio?: string;
 }
@@ -90,7 +89,6 @@ export function useUserList({ type, searchQuery = '' }: UseUserListOptions): Use
               id,
               username,
               avatar_url,
-              favorite_team,
               display_name,
               bio
             )
@@ -108,7 +106,6 @@ export function useUserList({ type, searchQuery = '' }: UseUserListOptions): Use
               id,
               username,
               avatar_url,
-              favorite_team,
               display_name,
               bio
             )

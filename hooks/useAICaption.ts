@@ -2,10 +2,12 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { toastService } from '@/services/toastService';
 import { supabase } from '@/services/supabase/client';
-import { trackEvent } from '@/utils/analytics';
+import { Database } from '@/types/database';
+
+type Bet = Database['public']['Tables']['bets']['Row'];
 
 interface UseAICaptionOptions {
-  bet?: any;
+  bet?: Bet;
   postType: 'pick' | 'story' | 'post';
 }
 
@@ -22,7 +24,7 @@ export function useAICaption(options: UseAICaptionOptions) {
 
     // Progressive enhancement
     if (tapCount >= 2) {
-      toastService.show('Try writing your own! 💭', 'info');
+      toastService.showInfo('Try writing your own! 💭');
       setTapCount(0);
       return;
     }
@@ -47,17 +49,11 @@ export function useAICaption(options: UseAICaptionOptions) {
       setCaption(data.caption);
       setRemaining(data.remaining);
       setTapCount((prev) => prev + 1);
-
-      // Track analytics
-      trackEvent('ai_caption_generated', {
-        postType: options.postType,
-        captionLength: data.caption.length,
-        regenerated: tapCount > 0,
-      });
-    } catch (err: any) {
-      const message = err.message || 'Caption generation unavailable. Try again?';
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Caption generation unavailable. Try again?';
       setError(message);
-      toastService.show(message, 'error');
+      toastService.showError(message);
     } finally {
       setIsGenerating(false);
     }

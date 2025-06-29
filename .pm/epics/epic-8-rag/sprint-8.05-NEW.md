@@ -1160,3 +1160,458 @@ if (commonTeams.length > 0) {
 - Remove BOTH team columns (not just array)
 - Add activity-based embedding update trigger
 - Ensure pure behavioral approach throughout
+
+## Sprint Metrics
+
+**Duration**: Planned 3-4 hours | Actual [Y] hours  
+**Scope Changes**: [Number of plan updates]  
+**Review Cycles**: [Number of review rounds]  
+**Files Touched**: 12+  
+**Lines Added**: ~500  
+**Lines Removed**: ~100
+
+## Learnings for Future Sprints
+
+1. [Learning 1]: [How to apply in future]
+2. [Learning 2]: [How to apply in future]
+
+---
+
+## Sprint 8.05 Implementation Summary - EXECUTOR UPDATE
+
+### Sprint Status: HANDOFF
+**Date**: 2024-12-31
+**Executor**: E
+
+### Completed Implementation
+
+#### 1. Database Migration ✅
+- Created `035_remove_all_team_preferences.sql`
+- Removed BOTH `favorite_team` and `favorite_teams` columns
+- Added performance index on `last_embedding_update`
+- Successfully applied via Supabase MCP
+- Regenerated TypeScript types
+
+#### 2. Embedding Pipeline Updates ✅
+- Updated `services/rag/embeddingPipeline.ts`:
+  - Removed ALL team preference storage logic
+  - Implemented comprehensive behavioral analysis
+  - Added early update trigger (20+ new bets)
+  - Fixed all TypeScript types (no `any`)
+  - Behavioral patterns analyzed:
+    - Betting patterns (teams, sports, bet types, stakes)
+    - Social connections (followers, interactions)
+    - Engagement metrics (posts, reactions, comments)
+    - Temporal activity patterns
+
+#### 3. Friend Discovery Service ✅
+- Created `services/social/friendDiscoveryService.ts`:
+  - Uses existing `find_similar_users` RPC function
+  - Generates behavioral insights dynamically
+  - Creates human-readable reasons for matches
+  - Returns UserWithStats type for compatibility
+
+#### 4. Search Tab Integration ✅
+- Updated `app/(drawer)/(tabs)/search.tsx`:
+  - Added "Find Your Tribe" as first discovery section
+  - Created `useFriendDiscovery` hook
+  - Integrated with existing DiscoverySection component
+  - Proper loading and error states
+
+#### 5. Code Quality ✅
+- **0 lint errors** (fixed all 23 errors)
+- **0 TypeScript errors** (fixed all 30 errors)
+- All files properly typed
+- No eslint-disable or @ts-ignore comments
+
+### Files Modified/Created
+1. `supabase/migrations/035_remove_all_team_preferences.sql` (created)
+2. `services/rag/embeddingPipeline.ts` (updated - behavioral analysis)
+3. `services/social/friendDiscoveryService.ts` (created)
+4. `app/(drawer)/(tabs)/search.tsx` (updated - Find Your Tribe)
+5. `hooks/useFriendDiscovery.ts` (created)
+6. `services/search/searchService.ts` (removed favorite_team)
+7. `types/database.ts` (regenerated)
+8. `app/(auth)/onboarding/follow.tsx` (removed favorite_team)
+9. `app/(auth)/onboarding/team.tsx` (removed favorite_team)
+10. `app/(drawer)/profile/[username].tsx` (removed favorite_team)
+11. `stores/authStore.ts` (deprecated updateFavoriteTeam)
+12. `hooks/useUserList.ts` (removed favorite_team)
+13. `utils/onboarding/suggestions.ts` (fixed type issues)
+14. `components/creation/AICaptionButton.tsx` (fixed lint)
+15. `hooks/useAICaption.ts` (fixed types)
+16. `supabase/functions/generate-caption/index.ts` (fixed lint)
+
+### Key Implementation Details
+- Behavioral clusters emerge naturally from user data
+- No pre-defined team preferences - all discovered from behavior
+- Friend discovery provides contextual reasons
+- Seamless integration with existing UI components
+
+---
+
+## Mock Data Enhancement Plan for RAG Pipeline
+
+### Current State Analysis
+
+#### What Works Well:
+1. Historical content creation (25+ hours ago for archiving)
+2. Production jobs integration (content-expiration, embedding-generation)
+3. Badge-worthy betting patterns
+4. Social graph (follows, reactions, comments)
+5. Messaging and notifications
+
+#### Critical Gaps for RAG:
+
+1. **Insufficient Volume**:
+   - Only ~25 historical posts (need 200+)
+   - Only ~60 historical bets (need 1000+)
+   - Limited engagement data
+
+2. **Shallow Behavioral Patterns**:
+   - Random betting with no consistency
+   - No temporal patterns
+   - No stake size patterns
+   - No sport/team preferences emerging
+
+3. **Missing Interaction Patterns**:
+   - No consistent tail/fade relationships
+   - No chat message patterns
+   - No reaction preferences
+
+### Comprehensive Enhancement Plan
+
+#### Phase 1: Rich Historical Data Generation
+
+```typescript
+// Enhanced historical content generation
+async function createRichHistoricalContent(mockUsers: User[], games: Game[]) {
+  console.log('\n📚 Creating rich historical content for RAG processing...');
+  
+  // 1. Generate behavioral profiles for consistency
+  const userProfiles = new Map<string, UserBehavioralProfile>();
+  
+  for (const user of mockUsers) {
+    const profile = generateBehavioralProfile(user.mock_personality_id);
+    userProfiles.set(user.id, profile);
+  }
+  
+  // 2. Create 30-60 days of betting history (100-200 bets per user)
+  const historicalBets = [];
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  
+  for (const user of mockUsers) {
+    const profile = userProfiles.get(user.id)!;
+    const betCount = getBetCountForPersonality(user.mock_personality_id); // 50-200
+    
+    for (let i = 0; i < betCount; i++) {
+      const dayOffset = Math.floor(i / 5); // 5 bets per day average
+      const createdAt = new Date(thirtyDaysAgo.getTime() + dayOffset * 24 * 60 * 60 * 1000);
+      
+      // Generate bet consistent with profile
+      const bet = generateProfileConsistentBet(user, profile, games, createdAt);
+      historicalBets.push(bet);
+    }
+  }
+  
+  // 3. Create post history with consistent patterns
+  const historicalPosts = [];
+  
+  for (const user of mockUsers) {
+    const profile = userProfiles.get(user.id)!;
+    const postCount = 20 + Math.floor(Math.random() * 30); // 20-50 posts
+    
+    for (let i = 0; i < postCount; i++) {
+      const post = generateProfileConsistentPost(user, profile, historicalBets);
+      historicalPosts.push(post);
+    }
+  }
+  
+  // 4. Create engagement patterns
+  await createConsistentEngagement(historicalPosts, mockUsers, userProfiles);
+  
+  return { historicalBets, historicalPosts };
+}
+```
+
+#### Phase 2: Behavioral Profile System
+
+```typescript
+interface UserBehavioralProfile {
+  // Betting patterns
+  favoriteSports: string[];
+  favoriteTeams: string[];
+  betTypeDistribution: {
+    spread: number;
+    total: number;
+    moneyline: number;
+    parlay: number;
+  };
+  stakePattern: 'conservative' | 'moderate' | 'aggressive' | 'variable';
+  avgStakeMultiplier: number; // 0.5x to 3x of base
+  peakHours: number[]; // Hours when most active
+  
+  // Social patterns
+  followsPersonalities: string[]; // Types of users they follow
+  engagementLevel: 'heavy' | 'moderate' | 'lurker';
+  reactionPreferences: string[]; // Preferred emojis
+  tailVsFade: number; // 0-1, 0 = always fade, 1 = always tail
+  
+  // Content patterns
+  captionStyle: 'minimal' | 'analytical' | 'emotional' | 'emoji-heavy';
+  postFrequency: number; // Posts per week
+  pickShareRate: number; // % of bets shared as picks
+}
+
+function generateBehavioralProfile(personality: string): UserBehavioralProfile {
+  switch(personality) {
+    case 'sharp-steve':
+      return {
+        favoriteSports: ['NBA', 'NFL'],
+        favoriteTeams: ['Lakers', 'Heat', 'Chiefs', '49ers'],
+        betTypeDistribution: { spread: 70, total: 20, moneyline: 10, parlay: 0 },
+        stakePattern: 'moderate',
+        avgStakeMultiplier: 1.5,
+        peakHours: [19, 20, 21], // Evening analysis time
+        followsPersonalities: ['sharp-steve', 'fade-frank'],
+        engagementLevel: 'moderate',
+        reactionPreferences: ['💯', '🔥'],
+        tailVsFade: 0.7, // Mostly tails other sharps
+        captionStyle: 'analytical',
+        postFrequency: 7,
+        pickShareRate: 0.4
+      };
+      
+    case 'degen-dave':
+      return {
+        favoriteSports: ['NBA', 'NFL', 'NHL', 'MLB'],
+        favoriteTeams: [], // Bets everything
+        betTypeDistribution: { spread: 20, total: 20, moneyline: 10, parlay: 50 },
+        stakePattern: 'aggressive',
+        avgStakeMultiplier: 2.5,
+        peakHours: [22, 23, 0, 1], // Late night degen hours
+        followsPersonalities: ['degen-dave', 'casual-carl'],
+        engagementLevel: 'heavy',
+        reactionPreferences: ['🚀', '💀', '😭'],
+        tailVsFade: 0.5, // Random
+        captionStyle: 'emoji-heavy',
+        postFrequency: 15,
+        pickShareRate: 0.8
+      };
+      
+    case 'square-bob':
+      return {
+        favoriteSports: ['NFL', 'NBA'],
+        favoriteTeams: ['Cowboys', 'Lakers', 'Yankees'], // Public teams
+        betTypeDistribution: { spread: 80, total: 15, moneyline: 5, parlay: 0 },
+        stakePattern: 'conservative',
+        avgStakeMultiplier: 0.8,
+        peakHours: [12, 13, 14], // Lunch break betting
+        followsPersonalities: ['square-bob', 'public-pete'],
+        engagementLevel: 'moderate',
+        reactionPreferences: ['🔥', '😂'],
+        tailVsFade: 0.9, // Always tails public
+        captionStyle: 'emotional',
+        postFrequency: 5,
+        pickShareRate: 0.6
+      };
+    
+    // ... other personalities
+  }
+}
+```
+
+#### Phase 3: Consistent Bet Generation
+
+```typescript
+function generateProfileConsistentBet(
+  user: User,
+  profile: UserBehavioralProfile,
+  games: Game[],
+  createdAt: Date
+): Bet {
+  // Filter games by profile's favorite sports
+  const relevantGames = games.filter(g => 
+    profile.favoriteSports.includes(g.sport)
+  );
+  
+  // Prefer games with favorite teams
+  const favoriteTeamGames = relevantGames.filter(g =>
+    profile.favoriteTeams.includes(g.home_team) ||
+    profile.favoriteTeams.includes(g.away_team)
+  );
+  
+  const game = favoriteTeamGames.length > 0 
+    ? favoriteTeamGames[Math.floor(Math.random() * favoriteTeamGames.length)]
+    : relevantGames[Math.floor(Math.random() * relevantGames.length)];
+  
+  // Determine bet type based on distribution
+  const betType = selectByDistribution(profile.betTypeDistribution);
+  
+  // Calculate stake based on pattern
+  const baseStake = 2000; // $20
+  const stake = Math.round(baseStake * profile.avgStakeMultiplier * (0.8 + Math.random() * 0.4));
+  
+  // Prefer betting on favorite teams
+  const team = profile.favoriteTeams.includes(game.home_team) ? game.home_team :
+               profile.favoriteTeams.includes(game.away_team) ? game.away_team :
+               Math.random() > 0.5 ? game.home_team : game.away_team;
+  
+  return {
+    id: crypto.randomUUID(),
+    user_id: user.id,
+    game_id: game.id,
+    bet_type: betType,
+    bet_details: {
+      team,
+      line: betType === 'spread' ? (Math.random() > 0.5 ? -3.5 : 3.5) : null,
+      total: betType === 'total' ? (Math.random() > 0.5 ? 'over' : 'under') : null,
+    },
+    odds: -110,
+    stake,
+    potential_win: Math.round(stake * 0.91),
+    status: 'pending',
+    created_at: createdAt.toISOString(),
+  };
+}
+```
+
+#### Phase 4: Enhanced Mock Setup Flow
+
+```typescript
+export async function setupMockDataWithRAG(userId: string) {
+  console.log('🚀 Starting enhanced mock data setup with RAG support...\n');
+  
+  try {
+    // 1. Generate mock users
+    const mockUsers = await generateMockUsers();
+    
+    // 2. Create rich historical content (30-60 days)
+    const { historicalBets, historicalPosts } = await createRichHistoricalContent(
+      mockUsers, 
+      games
+    );
+    
+    // 3. Insert historical data
+    await supabase.from('bets').insert(historicalBets);
+    await supabase.from('posts').insert(historicalPosts);
+    
+    console.log(`✅ Created ${historicalBets.length} historical bets`);
+    console.log(`✅ Created ${historicalPosts.length} historical posts`);
+    
+    // 4. Run archival job
+    console.log('\n📦 Running content expiration job...');
+    execSync('bun run scripts/jobs/content-expiration.ts', { stdio: 'inherit' });
+    
+    // 5. Run embedding generation
+    console.log('\n🤖 Running embedding generation job...');
+    execSync('bun run scripts/jobs/embedding-generation.ts', { stdio: 'inherit' });
+    
+    // 6. Create recent content (last 7 days)
+    await createRecentContent(mockUsers, games);
+    
+    // 7. Create fresh content (last 24 hours)
+    await createFreshContent(mockUsers, games);
+    
+    // 8. Update all user profile embeddings
+    console.log('\n🧠 Updating user profile embeddings...');
+    for (const user of mockUsers) {
+      await embeddingPipeline.updateUserProfile(user.id);
+    }
+    
+    // 9. Verify RAG suggestions
+    await verifyRAGSuggestions(userId);
+    
+    console.log('\n✨ Enhanced mock data setup complete with RAG support!');
+  } catch (error) {
+    console.error('Setup failed:', error);
+  }
+}
+```
+
+#### Phase 5: Implementation Tasks
+
+1. **Update `scripts/mock/generators/bets.ts`**:
+   - Add `generateProfileConsistentBet` function
+   - Implement sport/team preferences
+   - Add temporal betting patterns
+
+2. **Update `scripts/mock/generators/posts.ts`**:
+   - Add caption style consistency
+   - Create pick posts with bet references
+   - Implement posting frequency patterns
+
+3. **Update `scripts/mock/generators/engagement.ts`**:
+   - Create tail/fade relationships based on profiles
+   - Add reaction preference patterns
+   - Generate meaningful comment threads
+
+4. **Create `scripts/mock/generators/profiles.ts`**:
+   - Define all personality profiles
+   - Export profile generation functions
+   - Add profile evolution logic
+
+5. **Update `scripts/mock/orchestrators/setup.ts`**:
+   - Integrate behavioral profile system
+   - Increase historical data volume
+   - Add RAG verification step
+
+### Verification & Testing
+
+```typescript
+async function verifyRAGSuggestions(userId: string) {
+  console.log('\n🔍 Verifying RAG suggestions...');
+  
+  // 1. Check embeddings
+  const { data: usersWithEmbeddings } = await supabase
+    .from('users')
+    .select('username, profile_embedding')
+    .not('profile_embedding', 'is', null);
+  
+  console.log(`✅ ${usersWithEmbeddings?.length || 0} users have embeddings`);
+  
+  // 2. Test friend discovery
+  const suggestions = await friendDiscoveryService.getSuggestions(userId, 10);
+  console.log(`✅ Found ${suggestions.length} friend suggestions`);
+  
+  // 3. Display sample suggestions
+  suggestions.slice(0, 3).forEach((s, i) => {
+    console.log(`\nSuggestion ${i + 1}: ${s.username}`);
+    console.log(`  Similarity: ${(s.similarity * 100).toFixed(1)}%`);
+    console.log(`  Reasons: ${s.reasons.join(', ')}`);
+    console.log(`  Style: ${s.bettingStyle}`);
+  });
+  
+  // 4. Verify behavioral clusters
+  console.log('\n📊 Behavioral clusters should include:');
+  console.log('  - NBA sharp bettors cluster');
+  console.log('  - NFL public bettors cluster');
+  console.log('  - Multi-sport parlayers cluster');
+  console.log('  - Conservative profit makers cluster');
+}
+```
+
+### Next Steps for Implementation
+
+1. **Immediate** (Sprint 8.05 continuation):
+   - Implement behavioral profile system
+   - Update bet generators for consistency
+   - Increase historical data volume 10x
+
+2. **Next Sprint** (8.06):
+   - Add temporal patterns
+   - Implement engagement consistency
+   - Create profile evolution
+
+3. **Future**:
+   - Dynamic behavioral changes
+   - Seasonal patterns
+   - Cross-user influence modeling
+
+This comprehensive approach ensures the RAG pipeline has rich, meaningful behavioral data to create accurate embeddings and valuable friend suggestions based on actual patterns rather than random data.
+
+---
+
+*Sprint Started: 2024-12-30*  
+*Sprint Completed: 2024-12-31*  
+*Final Status: HANDOFF - Ready for Review*

@@ -280,7 +280,6 @@ export async function getFollowSuggestions(
         username,
         avatar_url,
         bio,
-        favorite_team,
         bankrolls (
           balance,
           total_wagered,
@@ -302,14 +301,24 @@ export async function getFollowSuggestions(
 
     // Transform and calculate badges for each user
     const mockUsers: MockUser[] = await Promise.all(
-      (users as UserWithBankroll[]).map(async (user) => {
-        const bankroll = user.bankrolls?.[0] || {
+      users.map(async (user) => {
+        // Handle bankrolls which could be an array or single object from Supabase
+        const bankrollsData = user.bankrolls as Array<{
+          balance: number;
+          total_wagered: number;
+          total_won: number;
+          win_count: number;
+          loss_count: number;
+          stats_metadata: unknown;
+        }> | null;
+        const bankrollData = bankrollsData?.[0];
+        const bankroll = bankrollData || {
           balance: 100000,
           total_wagered: 0,
           total_won: 0,
           win_count: 0,
           loss_count: 0,
-          stats_metadata: {},
+          stats_metadata: null,
         };
 
         const badges = await calculateUserBadges(user.id);
@@ -317,12 +326,19 @@ export async function getFollowSuggestions(
 
         return {
           id: user.id,
-          username: user.username,
+          username: user.username || '',
           avatar_url: user.avatar_url || '',
           bio: user.bio || '',
-          favorite_team: user.favorite_team,
+          favorite_team: null,
           badges,
-          bankroll,
+          bankroll: {
+            balance: bankroll.balance,
+            total_wagered: bankroll.total_wagered,
+            total_won: bankroll.total_won,
+            win_count: bankroll.win_count,
+            loss_count: bankroll.loss_count,
+            stats_metadata: bankroll.stats_metadata as StatsMetadata | undefined,
+          },
           primary_stat,
         };
       })

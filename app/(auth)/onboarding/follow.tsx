@@ -39,24 +39,12 @@ export default function FollowSuggestionsScreen() {
 
   useEffect(() => {
     loadSuggestions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadSuggestions = async () => {
     try {
-      // Get user's favorite team from database
-      let favoriteTeam: string | null = null;
-      if (user?.id) {
-        const { data } = await supabase
-          .from('users')
-          .select('favorite_team')
-          .eq('id', user.id)
-          .single();
-
-        favoriteTeam = data?.favorite_team || null;
-      }
-
-      const suggestedUsers = await generateFollowSuggestions(favoriteTeam);
+      // Generate suggestions without team preference (removed from database)
+      const suggestedUsers = await generateFollowSuggestions(null);
       setSuggestions(suggestedUsers);
     } catch (error) {
       console.error('Error loading suggestions:', error);

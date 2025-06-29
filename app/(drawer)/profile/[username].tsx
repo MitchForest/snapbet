@@ -31,7 +31,7 @@ function ProfileScreenContent() {
     display_name?: string | null;
     avatar_url?: string | null;
     bio?: string | null;
-    favorite_team?: string | null;
+
     is_private?: boolean;
   }
 
@@ -97,7 +97,7 @@ function ProfileScreenContent() {
       // Get user data with privacy columns
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('id, username, display_name, avatar_url, bio, favorite_team, is_private')
+        .select('id, username, display_name, avatar_url, bio, is_private')
         .eq('username', username)
         .single();
 
@@ -115,7 +115,7 @@ function ProfileScreenContent() {
         display_name: user.display_name,
         avatar_url: user.avatar_url,
         bio: user.bio,
-        favorite_team: user.favorite_team,
+
         is_private: user.is_private || false,
       });
 

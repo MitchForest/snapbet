@@ -1,6 +1,6 @@
 import React from 'react';
-import { Pressable, ActivityIndicator } from 'react-native';
-import { View, Text } from 'tamagui';
+import { Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text } from '@tamagui/core';
 import { AIBadge } from '@/components/common/AIBadge';
 import { Colors } from '@/theme';
 
@@ -21,7 +21,7 @@ export function AICaptionButton({
     <Pressable
       onPress={onPress}
       disabled={disabled || isLoading}
-      style={{ opacity: disabled ? 0.5 : 1 }}
+      style={[styles.button, disabled && styles.buttonDisabled]}
     >
       <View
         backgroundColor={Colors.primary}
@@ -37,7 +37,7 @@ export function AICaptionButton({
         ) : (
           <AIBadge variant="small" text="Generate" />
         )}
-        {remaining !== null && remaining < 5 && (
+        {remaining !== null && remaining !== undefined && remaining < 5 && (
           <Text fontSize="$1" color={Colors.white} opacity={0.8}>
             {remaining} left
           </Text>
@@ -46,3 +46,12 @@ export function AICaptionButton({
     </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  button: {
+    opacity: 1,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+});

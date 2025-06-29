@@ -3,13 +3,10 @@ import { View, Text, StyleSheet, Pressable, SafeAreaView } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { TeamSelector } from '@/components/auth/TeamSelector';
 import { OnboardingProgress } from '@/components/auth/OnboardingProgress';
-import { useAuthStore } from '@/stores/authStore';
-import { supabase } from '@/services/supabase/client';
 import { Colors } from '@/theme';
 
 export default function TeamSelectionScreen() {
   const router = useRouter();
-  const user = useAuthStore((state) => state.user);
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -17,19 +14,8 @@ export default function TeamSelectionScreen() {
     setLoading(true);
 
     try {
-      if (selectedTeam && user) {
-        // Update user's favorite team
-        const { error } = await supabase
-          .from('users')
-          .update({ favorite_team: selectedTeam })
-          .eq('id', user.id);
-
-        if (error) {
-          console.error('Error updating favorite team:', error);
-        }
-      }
-
-      // Navigate to follow suggestions
+      // Team preferences are now discovered from behavior, not stored
+      // Navigate directly to follow suggestions
       router.push('/onboarding/follow');
     } catch (error) {
       console.error('Error in team selection:', error);

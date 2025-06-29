@@ -229,35 +229,10 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
     return { error };
   },
 
-  updateFavoriteTeam: async (teamId: string | null) => {
-    const currentUser = _get().user;
-    if (!currentUser) return;
-
-    try {
-      const { error } = await supabase
-        .from('users')
-        .update({ favorite_team: teamId })
-        .eq('id', currentUser.id);
-
-      if (error) {
-        console.error('Error updating favorite team:', error);
-        throw error;
-      }
-
-      // Update local state
-      set({
-        user: {
-          ...currentUser,
-          user_metadata: {
-            ...currentUser.user_metadata,
-            favorite_team: teamId,
-          },
-        },
-      });
-    } catch (error) {
-      console.error('Failed to update favorite team:', error);
-      throw error;
-    }
+  updateFavoriteTeam: async (_teamId: string | null) => {
+    // Team preferences are now discovered from behavior, not stored
+    // This method is kept for backward compatibility but does nothing
+    console.log('updateFavoriteTeam is deprecated - team preferences are now behavioral');
   },
 
   updateNotificationSettings: async (settings: Record<string, boolean>) => {
