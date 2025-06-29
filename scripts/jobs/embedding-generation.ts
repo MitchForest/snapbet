@@ -3,6 +3,7 @@
 import { BaseJob, JobOptions, JobResult } from './types';
 import { supabase } from '../supabase-client';
 import { embeddingPipeline } from '@/services/rag/embeddingPipeline';
+import { ragService } from '@/services/rag/ragService';
 import type { Database } from '@/types/database';
 
 type Bet = Database['public']['Tables']['bets']['Row'] & {
@@ -24,6 +25,22 @@ export class EmbeddingGenerationJob extends BaseJob {
     const details: Record<string, number> = {};
 
     try {
+      // Check for OpenAI API key
+      const openaiApiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
+      if (!openaiApiKey) {
+        console.error('Missing EXPO_PUBLIC_OPENAI_API_KEY environment variable');
+        return {
+          success: false,
+          message: 'OpenAI API key not configured',
+          affected: 0,
+          details,
+        };
+      }
+
+      // Initialize the services with required credentials
+      ragService.initialize(openaiApiKey);
+      embeddingPipeline.initialize(supabase);
+
       // 1. Process archived posts without embeddings
       const processedPosts = await this.processArchivedPosts(options);
       totalProcessed += processedPosts;

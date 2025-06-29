@@ -1,13 +1,9 @@
 import OpenAI from 'openai';
 import { CaptionContext, EmbeddingResult, CaptionResult, RAGConfig } from './types';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.EXPO_PUBLIC_OPENAI_API_KEY,
-});
-
 export class RAGService {
   private static instance: RAGService;
+  private openai: OpenAI | null = null;
   private captionRateLimit = new Map<string, number[]>();
   private readonly RATE_LIMIT = 20; // per day
   private readonly WINDOW = 24 * 60 * 60 * 1000; // 24 hours
@@ -28,6 +24,20 @@ export class RAGService {
     return RAGService.instance;
   }
 
+  // Initialize with OpenAI API key
+  initialize(apiKey: string) {
+    this.openai = new OpenAI({ apiKey });
+  }
+
+  private getClient(): OpenAI {
+    if (!this.openai) {
+      throw new Error(
+        'RAGService not initialized. Call initialize() with an OpenAI API key first.'
+      );
+    }
+    return this.openai;
+  }
+
   async generateEmbedding(text: string): Promise<EmbeddingResult> {
     if (!text || text.trim().length === 0) {
       throw new Error('Text cannot be empty');
@@ -36,7 +46,7 @@ export class RAGService {
     try {
       const truncatedText = text.slice(0, 8000); // Truncate to max length
 
-      const response = await openai.embeddings.create({
+      const response = await this.getClient().embeddings.create({
         model: this.config.embeddingModel,
         input: truncatedText,
       });
@@ -107,7 +117,7 @@ export class RAGService {
     try {
       const truncatedTexts = validTexts.map((text) => text.slice(0, 8000));
 
-      const response = await openai.embeddings.create({
+      const response = await this.getClient().embeddings.create({
         model: this.config.embeddingModel,
         input: truncatedTexts,
       });
@@ -143,7 +153,7 @@ export class RAGService {
 
   // Helper method to check if service is properly configured
   isConfigured(): boolean {
-    return !!process.env.EXPO_PUBLIC_OPENAI_API_KEY;
+    return !!this.openai;
   }
 
   // Get current rate limit status for a user

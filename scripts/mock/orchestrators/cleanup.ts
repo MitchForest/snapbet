@@ -3,7 +3,9 @@
 /**
  * Cleanup orchestrator - removes ALL data for a fresh start
  *
- * Usage: bun run scripts/mock/orchestrators/cleanup.ts
+ * Usage: bun run mock:cleanup
+ *
+ * This will completely reset the database to allow a fresh mock setup
  */
 
 import { supabase } from '../../supabase-client';
@@ -11,7 +13,7 @@ import { supabase } from '../../supabase-client';
 async function cleanup() {
   console.log('🧹 Starting COMPLETE Data Cleanup\n');
   console.log('This will remove:');
-  console.log('  ❌ ALL posts (including yours)');
+  console.log('  ❌ ALL posts (including historical)');
   console.log('  ❌ ALL stories');
   console.log('  ❌ ALL games');
   console.log('  ❌ ALL bets');
@@ -19,7 +21,9 @@ async function cleanup() {
   console.log('  ❌ ALL reactions and comments');
   console.log('  ❌ ALL notifications');
   console.log('  ❌ ALL follow relationships');
+  console.log('  ❌ ALL pick actions');
   console.log('  ❌ ALL mock users');
+  console.log('  ❌ ALL embeddings');
   console.log('  ❌ Reset all bankrolls to $1,000\n');
 
   const confirm = process.argv.includes('--confirm');
@@ -46,6 +50,14 @@ async function cleanup() {
     if (commentsError) throw commentsError;
     console.log('   ✅ Complete');
 
+    console.log('🗑️  Deleting all pick actions...');
+    const { error: pickActionsError } = await supabase
+      .from('pick_actions')
+      .delete()
+      .gte('created_at', '1900-01-01');
+    if (pickActionsError) throw pickActionsError;
+    console.log('   ✅ Complete');
+
     console.log('🗑️  Deleting all story views...');
     const { error: storyViewsError } = await supabase
       .from('story_views')
@@ -62,7 +74,7 @@ async function cleanup() {
     if (storiesError) throw storiesError;
     console.log('   ✅ Complete');
 
-    console.log('🗑️  Deleting all posts (this will cascade delete pick_actions)...');
+    console.log('🗑️  Deleting all posts (including archived)...');
     const { error: postsError } = await supabase
       .from('posts')
       .delete()
@@ -134,6 +146,17 @@ async function cleanup() {
     if (badgesError) throw badgesError;
     console.log('   ✅ Complete');
 
+    console.log('🗑️  Clearing all user embeddings...');
+    const { error: embeddingsError } = await supabase
+      .from('users')
+      .update({
+        profile_embedding: null,
+        last_embedding_update: null,
+      })
+      .not('id', 'is', null); // Update all users
+    if (embeddingsError) throw embeddingsError;
+    console.log('   ✅ Complete');
+
     console.log('🗑️  Deleting all mock users...');
     const { error: mockUsersError } = await supabase.from('users').delete().eq('is_mock', true);
     if (mockUsersError) throw mockUsersError;
@@ -148,6 +171,7 @@ async function cleanup() {
         loss_count: 0,
         total_wagered: 0,
         total_won: 0,
+        stats_metadata: {},
       })
       .gte('created_at', '1900-01-01');
     if (bankrollError) throw bankrollError;
@@ -155,16 +179,14 @@ async function cleanup() {
 
     console.log('\n✨ Complete cleanup finished!');
     console.log('\nYour app now has:');
-    console.log('  ✅ No posts');
-    console.log('  ✅ No stories');
-    console.log('  ✅ No games');
-    console.log('  ✅ No bets');
+    console.log('  ✅ No posts or stories');
+    console.log('  ✅ No games or bets');
     console.log('  ✅ No chats or messages');
     console.log('  ✅ No notifications');
+    console.log('  ✅ No mock users');
+    console.log('  ✅ No embeddings');
     console.log('  ✅ Fresh $1,000 bankroll');
-    console.log(
-      '\nTo set up mock data: bun run scripts/mock/orchestrators/setup.ts --username=YOUR_USERNAME\n'
-    );
+    console.log('\nTo set up mock data: bun run mock:setup --username=YOUR_USERNAME\n');
   } catch (error) {
     console.error('❌ Cleanup failed:', error);
     process.exit(1);

@@ -17,7 +17,6 @@
     "db:add-games": "bun scripts/add-games.ts",
     "db:settle": "bun scripts/settle-bets.ts",
     "mock:setup": "bun scripts/mock/orchestrators/setup.ts",
-    "mock:progress": "bun scripts/mock/orchestrators/settle.ts",
     "mock:cleanup": "bun scripts/mock/orchestrators/cleanup.ts --confirm",
     "mock:users": "bun scripts/mock/generators/users.ts",
     "jobs": "bun run scripts/jobs/cli.ts",

@@ -116,7 +116,7 @@ function SearchScreenContent() {
 
       <DiscoverySection
         title="Find Your Tribe"
-        subtitle="Users like you"
+        subtitle="Discover users similar to you • Powered by AI ✨"
         emoji="🤝"
         users={suggestions}
         isLoading={isFriendLoading}

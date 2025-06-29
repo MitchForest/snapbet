@@ -2,7 +2,18 @@ import { supabase } from '@/services/supabase/client';
 import { Database } from '@/types/database';
 import { UserWithStats } from '@/services/search/searchService';
 
-type SimilarUser = Database['public']['Functions']['find_similar_users']['Returns'][0];
+// Override the type until database types are regenerated
+type SimilarUser = {
+  id: string;
+  username: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  similarity: number;
+  win_rate: number;
+  total_bets: number;
+  common_sports: string[];
+};
 
 interface BehavioralInsight {
   type: 'team' | 'sport' | 'style' | 'timing' | 'stake';
@@ -95,7 +106,7 @@ class FriendDiscoveryService {
       reasons,
       insights,
       commonSports: similarUser.common_sports || [],
-      commonTeams: this.extractCommonTeams(similarUser.favorite_teams || []),
+      commonTeams: [], // No longer storing favorite teams
       bettingStyle,
       // Add UserWithStats fields
       win_count: Math.round(similarUser.win_rate * similarUser.total_bets),
@@ -112,14 +123,7 @@ class FriendDiscoveryService {
   private generateInsights(user: SimilarUser): BehavioralInsight[] {
     const insights: BehavioralInsight[] = [];
 
-    // Team insights
-    if (user.favorite_teams && user.favorite_teams.length > 0) {
-      insights.push({
-        type: 'team',
-        value: user.favorite_teams[0],
-        confidence: 0.9,
-      });
-    }
+    // Team insights - removed as we no longer store favorite_teams
 
     // Sport insights
     if (user.common_sports && user.common_sports.length > 0) {

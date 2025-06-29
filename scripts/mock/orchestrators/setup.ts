@@ -23,66 +23,213 @@ import { createNotificationsForUser } from '../generators/notifications';
 import { MOCK_CONFIG } from '../config';
 import { generateMockGames } from '../data/games';
 import type { Database } from '@/types/database';
+import {
+  generateBehavioralProfile,
+  getBetCountForPersonality,
+  selectByDistribution,
+  generateCaptionForStyle,
+  getMediaForContext,
+  UserBehavioralProfile,
+} from '../generators/profiles';
 
 type Tables = Database['public']['Tables'];
 type User = Tables['users']['Row'];
 type Game = Tables['games']['Row'];
 
 async function createHistoricalContent(mockUsers: User[], games: Game[]) {
-  console.log('\n📚 Creating historical content for RAG processing...');
+  console.log('\n📚 Creating rich historical content for RAG processing...');
+
+  // Generate behavioral profiles for all users
+  const userProfiles = new Map<string, UserBehavioralProfile>();
+
+  for (const user of mockUsers) {
+    const profile = generateBehavioralProfile(user.mock_personality_id);
+    userProfiles.set(user.id, profile);
+  }
 
   const historicalPosts = [];
   const historicalBets = [];
-  const twentyFiveHoursAgo = new Date(Date.now() - 25 * 60 * 60 * 1000);
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-  // Create historical posts (content type)
-  for (const user of mockUsers.slice(0, 10)) {
-    // 2-3 posts per user
-    const postCount = Math.floor(Math.random() * 2) + 2;
+  // Create rich betting history (100-200 bets per user based on personality)
+  for (const user of mockUsers) {
+    const profile = userProfiles.get(user.id)!;
+    const betCount = getBetCountForPersonality(user.mock_personality_id);
 
-    for (let i = 0; i < postCount; i++) {
-      const createdAt = new Date(twentyFiveHoursAgo.getTime() - i * 60 * 60 * 1000);
-
-      historicalPosts.push({
-        id: crypto.randomUUID(),
-        user_id: user.id,
-        caption: `Historical post ${i + 1} from ${user.username} - This content will be archived for RAG processing`,
-        created_at: createdAt.toISOString(),
-        expires_at: new Date(createdAt.getTime() + 24 * 60 * 60 * 1000).toISOString(),
-        media_type: 'photo' as const,
-        media_url: 'https://picsum.photos/400/400',
-        post_type: 'content' as const,
-      });
-    }
-  }
-
-  // Create historical bets
-  for (const user of mockUsers.slice(0, 15)) {
-    // 3-5 bets per user
-    const betCount = Math.floor(Math.random() * 3) + 3;
+    console.log(
+      `  Creating ${betCount} historical bets for ${user.username} (${user.mock_personality_id})`
+    );
 
     for (let i = 0; i < betCount; i++) {
-      const game = games[Math.floor(Math.random() * games.length)];
-      const createdAt = new Date(twentyFiveHoursAgo.getTime() - i * 2 * 60 * 60 * 1000);
-      const isWin = Math.random() > 0.5;
+      const dayOffset = Math.floor(i / 5); // Average 5 bets per day
+      const hourOffset = profile.peakHours[i % profile.peakHours.length];
+      const createdAt = new Date(thirtyDaysAgo.getTime() + dayOffset * 24 * 60 * 60 * 1000);
+      createdAt.setHours(hourOffset);
+
+      // Filter games by user's favorite sports
+      const relevantGames = games.filter((g) => profile.favoriteSports.includes(g.sport || 'NFL'));
+
+      // Prefer games with favorite teams
+      const favoriteTeamGames = relevantGames.filter(
+        (g) =>
+          profile.favoriteTeams.includes(g.home_team) || profile.favoriteTeams.includes(g.away_team)
+      );
+
+      const game =
+        favoriteTeamGames.length > 0 && Math.random() < 0.7
+          ? favoriteTeamGames[Math.floor(Math.random() * favoriteTeamGames.length)]
+          : relevantGames[Math.floor(Math.random() * relevantGames.length)];
+
+      if (!game) continue;
+
+      // Determine bet type based on profile distribution
+      const betType = selectByDistribution(profile.betTypeDistribution) as
+        | 'spread'
+        | 'total'
+        | 'moneyline';
+
+      // Calculate stake based on profile pattern
+      const baseStake = 2000; // $20
+      const variance = 0.8 + Math.random() * 0.4; // 80% to 120% variance
+      const stake = Math.round(baseStake * profile.avgStakeMultiplier * variance);
+
+      // Prefer betting on favorite teams
+      const team = profile.favoriteTeams.includes(game.home_team)
+        ? game.home_team
+        : profile.favoriteTeams.includes(game.away_team)
+          ? game.away_team
+          : Math.random() > 0.5
+            ? game.home_team
+            : game.away_team;
+
+      // Determine win/loss (sharps win more, squares win less)
+      const winRate =
+        user.mock_personality_id === 'sharp-steve'
+          ? 0.65
+          : user.mock_personality_id === 'square-bob'
+            ? 0.35
+            : user.mock_personality_id === 'public-pete'
+              ? 0.4
+              : 0.5;
+      const isWin = Math.random() < winRate;
 
       historicalBets.push({
         id: crypto.randomUUID(),
         user_id: user.id,
         game_id: game.id,
-        bet_type: Math.random() > 0.5 ? ('spread' as const) : ('total' as const),
+        bet_type: betType,
         bet_details: {
-          team: Math.random() > 0.5 ? game.home_team : game.away_team,
-          line: Math.random() > 0.5 ? -3.5 : 3.5,
+          team,
+          line: betType === 'spread' ? (Math.random() > 0.5 ? -3.5 : 3.5) : undefined,
+          total_type: betType === 'total' ? (Math.random() > 0.5 ? 'over' : 'under') : undefined,
         },
         odds: -110,
-        stake: Math.floor(Math.random() * 5000) + 1000,
-        potential_win: Math.floor((Math.floor(Math.random() * 5000) + 1000) * 0.91),
-        actual_win: isWin ? Math.floor((Math.floor(Math.random() * 5000) + 1000) * 1.91) : 0,
+        stake,
+        potential_win: Math.round(stake * 0.91),
+        actual_win: isWin ? Math.round(stake * 1.91) : 0,
         status: (isWin ? 'won' : 'lost') as 'won' | 'lost',
         created_at: createdAt.toISOString(),
         settled_at: new Date(createdAt.getTime() + 3 * 60 * 60 * 1000).toISOString(),
       });
+    }
+  }
+
+  // Create rich post history with consistent caption styles
+  for (const user of mockUsers) {
+    const profile = userProfiles.get(user.id)!;
+    const postCount = Math.floor(profile.postFrequency * 4); // 4 weeks of posts
+    const userBets = historicalBets.filter((b) => b.user_id === user.id);
+
+    console.log(`  Creating ${postCount} historical posts for ${user.username}`);
+
+    for (let i = 0; i < postCount; i++) {
+      const dayOffset = Math.floor(i / (profile.postFrequency / 7)); // Spread across days
+      const createdAt = new Date(thirtyDaysAgo.getTime() + dayOffset * 24 * 60 * 60 * 1000);
+      createdAt.setHours(profile.peakHours[i % profile.peakHours.length]);
+
+      // Determine post type
+      const rand = Math.random();
+      const postType =
+        rand < profile.pickShareRate
+          ? 'pick'
+          : rand < profile.pickShareRate + 0.3
+            ? 'outcome'
+            : 'content';
+
+      if (postType === 'pick' && userBets.length > 0) {
+        // Create pick post from a bet
+        const bet = userBets[Math.floor(Math.random() * userBets.length)];
+        const caption = generateCaptionForStyle(profile.captionStyle, bet.bet_details);
+        const mediaUrl = getMediaForContext(
+          profile.mediaPreferences,
+          'pick',
+          MOCK_CONFIG.content.stories.mediaUrls
+        );
+
+        historicalPosts.push({
+          id: crypto.randomUUID(),
+          user_id: user.id,
+          caption,
+          created_at: createdAt.toISOString(),
+          expires_at: new Date(createdAt.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+          media_type: 'photo' as const,
+          media_url: mediaUrl,
+          post_type: 'pick' as const,
+          bet_id: bet.id,
+        });
+      } else if (postType === 'outcome' && userBets.length > 0) {
+        // Create outcome post from a settled bet (all historical bets are settled)
+        if (userBets.length > 0) {
+          const bet = userBets[Math.floor(Math.random() * userBets.length)];
+          const isWin = bet.status === 'won';
+          const caption = generateCaptionForStyle(profile.captionStyle, bet.bet_details, isWin);
+          const mediaUrl = getMediaForContext(
+            profile.mediaPreferences,
+            isWin ? 'win' : 'loss',
+            MOCK_CONFIG.content.stories.mediaUrls
+          );
+
+          historicalPosts.push({
+            id: crypto.randomUUID(),
+            user_id: user.id,
+            caption,
+            created_at: createdAt.toISOString(),
+            expires_at: new Date(createdAt.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+            media_type: 'photo' as const,
+            media_url: mediaUrl,
+            post_type: 'outcome' as const,
+            bet_id: bet.id,
+          });
+        }
+      } else {
+        // Create regular content post
+        const captions = {
+          analytical:
+            'Line shopping is the difference between profit and loss. Always get the best number.',
+          'emoji-heavy': "WHO ELSE IS READY FOR GAME DAY??? 🚀🚀🚀 LET'S EAT!!! 💰💰💰",
+          emotional:
+            "Nothing beats the feeling of hitting a last second cover! My heart can't take this!",
+          minimal: 'Another day, another dollar.',
+        };
+
+        const caption = captions[profile.captionStyle] || captions.minimal;
+        const mediaUrl = getMediaForContext(
+          profile.mediaPreferences,
+          'story',
+          MOCK_CONFIG.content.stories.mediaUrls
+        );
+
+        historicalPosts.push({
+          id: crypto.randomUUID(),
+          user_id: user.id,
+          caption,
+          created_at: createdAt.toISOString(),
+          expires_at: new Date(createdAt.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+          media_type: 'photo' as const,
+          media_url: mediaUrl,
+          post_type: 'content' as const,
+        });
+      }
     }
   }
 
@@ -92,7 +239,9 @@ async function createHistoricalContent(mockUsers: User[], games: Game[]) {
     if (error) {
       console.error('Error creating historical posts:', error);
     } else {
-      console.log(`  ✅ Created ${historicalPosts.length} historical posts`);
+      console.log(
+        `  ✅ Created ${historicalPosts.length} historical posts with behavioral patterns`
+      );
     }
   }
 
@@ -101,8 +250,87 @@ async function createHistoricalContent(mockUsers: User[], games: Game[]) {
     if (error) {
       console.error('Error creating historical bets:', error);
     } else {
-      console.log(`  ✅ Created ${historicalBets.length} historical bets`);
+      console.log(`  ✅ Created ${historicalBets.length} historical bets with consistent patterns`);
     }
+  }
+
+  // Create historical engagement patterns
+  await createHistoricalEngagement(historicalPosts, mockUsers, userProfiles);
+}
+
+async function createHistoricalEngagement(
+  posts: Array<{
+    id: string;
+    user_id: string;
+    post_type: string;
+    [key: string]: unknown;
+  }>,
+  users: User[],
+  profiles: Map<string, UserBehavioralProfile>
+) {
+  console.log('  💬 Creating historical engagement patterns...');
+
+  const reactions = [];
+  const pickActions = [];
+
+  for (const post of posts) {
+    const postUser = users.find((u) => u.id === post.user_id);
+    if (!postUser) continue;
+
+    // Get users who would engage with this post
+    const engagingUsers = users.filter((u) => {
+      if (u.id === post.user_id) return false;
+      const profile = profiles.get(u.id)!;
+
+      // Users engage with their followed personality types
+      return profile.followsPersonalities.includes(postUser.mock_personality_id || '');
+    });
+
+    // Add reactions based on engagement level
+    for (const user of engagingUsers) {
+      const profile = profiles.get(user.id)!;
+      if (profile.engagementLevel === 'lurker') continue;
+
+      const shouldReact = profile.engagementLevel === 'heavy' ? 0.8 : 0.4;
+      if (Math.random() < shouldReact) {
+        const emoji =
+          profile.reactionPreferences[
+            Math.floor(Math.random() * profile.reactionPreferences.length)
+          ];
+        reactions.push({
+          post_id: post.id,
+          user_id: user.id,
+          emoji,
+        });
+      }
+    }
+
+    // Add pick actions for pick posts
+    if (post.post_type === 'pick') {
+      const pickUsers = engagingUsers.slice(0, 10); // Max 10 actions per pick
+
+      for (const user of pickUsers) {
+        const profile = profiles.get(user.id)!;
+        const action = Math.random() < profile.tailVsFade ? 'tail' : 'fade';
+
+        pickActions.push({
+          post_id: post.id,
+          user_id: user.id,
+          action_type: action as 'tail' | 'fade',
+        });
+      }
+    }
+  }
+
+  // Insert engagement data
+  if (reactions.length > 0) {
+    await supabase.from('reactions').insert(reactions);
+    console.log(`    ✅ Created ${reactions.length} historical reactions`);
+  }
+
+  if (pickActions.length > 0) {
+    await supabase.from('pick_actions').insert(pickActions);
+    console.log(`    ✅ Created ${pickActions.length} historical pick actions`);
   }
 }
 
@@ -555,9 +783,92 @@ export async function setupMockData(userId: string) {
       }
     }
 
+    // 20. Verify RAG suggestions are working
+    await verifyRAGSuggestions(userId);
+
     console.log('\n✨ Mock data setup complete!');
   } catch (error) {
     console.error('Setup failed:', error);
+  }
+}
+
+async function verifyRAGSuggestions(userId: string) {
+  console.log('\n🔍 Verifying RAG suggestions...');
+
+  try {
+    // 1. Check embeddings exist
+    const { data: usersWithEmbeddings } = await supabase
+      .from('users')
+      .select('username, profile_embedding')
+      .not('profile_embedding', 'is', null);
+
+    console.log(`  ✅ ${usersWithEmbeddings?.length || 0} users have profile embeddings`);
+
+    // 2. Check if find_similar_users RPC exists and works
+    // First get the user's embedding
+    const { data: currentUser } = await supabase
+      .from('users')
+      .select('profile_embedding')
+      .eq('id', userId)
+      .single();
+
+    if (!currentUser?.profile_embedding) {
+      console.log('  ⚠️  Current user has no embedding yet');
+      return;
+    }
+
+    const { data: similarUsers, error } = await supabase.rpc('find_similar_users', {
+      query_embedding: currentUser.profile_embedding,
+      p_user_id: userId,
+      limit_count: 5,
+    });
+
+    if (error) {
+      console.log('  ⚠️  find_similar_users RPC not available:', error.message);
+      console.log('  💡 Run Sprint 8.01 to create the RPC function');
+    } else {
+      console.log(`  ✅ Found ${similarUsers?.length || 0} similar users via RAG`);
+
+      // Display sample suggestions
+      if (similarUsers && similarUsers.length > 0) {
+        console.log('\n  📊 Sample behavioral clusters:');
+        similarUsers.slice(0, 3).forEach((user, i: number) => {
+          console.log(
+            `    ${i + 1}. ${user.username} (similarity: ${(user.similarity * 100).toFixed(1)}%)`
+          );
+        });
+      }
+    }
+
+    // 3. Verify behavioral diversity
+    const { data: bettingPatterns } = await supabase
+      .from('bets')
+      .select('user_id, bet_type, bet_details')
+      .limit(100);
+
+    if (bettingPatterns) {
+      const teamCounts = new Map<string, number>();
+
+      bettingPatterns.forEach((bet) => {
+        const team = (bet.bet_details as { team?: string })?.team;
+        if (team) {
+          teamCounts.set(team, (teamCounts.get(team) || 0) + 1);
+        }
+      });
+
+      const topTeams = Array.from(teamCounts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+      console.log('\n  🏀 Top teams bet on:');
+      topTeams.forEach(([team, count]) => {
+        console.log(`    - ${team}: ${count} bets`);
+      });
+    }
+
+    console.log('\n  ✨ RAG verification complete!');
+  } catch (error) {
+    console.error('  ❌ RAG verification failed:', error);
   }
 }
 

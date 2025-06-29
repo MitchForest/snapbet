@@ -1,19 +1,12 @@
-import { createClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { ragService } from './ragService';
 import { EmbeddingMetadata } from './types';
 import { Database } from '@/types/database';
-
-// Create admin client for background operations
-const supabaseAdmin = createClient<Database>(
-  process.env.EXPO_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY!
-);
 
 type Post = Database['public']['Tables']['posts']['Row'];
 type Bet = Database['public']['Tables']['bets']['Row'];
 type Game = Database['public']['Tables']['games']['Row'];
 type User = Database['public']['Tables']['users']['Row'];
-type Follow = Database['public']['Tables']['follows']['Row'];
 type Reaction = Database['public']['Tables']['reactions']['Row'];
 type Comment = Database['public']['Tables']['comments']['Row'];
 
@@ -28,7 +21,6 @@ interface BetWithGame extends Bet {
 interface UserWithRelations extends User {
   bets?: BetWithGame[];
   posts?: Post[];
-  follows?: Follow[];
   reactions?: Reaction[];
   comments?: Comment[];
 }
@@ -65,6 +57,7 @@ interface TemporalPatterns {
 
 export class EmbeddingPipeline {
   private static instance: EmbeddingPipeline;
+  private supabaseAdmin: SupabaseClient<Database> | null = null;
 
   private constructor() {}
 
@@ -73,6 +66,20 @@ export class EmbeddingPipeline {
       EmbeddingPipeline.instance = new EmbeddingPipeline();
     }
     return EmbeddingPipeline.instance;
+  }
+
+  // Initialize with a supabase client
+  initialize(supabaseClient: SupabaseClient<Database>) {
+    this.supabaseAdmin = supabaseClient;
+  }
+
+  private getClient(): SupabaseClient<Database> {
+    if (!this.supabaseAdmin) {
+      throw new Error(
+        'EmbeddingPipeline not initialized. Call initialize() with a Supabase client first.'
+      );
+    }
+    return this.supabaseAdmin;
   }
 
   async embedPost(postId: string, post: PostWithContent): Promise<void> {
@@ -91,7 +98,7 @@ export class EmbeddingPipeline {
       const embeddingString = `[${result.embedding.join(',')}]`;
 
       // Store embedding in database
-      const { error } = await supabaseAdmin
+      const { error } = await this.getClient()
         .from('posts')
         .update({ embedding: embeddingString })
         .eq('id', postId);
@@ -127,7 +134,7 @@ export class EmbeddingPipeline {
       const embeddingString = `[${result.embedding.join(',')}]`;
 
       // Store embedding in database
-      const { error } = await supabaseAdmin
+      const { error } = await this.getClient()
         .from('bets')
         .update({ embedding: embeddingString })
         .eq('id', betId);
@@ -148,6 +155,8 @@ export class EmbeddingPipeline {
 
   async updateUserProfile(userId: string): Promise<void> {
     try {
+      const supabaseAdmin = this.getClient();
+
       // Get user data to check last update
       const { data: userData } = await supabaseAdmin
         .from('users')
@@ -187,8 +196,6 @@ export class EmbeddingPipeline {
           *,
           bets(*, game:games(*)),
           posts(*),
-          followers!follower_id(*),
-          followers!following_id(*),
           reactions(*),
           comments(*)
         `
@@ -196,14 +203,14 @@ export class EmbeddingPipeline {
         .eq('id', userId)
         .single();
 
-      if (!fullUserData || !fullUserData.bets || fullUserData.bets.length === 0) {
+      if (!fullUserData || (!fullUserData.bets?.length && !fullUserData.posts?.length)) {
         console.log(`No behavioral data found for user ${userId}`);
         return;
       }
 
       // Extract behavioral patterns - NO stored preferences
-      const bettingPatterns = this.analyzeBettingBehavior(fullUserData.bets);
-      const socialPatterns = this.analyzeSocialBehavior(fullUserData);
+      const bettingPatterns = this.analyzeBettingBehavior(fullUserData.bets || []);
+      const socialPatterns = await this.analyzeSocialBehavior(fullUserData, userId);
       const engagementPatterns = this.analyzeEngagement(fullUserData);
       const temporalPatterns = this.analyzeTemporalActivity(fullUserData);
       const bettingStyle = this.categorizeBettingStyle(bettingPatterns);
@@ -350,9 +357,22 @@ export class EmbeddingPipeline {
     };
   }
 
-  private analyzeSocialBehavior(userData: UserWithRelations): SocialPatterns {
-    const following = userData.follows?.filter((f) => f.follower_id === userData.id) || [];
-    const followers = userData.follows?.filter((f) => f.following_id === userData.id) || [];
+  private async analyzeSocialBehavior(
+    userData: UserWithRelations,
+    userId: string
+  ): Promise<SocialPatterns> {
+    const supabaseAdmin = this.getClient();
+
+    // Fetch follows separately
+    const { data: following } = await supabaseAdmin
+      .from('follows')
+      .select('following_id')
+      .eq('follower_id', userId);
+
+    const { data: followers } = await supabaseAdmin
+      .from('follows')
+      .select('follower_id')
+      .eq('following_id', userId);
 
     // Find most interacted with users
     const interactions = new Map<string, number>();
@@ -367,11 +387,11 @@ export class EmbeddingPipeline {
       .map(([userId]) => userId);
 
     // Count how many followed users are similar bettors (simplified for now)
-    const similarBettorCount = following.length; // In future, could analyze their betting patterns
+    const similarBettorCount = following?.length || 0; // In future, could analyze their betting patterns
 
     return {
-      followingCount: following.length,
-      followersCount: followers.length,
+      followingCount: following?.length || 0,
+      followersCount: followers?.length || 0,
       topConnections,
       similarBettorCount,
       engagementRate: this.calculateEngagementRate(userData),
@@ -469,7 +489,7 @@ export class EmbeddingPipeline {
         token_count: tokenCount,
       };
 
-      const { error } = await supabaseAdmin.from('embedding_metadata').insert(metadata);
+      const { error } = await this.getClient().from('embedding_metadata').insert(metadata);
 
       if (error) {
         console.error('Failed to track embedding metadata:', error);
