@@ -15,11 +15,10 @@ interface FollowButtonProps {
 
 export function FollowButton({
   userId,
-  isFollowing: initialIsFollowing = false,
+  isFollowing: isFollowingProp = false,
   size = 'small',
   onFollowChange,
 }: FollowButtonProps) {
-  const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const [isLoading, setIsLoading] = useState(false);
 
   const handlePress = async () => {
@@ -28,10 +27,9 @@ export function FollowButton({
     // Haptic feedback
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    const newFollowState = !isFollowing;
+    const newFollowState = !isFollowingProp;
 
     // Optimistic update
-    setIsFollowing(newFollowState);
     onFollowChange?.(newFollowState);
     setIsLoading(true);
 
@@ -46,7 +44,6 @@ export function FollowButton({
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
       // Revert on error
-      setIsFollowing(!newFollowState);
       onFollowChange?.(!newFollowState);
 
       // Error haptic
@@ -90,7 +87,7 @@ export function FollowButton({
   const buttonStyle = [
     styles.button,
     getSizeStyle(),
-    isFollowing ? styles.buttonFollowing : styles.buttonNotFollowing,
+    isFollowingProp ? styles.buttonFollowing : styles.buttonNotFollowing,
     isLoading && styles.buttonLoading,
   ];
 
@@ -99,15 +96,15 @@ export function FollowButton({
       {isLoading ? (
         <ActivityIndicator
           size="small"
-          color={isFollowing ? Colors.text.primary : Colors.background}
+          color={isFollowingProp ? Colors.text.primary : Colors.background}
         />
       ) : (
         <Text
           fontSize={buttonSize.fontSize}
           fontWeight="600"
-          color={isFollowing ? '$textPrimary' : '$textInverse'}
+          color={isFollowingProp ? '$textPrimary' : '$textInverse'}
         >
-          {isFollowing ? 'Following' : 'Follow'}
+          {isFollowingProp ? 'Following' : 'Follow'}
         </Text>
       )}
     </Pressable>

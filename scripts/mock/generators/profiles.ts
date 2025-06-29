@@ -48,7 +48,7 @@ export function generateBehavioralProfile(personality: string | null): UserBehav
         favoriteTeams: ['Lakers', 'Heat', 'Chiefs', '49ers', 'Celtics'],
         betTypeDistribution: { spread: 70, total: 20, moneyline: 10, parlay: 0 },
         stakePattern: 'moderate',
-        avgStakeMultiplier: 1.5,
+        avgStakeMultiplier: 0.8, // Reduced from 1.5 - sharps bet smaller
         peakHours: [19, 20, 21], // Evening analysis time
         followsPersonalities: ['sharp-steve', 'fade-frank'],
         engagementLevel: 'moderate',
@@ -120,7 +120,7 @@ export function generateBehavioralProfile(personality: string | null): UserBehav
         favoriteTeams: ['Bills', 'Suns', 'Knicks'], // Fun teams
         betTypeDistribution: { spread: 50, total: 30, moneyline: 15, parlay: 5 },
         stakePattern: 'conservative',
-        avgStakeMultiplier: 0.7,
+        avgStakeMultiplier: 0.3, // Very small bets for casual players
         peakHours: [20, 21, 22], // Evening casual time
         followsPersonalities: ['casual-carl', 'public-pete'],
         engagementLevel: 'moderate',

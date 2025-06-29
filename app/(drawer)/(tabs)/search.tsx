@@ -126,6 +126,7 @@ function SearchScreenContent() {
         onFollowChange={handleFollowChange}
         onRefresh={refreshFriends}
         showAIBadge={true}
+        showReasons={true}
       />
 
       <DiscoverySection

@@ -49,14 +49,25 @@ export async function generateMockUsers(): Promise<User[]> {
     'sharp-steve',
     'sharp-steve',
     // Fill the rest with varied personalities
-    ...Array(18)
+    ...Array(MOCK_CONFIG.users.count - 14) // Dynamic calculation: 50 - 14 = 36
       .fill(null)
       .map(() => personalities[Math.floor(Math.random() * personalities.length)]),
   ];
 
   for (let i = 0; i < MOCK_CONFIG.users.count; i++) {
-    const personality = personalityDistribution[i] as keyof typeof MOCK_CONFIG.users.personalities;
+    // Add safety check in case distribution is shorter than expected
+    const personalityIndex =
+      i < personalityDistribution.length ? i : personalityDistribution.length - 1;
+    const personality = personalityDistribution[
+      personalityIndex
+    ] as keyof typeof MOCK_CONFIG.users.personalities;
     const personalityData = MOCK_CONFIG.users.personalities[personality];
+
+    // Fallback in case personality is not found
+    if (!personalityData) {
+      console.error(`Personality data not found for: ${personality}`);
+      continue;
+    }
 
     // First 5 users created in last 3 days for rising star
     // Next 5 users created in last week

@@ -44,6 +44,7 @@ interface ProfileHeaderProps {
   onFollow?: () => void;
   onEditProfile?: () => void;
   onBlock?: () => void;
+  aiReasons?: string[] | null;
 }
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -57,6 +58,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   onFollow,
   onEditProfile,
   onBlock,
+  aiReasons,
 }) => {
   // Calculate stats - Updated to remove decimals
   const winRate =
@@ -128,10 +130,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       )}
 
       {/* Profile Info Row */}
-      <View flexDirection="row" alignItems="center" marginBottom="$3">
+      <View flexDirection="row" alignItems="flex-start" marginBottom="$3">
         <Avatar size={80} src={user.avatar_url} username={user.username} />
         <View flex={1} marginLeft="$3">
-          <View flexDirection="row" alignItems="center" gap="$2">
+          <View flexDirection="row" alignItems="center" gap="$2" marginTop="$1">
             <Text fontSize={24} fontWeight="600" color="$textPrimary">
               {user.display_name || user.username}
             </Text>
@@ -148,6 +150,54 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               </View>
             )}
           </View>
+
+          {/* Combined Follow Stats and Action Row - Under display name */}
+          <View flexDirection="row" alignItems="center" marginTop="$3">
+            {/* Followers */}
+            <Pressable onPress={() => router.push('/followers')}>
+              <View alignItems="center">
+                <Text fontSize={16} fontWeight="600" color="$textPrimary">
+                  {followerCount}
+                </Text>
+                <Text fontSize={12} color="$textSecondary">
+                  Followers
+                </Text>
+              </View>
+            </Pressable>
+
+            {/* Following */}
+            <View marginLeft={25}>
+              <Pressable onPress={() => router.push('/following')}>
+                <View alignItems="center">
+                  <Text fontSize={16} fontWeight="600" color="$textPrimary">
+                    {followingCount}
+                  </Text>
+                  <Text fontSize={12} color="$textSecondary">
+                    Following
+                  </Text>
+                </View>
+              </Pressable>
+            </View>
+
+            {/* Action Button */}
+            <View marginLeft={25}>
+              {isOwnProfile ? (
+                <Pressable onPress={onEditProfile} style={styles.editProfileButton}>
+                  <Text fontSize={14} fontWeight="600" color="$textPrimary">
+                    Edit Profile
+                  </Text>
+                </Pressable>
+              ) : (
+                <FollowRequestButton
+                  targetUserId={user.id}
+                  isPrivate={isPrivate}
+                  onFollowChange={(_newFollowState) => {
+                    onFollow?.();
+                  }}
+                />
+              )}
+            </View>
+          </View>
         </View>
       </View>
 
@@ -156,6 +206,35 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <Text fontSize={14} color="$textPrimary" marginBottom="$3" lineHeight={20}>
           {user.bio}
         </Text>
+      )}
+
+      {/* AI Suggestion Reasons - Positioned after bio */}
+      {aiReasons && aiReasons.length > 0 && !isOwnProfile && !_isFollowing && (
+        <View
+          backgroundColor="$surfaceAlt"
+          paddingHorizontal={16}
+          paddingVertical={12}
+          borderRadius={12}
+          marginBottom={16}
+          marginTop={8}
+          flexDirection="row"
+          alignItems="center"
+          gap={8}
+        >
+          <View
+            backgroundColor={Colors.ai}
+            paddingHorizontal={10}
+            paddingVertical={4}
+            borderRadius={12}
+          >
+            <Text fontSize={11} fontWeight="600" color={Colors.white}>
+              ✨ AI Match
+            </Text>
+          </View>
+          <Text fontSize={13} color="$textPrimary" flex={1}>
+            {aiReasons.join(' • ')}
+          </Text>
+        </View>
       )}
 
       {/* Referral Bonus Info - only show on own profile */}
@@ -174,29 +253,41 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </View>
       )}
 
-      {/* Weekly Badges - only show if we have stats access */}
-      {showStats && badges.length > 0 && (
-        <View marginBottom="$3">
-          {console.log('[ProfileHeader Debug] Rendering badges:', badges)}
-          <WeeklyBadgeGrid badges={badges} />
-        </View>
-      )}
-
       {/* Stats Row - only show if we have stats access */}
       {showStats && stats && (
         <View flexDirection="row" justifyContent="space-around" marginBottom="$3">
           <View alignItems="center">
-            <Text fontSize={20} fontWeight="600" color="$textPrimary">
-              {stats.win_count + stats.loss_count}
-            </Text>
+            <View
+              width={64}
+              height={64}
+              borderRadius={32}
+              backgroundColor="$surfaceAlt"
+              alignItems="center"
+              justifyContent="center"
+              marginBottom="$1"
+            >
+              <Text fontSize={20} fontWeight="600" color="$textPrimary">
+                {stats.win_count + stats.loss_count}
+              </Text>
+            </View>
             <Text fontSize={12} color="$textSecondary">
               Bets
             </Text>
           </View>
           <View alignItems="center">
-            <Text fontSize={20} fontWeight="600" color="$textPrimary">
-              {winRate}%
-            </Text>
+            <View
+              width={64}
+              height={64}
+              borderRadius={32}
+              backgroundColor="$surfaceAlt"
+              alignItems="center"
+              justifyContent="center"
+              marginBottom="$1"
+            >
+              <Text fontSize={20} fontWeight="600" color="$textPrimary">
+                {winRate}%
+              </Text>
+            </View>
             <Text fontSize={12} color="$textSecondary">
               Win Rate
             </Text>
@@ -204,17 +295,37 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           {showBankroll && (
             <>
               <View alignItems="center">
-                <Text fontSize={20} fontWeight="600" color="$textPrimary">
-                  ${profit}
-                </Text>
+                <View
+                  width={64}
+                  height={64}
+                  borderRadius={32}
+                  backgroundColor="$surfaceAlt"
+                  alignItems="center"
+                  justifyContent="center"
+                  marginBottom="$1"
+                >
+                  <Text fontSize={20} fontWeight="600" color="$textPrimary">
+                    ${profit}
+                  </Text>
+                </View>
                 <Text fontSize={12} color="$textSecondary">
                   Profit
                 </Text>
               </View>
               <View alignItems="center">
-                <Text fontSize={20} fontWeight="600" color="$textPrimary">
-                  {roi}%
-                </Text>
+                <View
+                  width={64}
+                  height={64}
+                  borderRadius={32}
+                  backgroundColor="$surfaceAlt"
+                  alignItems="center"
+                  justifyContent="center"
+                  marginBottom="$1"
+                >
+                  <Text fontSize={20} fontWeight="600" color="$textPrimary">
+                    {roi}%
+                  </Text>
+                </View>
                 <Text fontSize={12} color="$textSecondary">
                   ROI
                 </Text>
@@ -224,48 +335,13 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </View>
       )}
 
-      {/* Combined Follow Stats and Action Row */}
-      <View
-        flexDirection="row"
-        alignItems="center"
-        justifyContent="space-between"
-        paddingHorizontal="$2"
-      >
-        {/* Followers */}
-        <Pressable onPress={() => router.push('/followers')} style={styles.statsButton}>
-          <Text fontSize={16} fontWeight="600" color="$textPrimary" textAlign="center">
-            {followerCount}
-          </Text>
-          <Text fontSize={12} color="$textSecondary" textAlign="center">
-            Followers
-          </Text>
-        </Pressable>
-
-        {/* Following */}
-        <Pressable onPress={() => router.push('/following')} style={styles.statsButton}>
-          <Text fontSize={16} fontWeight="600" color="$textPrimary" textAlign="center">
-            {followingCount}
-          </Text>
-          <Text fontSize={12} color="$textSecondary" textAlign="center">
-            Following
-          </Text>
-        </Pressable>
-
-        {/* Action Button */}
-        {isOwnProfile ? (
-          <Pressable onPress={onEditProfile} style={styles.editProfileButton}>
-            <Text fontSize={14} fontWeight="600" color="$textPrimary">
-              Edit Profile
-            </Text>
-          </Pressable>
-        ) : (
-          <FollowRequestButton
-            targetUserId={user.id}
-            isPrivate={isPrivate}
-            onFollowChange={onFollow}
-          />
-        )}
-      </View>
+      {/* Weekly Badges - only show if we have stats access */}
+      {showStats && badges.length > 0 && (
+        <View marginBottom="$3">
+          {console.log('[ProfileHeader Debug] Rendering badges:', badges)}
+          <WeeklyBadgeGrid badges={badges} />
+        </View>
+      )}
     </View>
   );
 };
@@ -274,9 +350,10 @@ const styles = StyleSheet.create({
   editProfileButton: {
     backgroundColor: Colors.surface,
     paddingVertical: 8,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     borderRadius: 20,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: Colors.border.light,
   },
@@ -285,9 +362,5 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
     alignItems: 'center',
-  },
-  statsButton: {
-    alignItems: 'center',
-    minWidth: 70,
   },
 });

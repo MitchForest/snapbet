@@ -11,17 +11,44 @@ interface UserSearchCardProps {
   user: UserWithStats;
   isFollowing?: boolean;
   onFollowChange?: (userId: string, isFollowing: boolean) => void;
+  showReasons?: boolean;
+  reasons?: string[];
 }
 
-export function UserSearchCard({ user, isFollowing = false, onFollowChange }: UserSearchCardProps) {
+export function UserSearchCard({
+  user,
+  isFollowing = false,
+  onFollowChange,
+  showReasons = false,
+  reasons,
+}: UserSearchCardProps) {
   const router = useRouter();
 
   const handlePress = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push(`/profile/${user.username}`);
+
+    // Pass reasons to profile if this is from AI suggestions
+    if (showReasons && reasons && reasons.length > 0) {
+      router.push({
+        pathname: `/profile/${user.username}`,
+        params: {
+          aiReasons: JSON.stringify(reasons),
+          fromAISuggestion: 'true',
+        },
+      });
+    } else {
+      router.push(`/profile/${user.username}`);
+    }
   };
 
   const formatStats = (): string => {
+    // If showing reasons instead of stats
+    if (showReasons && reasons && reasons.length > 0) {
+      // In horizontal scroll (search/explore), show only the top reason
+      // The service already orders by score, so first reason is most interesting
+      return reasons[0];
+    }
+
     // Check for custom stats (for trending users)
     if ('customStats' in user && user.customStats) {
       return String(user.customStats);
@@ -40,7 +67,7 @@ export function UserSearchCard({ user, isFollowing = false, onFollowChange }: Us
       // It's already a percentage, just round it
       winRate = Math.round(winRate);
     }
-    
+
     return `${user.win_count || 0}-${user.loss_count || 0} • ${winRate}%`;
   };
 

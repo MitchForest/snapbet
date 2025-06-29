@@ -335,7 +335,7 @@ async function createHistoricalEngagement(
 }
 
 async function runProductionJobs() {
-  console.log('\n🔧 Running production jobs to process historical content...');
+  console.log('\n🛠️  Running production jobs...');
 
   try {
     const { execSync } = await import('child_process');
@@ -345,7 +345,7 @@ async function runProductionJobs() {
     execSync('bun run scripts/jobs/content-expiration.ts', { stdio: 'inherit' });
 
     // Run embedding generation on archived content
-    console.log('  🤖 Running embedding generation job...');
+    console.log('  🤖 Running embedding generation job (Phase 1 - Historical content)...');
     execSync('bun run scripts/jobs/embedding-generation.ts', { stdio: 'inherit' });
 
     console.log('  ✅ Production jobs completed successfully');
@@ -558,6 +558,52 @@ export async function setupMockData(userId: string) {
       mockUsers.slice(MOCK_CONFIG.badges.totalPersonas),
       games
     );
+
+    // 13a. IMPORTANT: Create some betting activity for the main user
+    console.log('\n🎯 Creating betting activity for main user...');
+    const mainUserBets = [];
+
+    // Create 10-15 bets for the main user with a mix of wins/losses
+    for (let i = 0; i < 12; i++) {
+      const game = games[i % games.length];
+      const isWin = Math.random() > 0.4; // 60% win rate
+      const betType = ['spread', 'total', 'moneyline'][Math.floor(Math.random() * 3)] as
+        | 'spread'
+        | 'total'
+        | 'moneyline';
+      const stake = [25, 50, 100, 200][Math.floor(Math.random() * 4)];
+
+      const bet = {
+        id: crypto.randomUUID(),
+        user_id: userId,
+        game_id: game.id,
+        bet_type: betType,
+        bet_details:
+          betType === 'spread'
+            ? { team: game.home_team, line: -3.5 }
+            : betType === 'total'
+              ? { type: 'over', line: 215.5 }
+              : { team: game.away_team },
+        odds: -110,
+        stake: stake * 100, // Convert to cents
+        potential_win: Math.floor((stake * 100) / 1.1),
+        actual_win: isWin ? Math.floor((stake * 100) / 1.1) * 2 : 0,
+        status: (isWin ? 'won' : 'lost') as 'won' | 'lost',
+        created_at: new Date(Date.now() - (i + 1) * 2 * 60 * 60 * 1000).toISOString(),
+        settled_at: new Date(Date.now() - i * 2 * 60 * 60 * 1000).toISOString(),
+      };
+
+      mainUserBets.push(bet);
+    }
+
+    if (mainUserBets.length > 0) {
+      const { error } = await supabase.from('bets').insert(mainUserBets);
+      if (error) {
+        console.error('Error creating main user bets:', error);
+      } else {
+        console.log(`  ✅ Created ${mainUserBets.length} bets for main user`);
+      }
+    }
 
     // 14. Create posts (including outcome posts)
     const allSettledBets = [
@@ -785,6 +831,59 @@ export async function setupMockData(userId: string) {
 
     // 20. Verify RAG suggestions are working
     await verifyRAGSuggestions(userId);
+
+    // 21. FINAL EMBEDDING GENERATION - Run again to ensure ALL users have embeddings
+    console.log('\n🤖 Running final embedding generation to ensure completeness...');
+    try {
+      const { execSync } = await import('child_process');
+
+      // First, ensure the main user's bankroll is updated
+      const wins = mainUserBets.filter((b) => b.status === 'won').length;
+      const losses = mainUserBets.filter((b) => b.status === 'lost').length;
+      const profit = mainUserBets.reduce((sum, bet) => {
+        if (bet.status === 'won') {
+          return sum + (bet.actual_win - bet.stake);
+        } else {
+          return sum - bet.stake;
+        }
+      }, 0);
+
+      await supabase
+        .from('bankrolls')
+        .update({
+          win_count: wins,
+          loss_count: losses,
+          balance: 100000 + profit,
+          total_wagered: mainUserBets.reduce((sum, bet) => sum + bet.stake, 0),
+          total_won: profit > 0 ? profit : 0,
+        })
+        .eq('user_id', userId);
+
+      console.log(`  ✅ Updated main user bankroll: ${wins}W-${losses}L`);
+
+      // Run embedding generation with higher limit to ensure all users are processed
+      execSync('bun run scripts/jobs/embedding-generation.ts --limit=100', { stdio: 'inherit' });
+      console.log('  ✅ Final embedding generation completed');
+
+      // Verify embeddings were created
+      const { data: usersWithEmbeddings } = await supabase
+        .from('users')
+        .select('id, username, profile_embedding')
+        .not('profile_embedding', 'is', null);
+
+      console.log(`  ✅ ${usersWithEmbeddings?.length || 0} users now have embeddings`);
+
+      // Check if main user has embedding
+      const mainUserHasEmbedding = usersWithEmbeddings?.some((u) => u.id === userId);
+      if (!mainUserHasEmbedding) {
+        console.log('  ⚠️  Main user still missing embedding - may need manual run');
+      } else {
+        console.log('  ✅ Main user has embedding');
+      }
+    } catch (error) {
+      console.error('Error in final embedding generation:', error);
+      console.log('  ⚠️  You may need to run: bun run scripts/jobs/embedding-generation.ts');
+    }
 
     console.log('\n✨ Mock data setup complete!');
   } catch (error) {

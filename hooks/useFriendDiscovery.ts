@@ -30,9 +30,28 @@ export function useFriendDiscovery(): UseFriendDiscoveryReturn {
       setIsLoading(true);
       setError(null);
 
-      const friendSuggestions = await friendDiscoveryService.getSuggestions(user.id, 10);
+      // Get more suggestions than needed to account for filtering
+      const friendSuggestions = await friendDiscoveryService.getSuggestions(user.id, 20);
 
-      setSuggestions(friendSuggestions);
+      // Get current following relationships
+      const { supabase } = await import('@/services/supabase/client');
+      const { data: followingData } = await supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', user.id)
+        .in(
+          'following_id',
+          friendSuggestions.map((s) => s.id)
+        );
+
+      const followingIds = new Set(followingData?.map((f) => f.following_id) || []);
+
+      // Filter out users that are already being followed
+      const unfollowedSuggestions = friendSuggestions
+        .filter((suggestion) => !followingIds.has(suggestion.id))
+        .slice(0, 10); // Take first 10 unfollowed users
+
+      setSuggestions(unfollowedSuggestions);
     } catch (err) {
       console.error('Error loading friend suggestions:', err);
       setError('Failed to load suggestions');

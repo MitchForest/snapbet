@@ -18,11 +18,30 @@ import { Colors } from '@/theme';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 
 function ProfileScreenContent() {
-  const { username, activeTab: initialTab } = useLocalSearchParams<{
+  const {
+    username,
+    activeTab: initialTab,
+    aiReasons,
+    fromAISuggestion,
+  } = useLocalSearchParams<{
     username: string;
     activeTab?: string;
+    aiReasons?: string;
+    fromAISuggestion?: string;
   }>();
   const currentUser = useAuthStore((state) => state.user);
+
+  // Parse AI reasons if provided
+  const parsedAIReasons = React.useMemo(() => {
+    if (aiReasons && fromAISuggestion === 'true') {
+      try {
+        return JSON.parse(aiReasons) as string[];
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }, [aiReasons, fromAISuggestion]);
 
   console.log('ProfileScreen - username param:', username);
   interface ProfileUser {
@@ -223,6 +242,7 @@ function ProfileScreenContent() {
           onFollow={() => {}}
           onEditProfile={() => {}}
           onBlock={handleBlockPress}
+          aiReasons={null}
         />
 
         <View flex={1} alignItems="center" justifyContent="center" paddingTop="$10">
@@ -265,6 +285,7 @@ function ProfileScreenContent() {
           onFollow={handleFollow}
           onEditProfile={() => router.push('/settings/profile')}
           onBlock={handleBlockPress}
+          aiReasons={!isFollowing ? parsedAIReasons : null}
         />
 
         <View flex={1} alignItems="center" justifyContent="center" paddingTop="$10">
@@ -300,6 +321,7 @@ function ProfileScreenContent() {
           onFollow={handleFollow}
           onEditProfile={() => router.push('/settings/profile')}
           onBlock={isOwnProfile ? undefined : handleBlockPress}
+          aiReasons={!isFollowing ? parsedAIReasons : null}
         />
 
         <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} />

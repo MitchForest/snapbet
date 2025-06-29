@@ -5,9 +5,9 @@
 
 export const MOCK_CONFIG = {
   users: {
-    count: 30,
+    count: 50, // Increased from 30 to have more variety
     followsFromMocks: 15,
-    userFollowsMocks: 25,
+    userFollowsMocks: 10, // Reduced from 25 to leave more unfollowed users
     personalities: {
       'sharp-steve': {
         usernamePrefix: 'sharp',

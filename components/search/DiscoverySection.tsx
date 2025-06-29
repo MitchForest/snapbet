@@ -17,6 +17,7 @@ interface DiscoverySectionProps {
   onFollowChange?: (userId: string, isFollowing: boolean) => void;
   onRefresh?: () => void;
   showAIBadge?: boolean;
+  showReasons?: boolean;
 }
 
 export function DiscoverySection({
@@ -31,6 +32,7 @@ export function DiscoverySection({
   onFollowChange,
   onRefresh,
   showAIBadge = false,
+  showReasons = false,
 }: DiscoverySectionProps) {
   const handleRefresh = async () => {
     if (onRefresh) {
@@ -112,15 +114,24 @@ export function DiscoverySection({
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          {normalizedUsers.map((user) => (
-            <View key={user.id} style={styles.cardWrapper}>
-              <UserSearchCard
-                user={user}
-                isFollowing={followingStatus[user.id] || false}
-                onFollowChange={onFollowChange}
-              />
-            </View>
-          ))}
+          {normalizedUsers.map((user) => {
+            const userReasons =
+              'reasons' in user
+                ? (user as UserWithStats & { reasons?: string[] }).reasons
+                : undefined;
+
+            return (
+              <View key={user.id} style={styles.cardWrapper}>
+                <UserSearchCard
+                  user={user}
+                  isFollowing={followingStatus[user.id] || false}
+                  onFollowChange={onFollowChange}
+                  showReasons={showReasons}
+                  reasons={userReasons}
+                />
+              </View>
+            );
+          })}
         </ScrollView>
       )}
     </View>
