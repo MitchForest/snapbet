@@ -18,7 +18,10 @@ export interface Notification {
     | 'message'
     | 'mention'
     | 'milestone'
-    | 'system';
+    | 'system'
+    | 'similar_user_bet'
+    | 'behavioral_consensus'
+    | 'smart_alert';
   data: {
     actorId?: string;
     actorUsername?: string;
@@ -45,6 +48,11 @@ export interface Notification {
     badgeName?: string;
     achievement?: string;
     action?: string;
+    // AI notification fields
+    aiReason?: string;
+    similarUsers?: string[];
+    consensusType?: string;
+    matchingBets?: number;
   };
   read: boolean;
   created_at: string;
@@ -228,6 +236,21 @@ class NotificationService {
           title: 'System Notification',
           body: data.message || 'System update',
         };
+      case 'similar_user_bet':
+        return {
+          title: '🎯 Similar Bettor Alert',
+          body: data.message || 'A similar bettor placed a new bet',
+        };
+      case 'behavioral_consensus':
+        return {
+          title: '🤝 Consensus Alert',
+          body: data.message || 'Multiple similar bettors made the same bet',
+        };
+      case 'smart_alert':
+        return {
+          title: '✨ Smart Alert',
+          body: data.message || 'New betting opportunity detected',
+        };
       default:
         return {
           title: 'Notification',
@@ -240,6 +263,244 @@ class NotificationService {
   cleanup(): void {
     this.channels.forEach((channel) => channel.unsubscribe());
     this.channels.clear();
+  }
+
+  /**
+   * Generate smart notifications based on behavioral patterns
+   * Called by production job every 5 minutes
+   */
+  async generateSmartNotifications(userId: string): Promise<void> {
+    try {
+      // Get user's behavioral embedding
+      const { data: user } = await supabase
+        .from('users')
+        .select('profile_embedding')
+        .eq('id', userId)
+        .single();
+
+      if (!user?.profile_embedding) return;
+
+      // Find behaviorally similar users
+      const { data: similarUsers } = await supabase.rpc('find_similar_users', {
+        query_embedding: user.profile_embedding,
+        p_user_id: userId,
+        limit_count: 30,
+      });
+
+      if (!similarUsers?.length) return;
+
+      // Check for notification-worthy activities
+      await Promise.all([
+        this.checkSimilarUserBets(userId, similarUsers),
+        this.checkConsensusPatterns(userId, similarUsers),
+      ]);
+    } catch (error) {
+      console.error('Error generating smart notifications:', error);
+    }
+  }
+
+  /**
+   * Notify about bets from behaviorally similar users
+   */
+  private async checkSimilarUserBets(
+    userId: string,
+    similarUsers: Array<{ id: string; username: string }>
+  ): Promise<void> {
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+
+    // Get recent bets from similar users
+    const { data: recentBets } = await supabase
+      .from('bets')
+      .select(
+        `
+        *,
+        user:users!user_id(username, display_name),
+        game:games!game_id(home_team, away_team, sport)
+      `
+      )
+      .in(
+        'user_id',
+        similarUsers.map((u) => u.id)
+      )
+      .gte('created_at', thirtyMinutesAgo)
+      .eq('archived', false)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (!recentBets?.length) return;
+
+    // Find interesting bets with reasons
+    const interestingBets = this.findInterestingBetsWithReasons(recentBets);
+
+    for (const pattern of interestingBets) {
+      await this.createSmartNotification(userId, {
+        type: 'similar_user_bet',
+        title: '🎯 Similar Bettor Alert',
+        message: pattern.message,
+        data: {
+          ...pattern.data,
+          aiReason: pattern.behavioralReason,
+        },
+      });
+    }
+  }
+
+  /**
+   * Check for consensus patterns among similar users
+   */
+  private async checkConsensusPatterns(
+    userId: string,
+    similarUsers: Array<{ id: string; username: string }>
+  ): Promise<void> {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+    // Get user's recent bets
+    const { data: userBets } = await supabase
+      .from('bets')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('created_at', oneHourAgo)
+      .eq('archived', false);
+
+    if (!userBets?.length) return;
+
+    // For each bet, check if similar users made the same bet
+    for (const userBet of userBets) {
+      const { data: matchingBets } = await supabase
+        .from('bets')
+        .select(
+          `
+          *,
+          user:users!user_id(username, display_name)
+        `
+        )
+        .in(
+          'user_id',
+          similarUsers.map((u) => u.id)
+        )
+        .eq('game_id', userBet.game_id)
+        .eq('bet_type', userBet.bet_type)
+        .eq('bet_details->team', userBet.bet_details.team)
+        .gte('created_at', oneHourAgo);
+
+      if (matchingBets && matchingBets.length >= 2) {
+        const usernames = matchingBets.map((b) => b.user.username);
+        const team =
+          userBet.bet_details &&
+          typeof userBet.bet_details === 'object' &&
+          'team' in userBet.bet_details
+            ? userBet.bet_details.team
+            : 'selection';
+        const message =
+          matchingBets.length === 2
+            ? `${usernames.join(' and ')} also bet ${team} ${userBet.bet_type}`
+            : `${matchingBets.length} similar bettors including ${usernames[0]} bet ${team}`;
+
+        await this.createSmartNotification(userId, {
+          type: 'behavioral_consensus',
+          title: '🤝 Consensus Alert',
+          message,
+          data: {
+            betId: userBet.id,
+            similarUsers: matchingBets.map((b) => b.user_id),
+            consensusType: 'behavioral',
+            matchingBets: matchingBets.length,
+          },
+        });
+      }
+    }
+  }
+
+  /**
+   * Find bets that would interest this user based on behavior
+   */
+  private findInterestingBetsWithReasons(
+    bets: Array<{
+      id: string;
+      user_id: string;
+      game_id: string;
+      bet_type: string;
+      bet_details: { team?: string };
+      stake: number;
+      user: { username: string };
+    }>
+  ): Array<{ message: string; data: Record<string, unknown>; behavioralReason: string }> {
+    const patterns: Array<{
+      message: string;
+      data: Record<string, unknown>;
+      behavioralReason: string;
+    }> = [];
+
+    // Group by game and bet type
+    const gameGroups = new Map<string, typeof bets>();
+    bets.forEach((bet) => {
+      const key = `${bet.game_id}-${bet.bet_type}`;
+      if (!gameGroups.has(key)) gameGroups.set(key, []);
+      gameGroups.get(key)!.push(bet);
+    });
+
+    // Find consensus patterns
+    gameGroups.forEach((groupBets) => {
+      if (groupBets.length >= 3) {
+        const firstBet = groupBets[0];
+        const usernames = groupBets.map((b) => b.user.username).slice(0, 3);
+
+        patterns.push({
+          message: `${usernames.join(', ')} all bet ${firstBet.bet_details.team} ${firstBet.bet_type}`,
+          data: {
+            gameId: firstBet.game_id,
+            betType: firstBet.bet_type,
+            team: firstBet.bet_details.team,
+            userCount: groupBets.length,
+          },
+          behavioralReason: 'Multiple similar bettors on same pick',
+        });
+      }
+    });
+
+    // Find high-value bets from similar users
+    const highValueBets = bets.filter((b) => b.stake >= 15000); // $150+
+    if (highValueBets.length > 0) {
+      const bet = highValueBets[0];
+      patterns.push({
+        message: `${bet.user.username} just placed $${bet.stake / 100} on ${bet.bet_details.team}`,
+        data: {
+          betId: bet.id,
+          amount: bet.stake,
+          userId: bet.user_id,
+        },
+        behavioralReason: 'High-confidence bet from similar bettor',
+      });
+    }
+
+    return patterns.slice(0, 3); // Max 3 notifications
+  }
+
+  /**
+   * Create a smart notification
+   */
+  private async createSmartNotification(
+    userId: string,
+    notification: {
+      type: string;
+      title: string;
+      message: string;
+      data: Record<string, unknown>;
+    }
+  ): Promise<void> {
+    await supabase.from('notifications').insert({
+      user_id: userId,
+      type: notification.type,
+      data: {
+        ...notification.data,
+        message: notification.message,
+      },
+      read: false,
+      created_at: new Date().toISOString(),
+    });
+
+    // TODO: Send push notification if enabled
+    // await this.sendPushNotification(userId, notification.title, notification.message);
   }
 }
 

@@ -4,6 +4,7 @@ import { Pressable, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Avatar } from '@/components/common/Avatar';
 import { Notification, notificationService } from '@/services/notifications/notificationService';
+import { Colors } from '@/theme';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -125,6 +126,10 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
         return '🏆';
       case 'system':
         return '⚙️';
+      case 'similar_user_bet':
+      case 'behavioral_consensus':
+      case 'smart_alert':
+        return '✨';
       default:
         return '🔔';
     }
@@ -306,8 +311,31 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
         )}
 
         <View flex={1}>
-          {renderClickableText(title, true)}
+          <View flexDirection="row" alignItems="center" gap="$2">
+            {renderClickableText(title, true)}
+            {/* AI Badge for smart notifications */}
+            {(notification.type === 'similar_user_bet' ||
+              notification.type === 'behavioral_consensus' ||
+              notification.type === 'smart_alert') && (
+              <View
+                backgroundColor={Colors.ai}
+                paddingHorizontal="$2"
+                paddingVertical="$1"
+                borderRadius="$2"
+              >
+                <Text fontSize={11} color="white" fontWeight="600">
+                  ✨ Powered by AI
+                </Text>
+              </View>
+            )}
+          </View>
           {renderClickableText(body)}
+          {/* Show AI reason if available */}
+          {notification.data.aiReason && (
+            <Text fontSize={12} color={Colors.ai} marginTop="$1" fontStyle="italic">
+              {notification.data.aiReason}
+            </Text>
+          )}
           <Text fontSize={12} color="$textTertiary" marginTop="$1">
             {timeAgo}
           </Text>

@@ -1576,11 +1576,9 @@ export type Database = {
           display_name: string;
           avatar_url: string;
           bio: string;
-          is_verified: boolean;
           similarity: number;
           win_rate: number;
           total_bets: number;
-          favorite_teams: string[];
           common_sports: string[];
         }[];
       };

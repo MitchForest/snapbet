@@ -1,9 +1,101 @@
 # Sprint 8.06: Enhanced Feed & Smart Notifications
 
-**Status**: NOT STARTED  
+**Status**: HANDOFF  
 **Estimated Duration**: 4-5 hours  
 **Dependencies**: Sprint 8.05 completed (behavioral embeddings and Find Your Tribe)  
 **Primary Goal**: Mix AI content into existing feed and notifications with visual indicators
+
+## Handoff Documentation
+
+### What Was Implemented
+
+1. **Enhanced Feed Service** (`services/feed/feedService.ts`)
+   - Added `getHybridFeed` method that mixes 70% following posts with 30% AI-discovered posts
+   - Implemented behavioral scoring system with reasons (team matches, betting style, etc.)
+   - Added `is_discovered` and `discovery_reason` fields to feed posts
+   - Integrated with existing `find_similar_users` RPC function
+
+2. **Discovery Badge Component** (`components/feed/DiscoveryBadge.tsx`)
+   - Created reusable component showing purple "✨ Powered by AI" badge
+   - Displays behavioral reason next to the badge
+   - Consistent styling with search page discovery features
+
+3. **Updated Feed Hook** (`hooks/useFeed.ts`)
+   - Added `enableSmartFeed` state (default: true)
+   - Automatically uses hybrid feed when enabled
+   - Exposes toggle function for future settings UI
+
+4. **Enhanced PostCard** (`components/content/PostCard.tsx`)
+   - Integrated DiscoveryBadge for AI-discovered posts
+   - Badge appears at top-left of media with reason
+
+5. **Extended Notification Service** (`services/notifications/notificationService.ts`)
+   - Added three new notification types: `similar_user_bet`, `behavioral_consensus`, `smart_alert`
+   - Implemented `generateSmartNotifications` method
+   - Added behavioral pattern detection for consensus alerts
+   - Includes AI reason in notification data
+
+6. **Updated NotificationItem** (`components/notifications/NotificationItem.tsx`)
+   - Shows purple AI badge for smart notifications
+   - Displays behavioral reason in italic text
+   - Uses sparkle emoji (✨) for AI notification icons
+
+7. **Smart Notifications Job** (`scripts/jobs/smartNotifications.ts`)
+   - Created production job to run every 5 minutes
+   - Processes users with behavioral embeddings
+   - Generates notifications for similar user bets and consensus patterns
+
+8. **Database Migration** (`supabase/migrations/036_add_smart_notification_types.sql`)
+   - Added new notification types to enum
+   - Created indexes for efficient smart notification queries
+
+### Key Technical Decisions
+
+1. **Feed Mixing Strategy**: Used 3:1 insertion pattern (3 following posts, then 1 discovered) for natural flow
+2. **Reason Scoring**: Implemented same scoring system as Sprint 8.05 (team matches: 100, betting style: 90, etc.)
+3. **Notification Thresholds**: 2+ similar users for consensus, $150+ for high-value bet alerts
+4. **Performance**: Added database indexes for efficient behavioral queries
+
+### Testing Performed
+
+- Manually verified feed mixing logic
+- Tested discovery badge display
+- Verified notification type extensions
+- Checked job structure matches existing patterns
+
+### Progress Update
+
+**Error Reduction:**
+- Started with: 18 lint errors/warnings and 23 TypeScript errors
+- Current state: 14 lint errors and 4 TypeScript errors
+- Fixed all explicit `any` types except one mapping function that requires complex type casting
+
+**Key Changes Made:**
+1. Removed `withActiveContent` utility usage due to type incompatibility - using direct `.eq('archived', false).is('deleted_at', null)` filters instead
+2. Removed `win_rate` from user select query (column doesn't exist)
+3. Fixed all explicit `any` types in both services
+4. Added proper type annotations for function parameters
+5. Cast database query results where needed
+
+**Remaining Type Issues:**
+1. Line 269 in feedService: `PostgrestBuilder` type mismatch after removing `withActiveContent`
+2. Database query results don't perfectly match `PostWithType` interface
+3. `Json` type from database doesn't match expected `bet_details` structure
+4. `reactions` table has column name issues (`reaction_type` doesn't exist)
+
+### Known Issues
+
+- 4 TypeScript errors remain due to Supabase query result type mismatches
+- Smart notifications job uses placeholder for actual notification generation (needs service initialization pattern)
+- Database types need regeneration to match current schema
+
+### Next Steps for Production
+
+1. Fix remaining TypeScript errors in feedService
+2. Wire up actual notification service in the job
+3. Test with real behavioral embeddings
+4. Monitor performance of hybrid feed queries
+5. Add toggle in settings for smart feed preference
 
 ## Implementation Plan (Updated with Reviewer Feedback)
 
@@ -203,6 +295,423 @@ interface ConsensusMatch {
 - **Feed Mixing**: Natural 3:1 pattern, not grouped
 - **Graceful Degradation**: Falls back to regular feed if no embeddings
 - **Consistent AI Branding**: All AI features use same purple badge style
+
+### Behavioral Reason Display (From Sprint 8.05)
+
+Based on the successful implementation in Sprint 8.05, we'll incorporate the same intelligent reason generation system:
+
+#### 1. Scored Reason System
+Implement the same scoring hierarchy for all AI features:
+- **Team Matches** (100): "mike_yolo also bets Lakers" - Most specific
+- **Betting Style** (90): "Aggressive bettor like you" - Personality match
+- **Time Patterns** (85): "Late night bettor" - Behavioral insight
+- **Performance** (80): "Both crushing it at 75%+" - Success alignment
+- **Stake Patterns** (65-90): Risk profile matching
+- **Bet Types** (60): "Loves spread bets" - Strategy indicator
+- **Common Sports** (50): "Both bet NBA" - Least specific
+
+#### 2. Feed Discovery Implementation
+
+**Update DiscoveryBadge Component:**
+```typescript
+// components/feed/DiscoveryBadge.tsx
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { Colors } from '@/theme';
+
+interface DiscoveryBadgeProps {
+  reason?: string;
+}
+
+export function DiscoveryBadge({ reason = 'Suggested for you' }: DiscoveryBadgeProps) {
+  return (
+    <View style={styles.container}>
+      <View style={styles.badgeRow}>
+        <View style={styles.aiBadge}>
+          <Text style={styles.aiBadgeText}>✨ Powered by AI</Text>
+        </View>
+        <Text style={styles.separator}>•</Text>
+        <Text style={styles.reasonText} numberOfLines={1}>
+          {reason}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    right: 8,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    borderRadius: 8,
+    padding: 8,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  aiBadge: {
+    backgroundColor: Colors.ai, // #8B5CF6
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  aiBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.white,
+  },
+  separator: {
+    color: Colors.white,
+    marginHorizontal: 6,
+    opacity: 0.6,
+  },
+  reasonText: {
+    color: Colors.white,
+    fontSize: 12,
+    flex: 1,
+  },
+});
+```
+
+**Enhance Feed Service Scoring:**
+```typescript
+// In scorePostsForUser method
+private async scorePostsForUser(
+  userId: string, 
+  posts: any[]
+): Promise<Array<{post: any, score: number, reason: string}>> {
+  // Get user's behavioral data for comparison
+  const { data: userBehavior } = await supabase
+    .from('users')
+    .select(`
+      bets(bet_type, bet_details, stake, created_at, game:games(sport)),
+      reactions(post_id, reaction_type),
+      posts(caption)
+    `)
+    .eq('id', userId)
+    .single();
+    
+  if (!userBehavior) return posts.map(p => ({
+    post: p,
+    score: 0.5,
+    reason: 'Suggested for you'
+  }));
+  
+  // Calculate user's behavioral metrics
+  const userMetrics = this.calculateUserMetrics(userBehavior);
+  
+  // Score each post with specific reasons
+  const scoredPosts = await Promise.all(posts.map(async (post) => {
+    const reasons: ScoredReason[] = [];
+    let baseScore = 0.5;
+    
+    // Team-based reasons (Score: 100)
+    if (post.bet_details?.team && userMetrics.topTeams.includes(post.bet_details.team)) {
+      reasons.push({
+        text: `${post.user.username} also bets ${post.bet_details.team}`,
+        score: 100,
+        category: 'team',
+        specificity: 0.8
+      });
+      baseScore += 0.3;
+    }
+    
+    // Get post author's metrics for comparison
+    const { data: authorBets } = await supabase
+      .from('bets')
+      .select('stake')
+      .eq('user_id', post.user_id)
+      .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+      .limit(20);
+      
+    if (authorBets) {
+      const authorAvgStake = this.calculateAvgStake(authorBets);
+      const authorStyle = this.categorizeStakeStyle(authorAvgStake);
+      const userStyle = this.categorizeStakeStyle(userMetrics.avgStake);
+      
+      // Style-based reasons (Score: 90)
+      if (authorStyle === userStyle && authorStyle !== 'varied') {
+        reasons.push({
+          text: `${authorStyle} bettor like you`,
+          score: 90,
+          category: 'style',
+          specificity: 0.7
+        });
+        baseScore += 0.2;
+      }
+    }
+    
+    // Time-based reasons (Score: 85)
+    const postHour = new Date(post.created_at).getHours();
+    if (userMetrics.activeHours.includes(postHour)) {
+      const timePattern = this.getTimePattern(postHour);
+      reasons.push({
+        text: `${timePattern} bettor`,
+        score: 85,
+        category: 'time',
+        specificity: 0.6
+      });
+      baseScore += 0.1;
+    }
+    
+    // Performance reasons (Score: 80)
+    if (post.user.win_rate && userMetrics.winRate) {
+      if (post.user.win_rate > 60 && userMetrics.winRate > 60) {
+        reasons.push({
+          text: `Both crushing it at ${Math.min(post.user.win_rate, userMetrics.winRate)}%+`,
+          score: 80,
+          category: 'performance',
+          specificity: 0.7
+        });
+        baseScore += 0.15;
+      }
+    }
+    
+    // Bet type reasons (Score: 60)
+    if (post.bet_type && userMetrics.dominantBetType === post.bet_type) {
+      reasons.push({
+        text: `Loves ${post.bet_type} bets`,
+        score: 60,
+        category: 'bet_type',
+        specificity: 0.5
+      });
+      baseScore += 0.1;
+    }
+    
+    // Apply scoring adjustments
+    reasons.forEach((reason) => {
+      // Boost high-specificity reasons
+      reason.score *= 1 + reason.specificity * 0.3;
+      
+      // Penalize overly common patterns
+      if (reason.text.includes('NBA') && reason.category === 'sport') {
+        reason.score *= 0.6;
+      }
+    });
+    
+    // Sort by score and get top reason
+    const topReason = reasons.sort((a, b) => b.score - a.score)[0];
+    
+    return {
+      post,
+      score: baseScore,
+      reason: topReason?.text || 'Suggested for you'
+    };
+  }));
+  
+  // Sort by score descending
+  return scoredPosts.sort((a, b) => b.score - a.score);
+}
+
+// Helper methods
+private getTimePattern(hour: number): string {
+  if (hour >= 22 || hour < 4) return 'Late night';
+  if (hour >= 4 && hour < 9) return 'Early morning';
+  if (hour >= 9 && hour < 12) return 'Morning';
+  if (hour >= 12 && hour < 17) return 'Afternoon';
+  if (hour >= 17 && hour < 22) return 'Primetime';
+  return 'Active';
+}
+
+private categorizeStakeStyle(avgStakeCents: number): string {
+  if (avgStakeCents < 1000) return 'Micro';        // $0-10
+  if (avgStakeCents < 2500) return 'Conservative'; // $10-25
+  if (avgStakeCents < 5000) return 'Moderate';     // $25-50
+  if (avgStakeCents < 10000) return 'Confident';   // $50-100
+  return 'Aggressive'; // $100+
+}
+```
+
+#### 3. Smart Notifications Implementation
+
+**Update Notification Generation with Reasons:**
+```typescript
+// In checkSimilarUserBets method
+private async checkSimilarUserBets(
+  userId: string, 
+  similarUsers: any[]
+): Promise<void> {
+  const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  
+  // Get recent bets from similar users
+  const { data: recentBets } = await supabase
+    .from('bets')
+    .select(`
+      *,
+      user:users!user_id(username, display_name, profile_embedding),
+      game:games!game_id(home_team, away_team, sport)
+    `)
+    .in('user_id', similarUsers.map(u => u.id))
+    .gte('created_at', thirtyMinutesAgo)
+    .eq('archived', false)
+    .order('created_at', { ascending: false })
+    .limit(10);
+    
+  if (!recentBets?.length) return;
+  
+  // Get current user's profile for comparison
+  const { data: currentUser } = await supabase
+    .from('users')
+    .select('profile_embedding')
+    .eq('id', userId)
+    .single();
+  
+  // Group and analyze patterns
+  const interestingBets = await this.findInterestingBetsWithReasons(
+    recentBets, 
+    currentUser
+  );
+  
+  for (const pattern of interestingBets) {
+    await this.createSmartNotification(userId, {
+      type: 'similar_user_bet',
+      title: '🎯 Similar Bettor Alert',
+      message: pattern.message,
+      data: {
+        ...pattern.data,
+        aiReason: pattern.behavioralReason
+      }
+    });
+  }
+}
+
+private async findInterestingBetsWithReasons(
+  bets: any[], 
+  currentUser: any
+): Promise<any[]> {
+  const patterns: any[] = [];
+  
+  // Analyze each bet for behavioral similarity
+  for (const bet of bets) {
+    // Calculate similarity if embeddings available
+    let behavioralReason = 'Similar betting style';
+    
+    if (bet.user.profile_embedding && currentUser.profile_embedding) {
+      // Use same reason generation logic as friend discovery
+      const similarity = 1 - cosineSimilarity(
+        bet.user.profile_embedding,
+        currentUser.profile_embedding
+      );
+      
+      if (similarity > 0.75) {
+        // Generate specific reason based on bet context
+        if (bet.stake >= 10000) { // $100+
+          behavioralReason = 'Aggressive bettors like you';
+        } else if (bet.game.sport === 'NBA' && bet.created_at.getHours() >= 22) {
+          behavioralReason = 'Late night NBA degen';
+        } else if (bet.bet_type === 'spread') {
+          behavioralReason = 'Spread betting specialist';
+        }
+      }
+    }
+    
+    patterns.push({
+      message: `${bet.user.username} just placed $${bet.stake / 100} on ${bet.bet_details.team}`,
+      data: {
+        bet_id: bet.id,
+        user_id: bet.user_id,
+        amount: bet.stake,
+        team: bet.bet_details.team
+      },
+      behavioralReason
+    });
+  }
+  
+  return patterns.slice(0, 3); // Max 3 notifications
+}
+```
+
+**Update NotificationItem for AI Display:**
+```typescript
+// In NotificationItem.tsx
+const isAINotification = [
+  'similar_user_bet',
+  'behavioral_consensus',
+  'smart_alert'
+].includes(notification.type);
+
+// In the render method
+<View style={styles.titleRow}>
+  <Text style={styles.title}>{notification.title}</Text>
+  {isAINotification && (
+    <View style={styles.aiBadge}>
+      <Text style={styles.aiBadgeText}>✨ AI</Text>
+    </View>
+  )}
+</View>
+<Text style={styles.message}>
+  {notification.message}
+  {notification.data?.aiReason && (
+    <Text style={styles.aiReason}> • {notification.data.aiReason}</Text>
+  )}
+</Text>
+
+// Styles
+aiBadge: {
+  backgroundColor: Colors.ai,
+  paddingHorizontal: 6,
+  paddingVertical: 2,
+  borderRadius: 8,
+  marginLeft: 8,
+},
+aiBadgeText: {
+  fontSize: 10,
+  fontWeight: '600',
+  color: Colors.white,
+},
+aiReason: {
+  color: Colors.text.secondary,
+  fontStyle: 'italic',
+}
+```
+
+#### 4. Shared Utilities
+
+**Create**: `utils/ai/reasonGenerator.ts`
+```typescript
+interface ScoredReason {
+  text: string;
+  score: number;
+  category: 'sport' | 'team' | 'style' | 'stake' | 'time' | 'performance' | 'bet_type';
+  specificity: number;
+}
+
+export function generateBehavioralReasons(
+  sourceProfile: any,
+  targetProfile: any,
+  context?: 'feed' | 'notification'
+): string {
+  const reasons: ScoredReason[] = [];
+  
+  // Implement full scoring logic from Sprint 8.05
+  // ... (same implementation as friendDiscoveryService)
+  
+  // Return highest scoring reason
+  const topReason = reasons.sort((a, b) => b.score - a.score)[0];
+  return topReason?.text || 'Suggested for you';
+}
+
+export function categorizeStakeStyle(avgStakeCents: number): string {
+  if (avgStakeCents < 1000) return 'Micro';
+  if (avgStakeCents < 2500) return 'Conservative';
+  if (avgStakeCents < 5000) return 'Moderate';
+  if (avgStakeCents < 10000) return 'Confident';
+  return 'Aggressive';
+}
+
+export function getTimePattern(hour: number): string {
+  if (hour >= 22 || hour < 4) return 'Late night';
+  if (hour >= 4 && hour < 9) return 'Early morning';
+  if (hour >= 9 && hour < 12) return 'Morning';
+  if (hour >= 12 && hour < 17) return 'Afternoon';
+  if (hour >= 17 && hour < 22) return 'Primetime';
+  return 'Active';
+}
+```
 
 ### Implementation Risks & Mitigations
 
@@ -427,11 +936,11 @@ export class FeedService {
     userId: string, 
     posts: any[]
   ): Promise<Array<{post: any, score: number, reason: string}>> {
-    // Get user's recent behavior for comparison
+    // Get user's behavioral data for comparison
     const { data: userBehavior } = await supabase
       .from('users')
       .select(`
-        bets(bet_type, bet_details, created_at),
+        bets(bet_type, bet_details, stake, created_at, game:games(sport)),
         reactions(post_id, reaction_type),
         posts(caption)
       `)
@@ -444,93 +953,127 @@ export class FeedService {
       reason: 'Suggested for you'
     }));
     
-    // Score each post
-    const scoredPosts = posts.map(post => {
-      let score = 0.5; // Base score
-      let reason = 'Suggested for you';
+    // Calculate user's behavioral metrics
+    const userMetrics = this.calculateUserMetrics(userBehavior);
+    
+    // Score each post with specific reasons
+    const scoredPosts = await Promise.all(posts.map(async (post) => {
+      const reasons: ScoredReason[] = [];
+      let baseScore = 0.5;
       
-      // If it's a pick post, check betting similarity
-      if (post.post_type === 'pick' && post.bets?.length > 0) {
-        const postBet = post.bets[0];
-        const similarBets = userBehavior.bets?.filter(b => 
-          b.bet_type === postBet.bet_type ||
-          b.bet_details?.team === postBet.bet_details?.team
-        ) || [];
+      // Team-based reasons (Score: 100)
+      if (post.bet_details?.team && userMetrics.topTeams.includes(post.bet_details.team)) {
+        reasons.push({
+          text: `${post.user.username} also bets ${post.bet_details.team}`,
+          score: 100,
+          category: 'team',
+          specificity: 0.8
+        });
+        baseScore += 0.3;
+      }
+      
+      // Get post author's metrics for comparison
+      const { data: authorBets } = await supabase
+        .from('bets')
+        .select('stake')
+        .eq('user_id', post.user_id)
+        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+        .limit(20);
         
-        if (similarBets.length > 0) {
-          score += 0.3;
-          reason = `Similar ${postBet.bet_type} betting`;
+      if (authorBets) {
+        const authorAvgStake = this.calculateAvgStake(authorBets);
+        const authorStyle = this.categorizeStakeStyle(authorAvgStake);
+        const userStyle = this.categorizeStakeStyle(userMetrics.avgStake);
+        
+        // Style-based reasons (Score: 90)
+        if (authorStyle === userStyle && authorStyle !== 'varied') {
+          reasons.push({
+            text: `${authorStyle} bettor like you`,
+            score: 90,
+            category: 'style',
+            specificity: 0.7
+          });
+          baseScore += 0.2;
         }
       }
       
-      // Check engagement patterns
-      if (post.reactions_count > 10) {
-        score += 0.1;
-        if (reason === 'Suggested for you') {
-          reason = 'Trending with similar bettors';
+      // Time-based reasons (Score: 85)
+      const postHour = new Date(post.created_at).getHours();
+      if (userMetrics.activeHours.includes(postHour)) {
+        const timePattern = this.getTimePattern(postHour);
+        reasons.push({
+          text: `${timePattern} bettor`,
+          score: 85,
+          category: 'time',
+          specificity: 0.6
+        });
+        baseScore += 0.1;
+      }
+      
+      // Performance reasons (Score: 80)
+      if (post.user.win_rate && userMetrics.winRate) {
+        if (post.user.win_rate > 60 && userMetrics.winRate > 60) {
+          reasons.push({
+            text: `Both crushing it at ${Math.min(post.user.win_rate, userMetrics.winRate)}%+`,
+            score: 80,
+            category: 'performance',
+            specificity: 0.7
+          });
+          baseScore += 0.15;
         }
       }
       
-      // Time-based relevance
-      const hourOfDay = new Date(post.created_at).getHours();
-      const userActiveHours = this.getUserActiveHours(userBehavior.bets || []);
-      if (userActiveHours.includes(hourOfDay)) {
-        score += 0.1;
+      // Bet type reasons (Score: 60)
+      if (post.bet_type && userMetrics.dominantBetType === post.bet_type) {
+        reasons.push({
+          text: `Loves ${post.bet_type} bets`,
+          score: 60,
+          category: 'bet_type',
+          specificity: 0.5
+        });
+        baseScore += 0.1;
       }
       
-      return { post, score, reason };
-    });
+      // Apply scoring adjustments
+      reasons.forEach((reason) => {
+        // Boost high-specificity reasons
+        reason.score *= 1 + reason.specificity * 0.3;
+        
+        // Penalize overly common patterns
+        if (reason.text.includes('NBA') && reason.category === 'sport') {
+          reason.score *= 0.6;
+        }
+      });
+      
+      // Sort by score and get top reason
+      const topReason = reasons.sort((a, b) => b.score - a.score)[0];
+      
+      return {
+        post,
+        score: baseScore,
+        reason: topReason?.text || 'Suggested for you'
+      };
+    }));
     
     // Sort by score descending
     return scoredPosts.sort((a, b) => b.score - a.score);
   }
   
-  private getUserActiveHours(bets: any[]): number[] {
-    const hourCounts = new Map<number, number>();
-    bets.forEach(bet => {
-      const hour = new Date(bet.created_at).getHours();
-      hourCounts.set(hour, (hourCounts.get(hour) || 0) + 1);
-    });
-    
-    // Get top 6 active hours
-    return Array.from(hourCounts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-      .map(([hour]) => hour);
+  private getTimePattern(hour: number): string {
+    if (hour >= 22 || hour < 4) return 'Late night';
+    if (hour >= 4 && hour < 9) return 'Early morning';
+    if (hour >= 9 && hour < 12) return 'Morning';
+    if (hour >= 12 && hour < 17) return 'Afternoon';
+    if (hour >= 17 && hour < 22) return 'Primetime';
+    return 'Active';
   }
   
-  /**
-   * Mix following and discovered content
-   */
-  private mixFeeds(
-    followingPosts: Post[],
-    discoveredPosts: FeedPost[],
-    followingTarget: number,
-    discoveryTarget: number
-  ): FeedPost[] {
-    const mixed: FeedPost[] = [];
-    let followingIndex = 0;
-    let discoveryIndex = 0;
-    let position = 0;
-    
-    // Use pattern: 3 following, 1 discovered, repeat
-    while (
-      mixed.length < followingTarget + discoveryTarget &&
-      (followingIndex < followingPosts.length || 
-       discoveryIndex < discoveredPosts.length)
-    ) {
-      // Add 3 following posts
-      for (let i = 0; i < 3 && followingIndex < followingPosts.length; i++) {
-        mixed.push(followingPosts[followingIndex++]);
-      }
-      
-      // Add 1 discovered post
-      if (discoveryIndex < discoveredPosts.length) {
-        mixed.push(discoveredPosts[discoveryIndex++]);
-      }
-    }
-    
-    return mixed;
+  private categorizeStakeStyle(avgStakeCents: number): string {
+    if (avgStakeCents < 1000) return 'Micro';        // $0-10
+    if (avgStakeCents < 2500) return 'Conservative'; // $10-25
+    if (avgStakeCents < 5000) return 'Moderate';     // $25-50
+    if (avgStakeCents < 10000) return 'Confident';   // $50-100
+    return 'Aggressive'; // $100+
   }
   
   private extractTeamsFromPost(post: any): string[] {
@@ -735,7 +1278,7 @@ export class NotificationService {
       .from('bets')
       .select(`
         *,
-        user:users!user_id(username, display_name),
+        user:users!user_id(username, display_name, profile_embedding),
         game:games!game_id(home_team, away_team, sport)
       `)
       .in('user_id', similarUsers.map(u => u.id))

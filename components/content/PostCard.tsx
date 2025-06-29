@@ -18,9 +18,13 @@ import { toastService } from '@/services/toastService';
 import { useReactions } from '@/hooks/useReactions';
 import { EngagementPill } from '../engagement/buttons/EngagementPill';
 import { AVAILABLE_REACTIONS } from '@/utils/constants/reactions';
+import { DiscoveryBadge } from '@/components/feed/DiscoveryBadge';
 
 interface PostCardProps {
-  post: PostWithType;
+  post: PostWithType & {
+    is_discovered?: boolean;
+    discovery_reason?: string;
+  };
   onPress?: () => void;
 }
 
@@ -167,6 +171,9 @@ export function PostCard({ post, onPress }: PostCardProps) {
                   </View>
                 </View>
               )}
+
+              {/* AI Discovery Badge */}
+              {post.is_discovered && <DiscoveryBadge reason={post.discovery_reason} />}
 
               {/* Bet Overlays */}
               {post.post_type === PostType.PICK && post.bet && (

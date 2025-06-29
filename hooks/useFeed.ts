@@ -13,6 +13,7 @@ export function useFeed() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [enableSmartFeed, setEnableSmartFeed] = useState(true);
   const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const loadCountRef = useRef(0);
 
@@ -29,13 +30,20 @@ export function useFeed() {
       console.log(`[${new Date().toISOString()}] useFeed - fetchPosts called`, {
         cursor,
         userId: user?.id,
+        enableSmartFeed,
       });
       if (!user?.id) {
         return { posts: [], nextCursor: null, hasMore: false };
       }
+
+      // Use hybrid feed if smart feed is enabled
+      if (enableSmartFeed) {
+        return feedService.getHybridFeed(user.id);
+      }
+
       return feedService.getFeedPosts(user.id, cursor);
     },
-    [user?.id]
+    [user?.id, enableSmartFeed]
   );
 
   // Get cached posts for instant display
@@ -227,5 +235,7 @@ export function useFeed() {
     refetch,
     loadMore,
     hasMore,
+    enableSmartFeed,
+    setEnableSmartFeed,
   };
 }
