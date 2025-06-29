@@ -1,6 +1,7 @@
+#!/usr/bin/env bun
+
 import { BaseJob, JobOptions, JobResult } from './types';
 import { supabase } from '../supabase-client';
-import { notificationService } from '@/services/notifications/notificationService';
 
 /**
  * Smart Notifications Job
@@ -20,17 +21,15 @@ export class SmartNotificationsJob extends BaseJob {
   async run(options: JobOptions): Promise<Omit<JobResult, 'duration'>> {
     this.log('Starting smart notifications job...');
     let processedCount = 0;
+    let notificationsCreated = 0;
 
     try {
-      // Initialize notification service with supabase client
-      notificationService.initialize(supabase);
-
       // Get all users with behavioral embeddings
       const { data: users, error } = await supabase
         .from('users')
-        .select('id, username')
+        .select('id, username, profile_embedding')
         .not('profile_embedding', 'is', null)
-        .eq('archived', false);
+        .neq('username', 'system'); // Exclude system user
 
       if (error) {
         throw new Error(`Failed to fetch users: ${error.message}`);
@@ -55,8 +54,16 @@ export class SmartNotificationsJob extends BaseJob {
         await Promise.all(
           batch.map(async (user) => {
             try {
-              this.log(`Generating smart notifications for user ${user.username}`);
-              await notificationService.generateSmartNotifications(user.id);
+              if (options.verbose) {
+                this.log(`Generating smart notifications for user ${user.username}`);
+              }
+              if (user.profile_embedding) {
+                const created = await this.generateSmartNotifications(
+                  user.id,
+                  user.profile_embedding
+                );
+                notificationsCreated += created;
+              }
               processedCount++;
             } catch (error) {
               console.error(`Error processing user ${user.username}:`, error);
@@ -72,8 +79,8 @@ export class SmartNotificationsJob extends BaseJob {
 
       return {
         success: true,
-        message: `Generated smart notifications for ${processedCount} users`,
-        affected: processedCount,
+        message: `Processed ${processedCount} users, created ${notificationsCreated} notifications`,
+        affected: notificationsCreated,
       };
     } catch (error) {
       console.error('Smart notifications job failed:', error);
@@ -84,18 +91,183 @@ export class SmartNotificationsJob extends BaseJob {
       };
     }
   }
+
+  private async generateSmartNotifications(
+    userId: string,
+    profileEmbedding: string
+  ): Promise<number> {
+    let notificationsCreated = 0;
+
+    try {
+      // Find behaviorally similar users
+      const { data: similarUsers, error } = await supabase.rpc('find_similar_users', {
+        query_embedding: profileEmbedding,
+        p_user_id: userId,
+        limit_count: 30,
+      });
+
+      if (error || !similarUsers?.length) {
+        return 0;
+      }
+
+      // Check for notification-worthy activities
+      const created1 = await this.checkSimilarUserBets(userId, similarUsers);
+      const created2 = await this.checkConsensusPatterns(userId, similarUsers);
+
+      notificationsCreated = created1 + created2;
+    } catch (error) {
+      console.error(`Error generating notifications for user ${userId}:`, error);
+    }
+
+    return notificationsCreated;
+  }
+
+  private async checkSimilarUserBets(
+    userId: string,
+    similarUsers: Array<{ id: string; username: string }>
+  ): Promise<number> {
+    let created = 0;
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+
+    // Get recent bets from similar users
+    const { data: recentBets } = await supabase
+      .from('bets')
+      .select(
+        `
+        *,
+        user:users!user_id(username, display_name),
+        game:games!game_id(home_team, away_team, sport)
+      `
+      )
+      .in(
+        'user_id',
+        similarUsers.map((u) => u.id)
+      )
+      .gte('created_at', thirtyMinutesAgo)
+      .eq('archived', false)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    if (!recentBets?.length) return 0;
+
+    // Create notifications for interesting bets
+    for (const bet of recentBets.slice(0, 2)) {
+      // Max 2 notifications per user
+      const betDetails = bet.bet_details as { team?: string } | null;
+      const team = betDetails?.team || 'selection';
+      const message = `${bet.user.username} just placed $${bet.stake / 100} on ${team}`;
+
+      const { error } = await supabase.from('notifications').insert({
+        user_id: userId,
+        type: 'similar_user_bet',
+        data: {
+          message,
+          betId: bet.id,
+          actorId: bet.user_id,
+          actorUsername: bet.user.username,
+          amount: bet.stake / 100,
+          aiReason: 'Similar betting style',
+        },
+        read: false,
+        created_at: new Date().toISOString(),
+      });
+
+      if (!error) created++;
+    }
+
+    return created;
+  }
+
+  private async checkConsensusPatterns(
+    userId: string,
+    similarUsers: Array<{ id: string; username: string }>
+  ): Promise<number> {
+    let created = 0;
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+    // Get user's recent bets
+    const { data: userBets } = await supabase
+      .from('bets')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('created_at', oneHourAgo)
+      .eq('archived', false)
+      .limit(5);
+
+    if (!userBets?.length) return 0;
+
+    // For each bet, check if similar users made the same bet
+    for (const userBet of userBets.slice(0, 2)) {
+      // Check max 2 bets
+      const betDetails = userBet.bet_details as { team?: string } | null;
+      if (!betDetails?.team) continue;
+
+      // Split the query to avoid type depth issues
+      const similarUserIds = similarUsers.map((u) => u.id);
+      const { data: matchingBets } = await supabase
+        .from('bets')
+        .select('*, user:users!user_id(username)')
+        .in('user_id', similarUserIds)
+        .eq('game_id', userBet.game_id)
+        .eq('bet_type', userBet.bet_type)
+        .gte('created_at', oneHourAgo);
+
+      if (matchingBets) {
+        // Filter for same team
+        const sameTeamBets = matchingBets.filter((bet) => {
+          const details = bet.bet_details as { team?: string } | null;
+          return details?.team === betDetails.team;
+        });
+
+        if (sameTeamBets.length >= 2) {
+          const usernames = sameTeamBets.map((b) => b.user.username).slice(0, 3);
+          const message =
+            sameTeamBets.length === 2
+              ? `${usernames.join(' and ')} also bet ${betDetails.team} ${userBet.bet_type}`
+              : `${sameTeamBets.length} similar bettors including ${usernames[0]} bet ${betDetails.team}`;
+
+          const { error } = await supabase.from('notifications').insert({
+            user_id: userId,
+            type: 'behavioral_consensus',
+            data: {
+              message,
+              betId: userBet.id,
+              similarUsers: sameTeamBets.map((b) => b.user_id),
+              consensusType: 'behavioral',
+              matchingBets: sameTeamBets.length,
+              aiReason: 'Multiple similar bettors on same pick',
+            },
+            read: false,
+            created_at: new Date().toISOString(),
+          });
+
+          if (!error) created++;
+        }
+      }
+    }
+
+    return created;
+  }
 }
 
-// For direct execution
-if (require.main === module) {
+// Support direct execution
+const isMainModule = process.argv[1] === __filename;
+if (isMainModule) {
   const job = new SmartNotificationsJob();
+  const options: JobOptions = {
+    verbose: true,
+    dryRun: process.argv.includes('--dry-run'),
+    limit: process.argv.includes('--limit')
+      ? parseInt(process.argv[process.argv.indexOf('--limit') + 1])
+      : undefined,
+  };
+
   job
-    .execute()
-    .then((result) => {
-      console.log('Job completed:', result);
-      process.exit(result.success ? 0 : 1);
+    .execute(options)
+    .then(() => {
+      process.exit(0);
     })
-    .catch((error: Error) => {
+    .catch((error) => {
       console.error('Job failed:', error);
       process.exit(1);
     });

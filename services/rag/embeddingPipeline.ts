@@ -489,7 +489,10 @@ export class EmbeddingPipeline {
         token_count: tokenCount,
       };
 
-      const { error } = await this.getClient().from('embedding_metadata').insert(metadata);
+      const { error } = await this.getClient().from('embedding_metadata').upsert(metadata, {
+        onConflict: 'entity_type,entity_id',
+        ignoreDuplicates: false,
+      });
 
       if (error) {
         console.error('Failed to track embedding metadata:', error);

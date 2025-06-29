@@ -526,40 +526,7 @@ export async function setupMockData(userId: string) {
     // 3. Phase 1: Create historical content for RAG processing
     await createHistoricalContent(mockUsers, games);
 
-    // 4. Run production jobs to archive and embed historical content
-    await runProductionJobs();
-
-    // 5. Phase 2: Create fresh content
-    console.log('\n🚀 Creating fresh content...');
-
-    // 6. Create follow relationships
-    await createFollowRelationships(userId, mockUsers);
-
-    // 7. Create stories
-    await createStoriesForMockUsers(mockUsers);
-
-    // 8. Create badge-worthy betting patterns
-    const badgeBets = await createBetsForBadges(mockUsers, games);
-
-    // 9. Create rising star bets for new users
-    const risingStarBets = await createRisingStarBets(mockUsers, games);
-
-    // 10. Create successful fade bets for fade god badge
-    await createSuccessfulFadeBets(mockUsers, games);
-
-    // 11. Create hot bettor patterns
-    const hotBettorBets = await createHotBettorBets(mockUsers, games);
-
-    // 12. Create fade god patterns (users with bad records to fade)
-    const fadeGodBets = await createFadeGodBets(mockUsers, games);
-
-    // 13. Create varied betting activity
-    const { settledBets } = await createVariedBets(
-      mockUsers.slice(MOCK_CONFIG.badges.totalPersonas),
-      games
-    );
-
-    // 13a. IMPORTANT: Create some betting activity for the main user
+    // 3a. IMPORTANT: Create some betting activity for the main user BEFORE production jobs
     console.log('\n🎯 Creating betting activity for main user...');
     const mainUserBets = [];
 
@@ -604,6 +571,39 @@ export async function setupMockData(userId: string) {
         console.log(`  ✅ Created ${mainUserBets.length} bets for main user`);
       }
     }
+
+    // 4. Run production jobs to archive and embed historical content
+    await runProductionJobs();
+
+    // 5. Phase 2: Create fresh content
+    console.log('\n🚀 Creating fresh content...');
+
+    // 6. Create follow relationships
+    await createFollowRelationships(userId, mockUsers);
+
+    // 7. Create stories
+    await createStoriesForMockUsers(mockUsers);
+
+    // 8. Create badge-worthy betting patterns
+    const badgeBets = await createBetsForBadges(mockUsers, games);
+
+    // 9. Create rising star bets for new users
+    const risingStarBets = await createRisingStarBets(mockUsers, games);
+
+    // 10. Create successful fade bets for fade god badge
+    await createSuccessfulFadeBets(mockUsers, games);
+
+    // 11. Create hot bettor patterns
+    const hotBettorBets = await createHotBettorBets(mockUsers, games);
+
+    // 12. Create fade god patterns (users with bad records to fade)
+    const fadeGodBets = await createFadeGodBets(mockUsers, games);
+
+    // 13. Create varied betting activity
+    const { settledBets } = await createVariedBets(
+      mockUsers.slice(MOCK_CONFIG.badges.totalPersonas),
+      games
+    );
 
     // 14. Create posts (including outcome posts)
     const allSettledBets = [
@@ -885,6 +885,16 @@ export async function setupMockData(userId: string) {
       console.log('  ⚠️  You may need to run: bun run scripts/jobs/embedding-generation.ts');
     }
 
+    // 22. Run smart notifications job to generate AI-powered notifications
+    console.log('\n🔔 Running smart notifications job...');
+    try {
+      const { execSync } = await import('child_process');
+      execSync('bun run scripts/jobs/smartNotifications.ts', { stdio: 'inherit' });
+      console.log('  ✅ Smart notifications generated');
+    } catch (error) {
+      console.error('  ⚠️  Smart notifications job failed:', error);
+    }
+
     console.log('\n✨ Mock data setup complete!');
   } catch (error) {
     console.error('Setup failed:', error);
@@ -892,19 +902,10 @@ export async function setupMockData(userId: string) {
 }
 
 async function verifyRAGSuggestions(userId: string) {
-  console.log('\n🔍 Verifying RAG suggestions...');
+  console.log('\n🔍 Verifying AI features...');
 
   try {
-    // 1. Check embeddings exist
-    const { data: usersWithEmbeddings } = await supabase
-      .from('users')
-      .select('username, profile_embedding')
-      .not('profile_embedding', 'is', null);
-
-    console.log(`  ✅ ${usersWithEmbeddings?.length || 0} users have profile embeddings`);
-
-    // 2. Check if find_similar_users RPC exists and works
-    // First get the user's embedding
+    // 1. Check user embedding
     const { data: currentUser } = await supabase
       .from('users')
       .select('profile_embedding')
@@ -912,10 +913,12 @@ async function verifyRAGSuggestions(userId: string) {
       .single();
 
     if (!currentUser?.profile_embedding) {
-      console.log('  ⚠️  Current user has no embedding yet');
+      console.log('  ❌ Main user has no embedding');
       return;
     }
+    console.log('  ✅ Main user has embedding');
 
+    // 2. Test Find Your Tribe
     const { data: similarUsers, error } = await supabase.rpc('find_similar_users', {
       query_embedding: currentUser.profile_embedding,
       p_user_id: userId,
@@ -923,51 +926,63 @@ async function verifyRAGSuggestions(userId: string) {
     });
 
     if (error) {
-      console.log('  ⚠️  find_similar_users RPC not available:', error.message);
-      console.log('  💡 Run Sprint 8.01 to create the RPC function');
+      console.log('  ❌ Find Your Tribe error:', error.message);
     } else {
-      console.log(`  ✅ Found ${similarUsers?.length || 0} similar users via RAG`);
-
-      // Display sample suggestions
+      console.log(`  ✅ Find Your Tribe: ${similarUsers?.length || 0} similar users found`);
       if (similarUsers && similarUsers.length > 0) {
-        console.log('\n  📊 Sample behavioral clusters:');
-        similarUsers.slice(0, 3).forEach((user, i: number) => {
-          console.log(
-            `    ${i + 1}. ${user.username} (similarity: ${(user.similarity * 100).toFixed(1)}%)`
-          );
-        });
+        console.log('    Sample matches:');
+        similarUsers
+          .slice(0, 3)
+          .forEach((user: { username: string; similarity: number }, i: number) => {
+            console.log(
+              `      ${i + 1}. ${user.username} (${(user.similarity * 100).toFixed(1)}% match)`
+            );
+          });
       }
     }
 
-    // 3. Verify behavioral diversity
-    const { data: bettingPatterns } = await supabase
-      .from('bets')
-      .select('user_id, bet_type, bet_details')
-      .limit(100);
+    // 3. Check smart notifications
+    const { data: smartNotifs } = await supabase
+      .from('notifications')
+      .select('type, created_at')
+      .eq('user_id', userId)
+      .in('type', ['similar_user_bet', 'behavioral_consensus', 'smart_alert'])
+      .order('created_at', { ascending: false })
+      .limit(5);
 
-    if (bettingPatterns) {
-      const teamCounts = new Map<string, number>();
-
-      bettingPatterns.forEach((bet) => {
-        const team = (bet.bet_details as { team?: string })?.team;
-        if (team) {
-          teamCounts.set(team, (teamCounts.get(team) || 0) + 1);
-        }
-      });
-
-      const topTeams = Array.from(teamCounts.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5);
-
-      console.log('\n  🏀 Top teams bet on:');
-      topTeams.forEach(([team, count]) => {
-        console.log(`    - ${team}: ${count} bets`);
+    console.log(`  ✅ Smart Notifications: ${smartNotifs?.length || 0} AI notifications`);
+    if (smartNotifs && smartNotifs.length > 0) {
+      console.log('    Recent notifications:');
+      smartNotifs.forEach((notif: { type: string; created_at: string | null }) => {
+        const time = notif.created_at
+          ? new Date(notif.created_at).toLocaleTimeString()
+          : 'unknown time';
+        console.log(`      - ${notif.type} at ${time}`);
       });
     }
 
-    console.log('\n  ✨ RAG verification complete!');
+    // 4. Check feed prerequisites
+    const { data: followingCheck } = await supabase
+      .from('follows')
+      .select('following_id')
+      .eq('follower_id', userId);
+
+    console.log(`  ✅ Following ${followingCheck?.length || 0} users (needed for hybrid feed)`);
+
+    // 5. Check for discoverable posts
+    const { data: recentPosts } = await supabase
+      .from('posts')
+      .select('id')
+      .eq('archived', false)
+      .is('deleted_at', null)
+      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .limit(10);
+
+    console.log(`  ✅ Recent posts available: ${recentPosts?.length || 0} (for discovery feed)`);
+
+    console.log('\n  ✨ AI features verification complete!');
   } catch (error) {
-    console.error('  ❌ RAG verification failed:', error);
+    console.error('  ❌ Verification failed:', error);
   }
 }
 

@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-SnapBet implements a sophisticated AI-powered user discovery system using behavioral embeddings and retrieval-augmented generation (RAG). The system analyzes multi-dimensional user behavior patterns to create high-dimensional vector representations, enabling intelligent user matching based on betting patterns, social connections, and engagement styles rather than simple demographic data.
+SnapBet implements a sophisticated AI-powered user discovery and content recommendation system using behavioral embeddings and retrieval-augmented generation (RAG). The system analyzes multi-dimensional user behavior patterns to create high-dimensional vector representations, enabling intelligent user matching, content discovery, and smart notifications based on betting patterns, social connections, and engagement styles rather than simple demographic data.
 
 ## Architecture Overview
 
@@ -24,7 +24,17 @@ SnapBet implements a sophisticated AI-powered user discovery system using behavi
    - Behavioral reason generation
    - Result enrichment with contextual data
 
-4. **Database Infrastructure**
+4. **Feed Service** (`services/feed/feedService.ts`)
+   - Hybrid feed generation (70% following, 30% discovered)
+   - Content scoring and ranking
+   - Discovery reason generation
+
+5. **Notification Service** (`services/notifications/notificationService.ts`)
+   - Smart notification generation
+   - Consensus pattern detection
+   - Behavioral alert creation
+
+6. **Database Infrastructure**
    - PostgreSQL with pgvector extension
    - Cosine similarity search capabilities
    - Indexed embedding storage for performance
@@ -121,7 +131,7 @@ const embedding = await openai.embeddings.create({
 ### 3. Similarity Calculation
 
 #### Cosine Similarity Algorithm
-The system uses cosine similarity to find similar users:
+The system uses cosine similarity to find similar users. Cosine similarity measures the cosine of the angle between two vectors, resulting in a value between -1 and 1, where 1 means identical direction (most similar).
 
 ```sql
 -- PostgreSQL pgvector function
@@ -153,6 +163,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 ```
+
+**Note**: The `<=>` operator in pgvector calculates cosine distance (1 - cosine similarity), so we subtract from 1 to get similarity.
 
 #### Similarity Score Interpretation
 - **0.85+**: Nearly identical betting patterns
@@ -267,22 +279,240 @@ if (reason.text.includes('NBA') && reason.category === 'sport') {
 - **Persistence**: Reasons passed via navigation params
 - **State Management**: Follow button properly synced with badge visibility
 
+## Feature Implementations
+
+### 1. Enhanced Feed (70/30 Mix)
+
+The enhanced feed creates a personalized experience by mixing content from followed users with AI-discovered content from behaviorally similar users.
+
+#### Implementation Details
+
+```typescript
+// feedService.ts - getHybridFeed method
+async getHybridFeed(userId: string, limit: number = 20): Promise<FeedResponse> {
+  // Calculate content splits
+  const followingCount = Math.floor(limit * 0.7);  // 70% following
+  const discoveryCount = limit - followingCount;    // 30% discovered
+  
+  // Fetch both types in parallel for performance
+  const [followingPosts, discoveredPosts] = await Promise.all([
+    this.getFollowingPosts(userId, followingCount * 2),  // Extra for filtering
+    this.getDiscoveredPosts(userId, discoveryCount * 2)
+  ]);
+  
+  // Mix using 3:1 pattern (3 following, 1 discovered)
+  return this.mixFeeds(followingPosts, discoveredPosts);
+}
+```
+
+#### Discovery Algorithm
+
+1. **Get User Embedding**: Retrieve the current user's behavioral embedding
+2. **Find Similar Users**: Use `find_similar_users` RPC to get behaviorally similar users
+3. **Filter Non-Followed**: Remove users already followed to ensure fresh content
+4. **Fetch Recent Posts**: Get posts from similar users within the last 24 hours
+5. **Score & Rank**: Score each post based on behavioral relevance
+
+```typescript
+private async scorePostsForUser(userId: string, posts: Post[]): Promise<ScoredPost[]> {
+  // Get user's behavioral data
+  const userMetrics = await this.calculateUserMetrics(userId);
+  
+  return posts.map(post => {
+    let score = 0.5; // Base score
+    const reasons: ScoredReason[] = [];
+    
+    // Team match (highest score)
+    if (post.bet_details?.team && userMetrics.topTeams.includes(post.bet_details.team)) {
+      score += 0.3;
+      reasons.push({
+        text: `${post.user.username} also bets ${post.bet_details.team}`,
+        score: 100,
+        category: 'team',
+        specificity: 0.8
+      });
+    }
+    
+    // Betting style match
+    if (this.matchesBettingStyle(post.user, userMetrics)) {
+      score += 0.2;
+      // Add style reason...
+    }
+    
+    // Time pattern match
+    if (this.matchesTimePattern(post.created_at, userMetrics.activeHours)) {
+      score += 0.1;
+      // Add time reason...
+    }
+    
+    return {
+      post,
+      score,
+      reason: this.selectTopReason(reasons)
+    };
+  });
+}
+```
+
+#### Visual Integration
+
+- **Discovery Badge**: Purple badge with "✨ Powered by AI" text
+- **Reason Display**: Shows behavioral match reason (e.g., "Similar betting style")
+- **Seamless Integration**: Discovered posts appear naturally in the feed
+
+### 2. Smart Notifications
+
+Smart notifications alert users about interesting betting activity from behaviorally similar users.
+
+#### Notification Types
+
+1. **Similar User Bet** (`similar_user_bet`)
+   - Triggered when a behaviorally similar user places an interesting bet
+   - Example: "🎯 mike_sharp just bet $200 on Lakers -5.5"
+
+2. **Behavioral Consensus** (`behavioral_consensus`)
+   - Triggered when multiple similar users bet the same way
+   - Example: "🤝 3 similar bettors all took the under on Chiefs/Bills"
+
+3. **Smart Alert** (`smart_alert`)
+   - General AI-powered alerts for trending patterns
+   - Example: "📈 5 sharp bettors are fading the Cowboys today"
+
+#### Implementation
+
+```typescript
+// notificationService.ts - generateSmartNotifications
+async generateSmartNotifications(userId: string): Promise<void> {
+  // Get user's behavioral cohort
+  const similarUsers = await this.findSimilarUsers(userId, 30);
+  
+  // Check various patterns in parallel
+  await Promise.all([
+    this.checkSimilarUserBets(userId, similarUsers),
+    this.checkConsensusPatterns(userId, similarUsers),
+    this.checkTrendingWithSimilar(userId, similarUsers)
+  ]);
+}
+
+private async checkConsensusPatterns(userId: string, similarUsers: User[]): Promise<void> {
+  // Get recent bets from the user
+  const userBets = await this.getUserRecentBets(userId, '1 hour');
+  
+  for (const userBet of userBets) {
+    // Find similar users who made the same bet
+    const matchingBets = await this.findMatchingBets(
+      userBet,
+      similarUsers.map(u => u.id),
+      '1 hour'
+    );
+    
+    if (matchingBets.length >= 2) {  // Consensus threshold
+      await this.createSmartNotification(userId, {
+        type: 'behavioral_consensus',
+        title: '🤝 Consensus Alert',
+        message: `${matchingBets.length} similar bettors also bet ${userBet.bet_details.team}`,
+        data: {
+          bet_id: userBet.id,
+          matching_users: matchingBets.map(b => b.user_id),
+          aiReason: this.generateConsensusReason(matchingBets)
+        }
+      });
+    }
+  }
+}
+```
+
+#### Smart Notification Job
+
+Runs every 5 minutes via cron to generate notifications:
+
+```typescript
+// scripts/jobs/smartNotifications.ts
+async function processSmartNotifications() {
+  // Get users with recent betting activity
+  const activeUsers = await getRecentBettors('30 minutes');
+  
+  // Process in batches to avoid overload
+  for (const batch of chunk(activeUsers, 10)) {
+    await Promise.all(
+      batch.map(user => notificationService.generateSmartNotifications(user.id))
+    );
+  }
+}
+```
+
+#### Visual Integration
+
+- **AI Badge**: Purple badge appears next to notification title
+- **Reason Display**: Shows why the notification was generated
+- **Mixed Display**: AI notifications appear chronologically with regular notifications
+
+### 3. Technical Implementation Details
+
+#### Service Initialization Pattern
+
+All services using environment variables implement this pattern for React Native compatibility:
+
+```typescript
+class FeedService {
+  private supabaseClient: SupabaseClient<Database> | null = null;
+  
+  initialize(client: SupabaseClient<Database>) {
+    this.supabaseClient = client;
+  }
+  
+  private getClient(): SupabaseClient<Database> {
+    if (!this.supabaseClient) {
+      return supabase; // Fallback to singleton
+    }
+    return this.supabaseClient;
+  }
+}
+```
+
+#### Type System Solutions
+
+Handling database Json types:
+
+```typescript
+// Custom interface for query results
+interface PostQueryResult {
+  id: string;
+  user_id: string;
+  content: {
+    caption?: string;
+    media_url?: string;
+    media_type?: MediaType;
+  };
+  bet_details: Json; // From database
+  // ... other fields
+}
+
+// Safe access with type guards
+const team = bet_details && typeof bet_details === 'object' && 'team' in bet_details
+  ? (bet_details as { team: string }).team
+  : undefined;
+```
+
 ## Technical Benefits
 
 ### 1. Scalability
-- **Indexed Vectors**: O(log n) search complexity
+- **Indexed Vectors**: O(log n) search complexity with IVFFlat indexing
 - **Batch Processing**: Efficient resource usage
 - **Incremental Updates**: Only process changed data
+- **Parallel Fetching**: Feed and notifications use Promise.all for performance
 
 ### 2. Accuracy
 - **Multi-dimensional Analysis**: 1536 dimensions capture nuanced behavior
 - **Continuous Learning**: Embeddings update with user activity
 - **Contextual Relevance**: Reasons based on actual behavior
+- **Cosine Similarity**: Industry-standard metric for vector comparison
 
 ### 3. Privacy-Preserving
 - **No PII in Embeddings**: Only behavioral patterns
 - **Local Computation**: Sensitive data stays in database
 - **Aggregated Metrics**: Individual bets not exposed
+- **User Control**: Can opt out of AI features
 
 ## User Benefits
 
@@ -295,11 +525,13 @@ if (reason.text.includes('NBA') && reason.category === 'sport') {
 - **Relevant Suggestions**: Higher follow-through rates
 - **Clear Reasoning**: Users understand why matches are suggested
 - **Trust Building**: Transparent AI explanations
+- **Fresh Content**: Discover posts from users outside normal circle
 
 ### 3. Enhanced Discovery
 - **Serendipitous Finds**: Discover users outside normal circles
 - **Style Learning**: Understand own betting patterns
 - **Community Growth**: Easier to find your betting tribe
+- **Smart Alerts**: Never miss consensus opportunities
 
 ## Performance Metrics
 
@@ -312,6 +544,11 @@ if (reason.text.includes('NBA') && reason.category === 'sport') {
 - **Query Time**: <50ms for 10 results
 - **Index Type**: IVFFlat with 100 lists
 - **Accuracy**: 99%+ recall at top-10
+
+### Feed Performance
+- **Hybrid Feed Load**: <500ms (parallel fetching)
+- **Discovery Scoring**: ~100ms for 20 posts
+- **Cache TTL**: 5 minutes for first page
 
 ### Storage Requirements
 - **Per User**: ~6KB for embedding + metadata
@@ -334,6 +571,12 @@ if (reason.text.includes('NBA') && reason.category === 'sport') {
 - **AI Badge Visibility**: Only shows for unfollowed users
 - **State Management**: Fixed follow button synchronization
 - **Reason Display**: Single reason in list, multiple in profile
+
+### 4. Sprint 8.06 Additions
+- **Enhanced Feed**: 70/30 mix of following and AI-discovered content
+- **Smart Notifications**: Behavioral consensus and similar user alerts
+- **Service Patterns**: React Native compatible initialization
+- **Type Safety**: Proper Json type handling from database
 
 ## Future Enhancements
 
@@ -361,9 +604,14 @@ if (reason.text.includes('NBA') && reason.category === 'sport') {
 - `services/rag/embeddingPipeline.ts` - Core embedding logic
 - `services/rag/ragService.ts` - RAG orchestration
 - `services/social/friendDiscoveryService.ts` - User matching
+- `services/feed/feedService.ts` - Hybrid feed implementation
+- `services/notifications/notificationService.ts` - Smart notifications
 - `hooks/useFriendDiscovery.ts` - React integration
+- `hooks/useFeed.ts` - Feed hook with smart feed toggle
 - `scripts/jobs/embedding-generation.ts` - Batch processing
+- `scripts/jobs/smartNotifications.ts` - Notification generation
 - `supabase/migrations/033_find_similar_users_rpc.sql` - Database function
+- `supabase/migrations/036_add_smart_notification_types.sql` - Notification types
 
 ### Database Schema
 ```sql
@@ -375,10 +623,15 @@ ALTER TABLE users ADD COLUMN last_embedding_update timestamptz;
 CREATE INDEX idx_users_embedding 
 ON users USING ivfflat (profile_embedding vector_cosine_ops)
 WITH (lists = 100);
+
+-- Smart notification types
+ALTER TYPE notification_type ADD VALUE 'similar_user_bet';
+ALTER TYPE notification_type ADD VALUE 'behavioral_consensus';
+ALTER TYPE notification_type ADD VALUE 'smart_alert';
 ```
 
 ## Conclusion
 
-SnapBet's AI implementation represents a sophisticated approach to user discovery in social betting applications. By leveraging behavioral embeddings and cosine similarity search, the system creates meaningful connections between users based on their actual betting patterns and engagement styles. The batch processing architecture ensures scalability while maintaining fresh, relevant suggestions. The transparent reasoning system builds user trust by explaining AI decisions in human terms.
+SnapBet's AI implementation represents a sophisticated approach to user discovery and content recommendation in social betting applications. By leveraging behavioral embeddings and cosine similarity search, the system creates meaningful connections between users based on their actual betting patterns and engagement styles. The enhanced feed and smart notifications extend this capability to content discovery and timely alerts. The batch processing architecture ensures scalability while maintaining fresh, relevant suggestions. The transparent reasoning system builds user trust by explaining AI decisions in human terms.
 
-This implementation demonstrates how modern AI techniques can enhance social platforms by moving beyond simple demographic matching to create communities based on shared behaviors and interests. 
+This implementation demonstrates how modern AI techniques can enhance social platforms by moving beyond simple demographic matching to create communities based on shared behaviors and interests, while maintaining performance and user privacy. 

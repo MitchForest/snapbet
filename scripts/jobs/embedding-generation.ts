@@ -196,6 +196,7 @@ export class EmbeddingGenerationJob extends BaseJob {
       .from('users')
       .select('*')
       .not('username', 'is', null)
+      .neq('username', 'system') // Exclude system user
       .or(`profile_embedding.is.null,last_embedding_update.lt.${sevenDaysAgo.toISOString()}`)
       .limit(limit);
 
