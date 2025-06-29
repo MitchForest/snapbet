@@ -50,12 +50,16 @@ async function cleanup() {
     if (commentsError) throw commentsError;
     console.log('   ✅ Complete');
 
-    console.log('🗑️  Deleting all pick actions...');
-    const { error: pickActionsError } = await supabase
-      .from('pick_actions')
-      .delete()
+    console.log('🔧 Resetting post engagement counts...');
+    const { error: resetCountsError } = await supabase
+      .from('posts')
+      .update({
+        tail_count: 0,
+        fade_count: 0,
+        reaction_count: 0,
+      })
       .gte('created_at', '1900-01-01');
-    if (pickActionsError) throw pickActionsError;
+    if (resetCountsError) throw resetCountsError;
     console.log('   ✅ Complete');
 
     console.log('🗑️  Deleting all story views...');
@@ -80,6 +84,14 @@ async function cleanup() {
       .delete()
       .gte('created_at', '1900-01-01');
     if (postsError) throw postsError;
+    console.log('   ✅ Complete');
+
+    console.log('🗑️  Deleting all pick actions...');
+    const { error: pickActionsError } = await supabase
+      .from('pick_actions')
+      .delete()
+      .gte('created_at', '1900-01-01');
+    if (pickActionsError) throw pickActionsError;
     console.log('   ✅ Complete');
 
     console.log('🗑️  Deleting all bets...');

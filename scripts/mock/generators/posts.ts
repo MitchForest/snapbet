@@ -26,16 +26,23 @@ export async function createStoriesForMockUsers(mockUsers: User[]) {
 
   for (let i = 0; i < storyUsers.length; i++) {
     const user = storyUsers[i];
-    // Cycle through categories to ensure variety
-    const mediaCategory = allCategories[i % allCategories.length];
+    // Create 1-3 stories per user
+    const storyCount = Math.floor(Math.random() * 3) + 1;
 
-    stories.push({
-      user_id: user.id,
-      media_url: getRandomMediaUrl(mediaCategory),
-      media_type: 'photo' as const,
-      created_at: new Date(Date.now() - Math.random() * 12 * 60 * 60 * 1000).toISOString(),
-      expires_at: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
-    });
+    for (let j = 0; j < storyCount; j++) {
+      const mediaCategory = allCategories[(i + j) % allCategories.length];
+
+      stories.push({
+        user_id: user.id,
+        media_url: getRandomMediaUrl(mediaCategory),
+        media_type: 'photo' as const,
+        caption: j === 0 ? 'Check this out! 🔥' : j === 1 ? 'Game day vibes 🏀' : "Let's go! 💪",
+        created_at: new Date(
+          Date.now() - (j * 2 + Math.random() * 4) * 60 * 60 * 1000
+        ).toISOString(),
+        expires_at: new Date(Date.now() + (20 - j * 2) * 60 * 60 * 1000).toISOString(),
+      });
+    }
   }
 
   const { error } = await supabase.from('stories').insert(stories);
@@ -44,7 +51,7 @@ export async function createStoriesForMockUsers(mockUsers: User[]) {
     return [];
   }
 
-  console.log(`  ✅ Created ${stories.length} stories`);
+  console.log(`  ✅ Created ${stories.length} stories for ${storyUsers.length} users`);
   return stories;
 }
 
@@ -86,7 +93,7 @@ export async function createPostsForMockUsers(
         stake,
         potential_win: Math.floor((stake * 100) / 110),
         status: 'pending' as const,
-        created_at: new Date(Date.now() - i * 2 * 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - i * 30 * 60 * 1000).toISOString(),
       };
 
       // Insert bet first
@@ -101,7 +108,7 @@ export async function createPostsForMockUsers(
             : betType === 'total'
               ? `${betDetails.total_type} ${betDetails.line}`
               : `${betDetails.team} ML`
-        }\n\nLet's ride ��`,
+        }\n\nLet's ride 🚀`,
         created_at: bet.created_at,
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         media_type: 'photo',
@@ -118,7 +125,7 @@ export async function createPostsForMockUsers(
         id: crypto.randomUUID(),
         user_id: userId,
         caption: getRandomTemplate(postTemplates.reaction.exciting),
-        created_at: new Date(Date.now() - i * 3 * 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - i * 45 * 60 * 1000).toISOString(),
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         media_type: 'photo',
         media_url:
@@ -142,8 +149,8 @@ export async function createPostsForMockUsers(
       const betDetails = generateBetDetails(betType, game);
       const stake = getRandomStake();
 
-      // Make first 5 pick posts within last 24 hours for trending
-      const hoursAgo = i < 5 ? Math.random() * 20 : (i + 1) * 45;
+      // Make first 10 pick posts within last 6 hours for trending
+      const hoursAgo = i < 10 ? Math.random() * 6 : (i + 1) * 2;
 
       const bet = {
         id: crypto.randomUUID(),
@@ -204,7 +211,7 @@ export async function createPostsForMockUsers(
         id: crypto.randomUUID(),
         user_id: user.id,
         caption: getRandomTemplate(postTemplates.reaction[mood]),
-        created_at: new Date(Date.now() - i * 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - i * 30 * 60 * 1000).toISOString(),
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         media_type: 'photo',
         media_url:

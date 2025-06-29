@@ -127,7 +127,7 @@ export class SmartNotificationsJob extends BaseJob {
     similarUsers: Array<{ id: string; username: string }>
   ): Promise<number> {
     let created = 0;
-    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
 
     // Get recent bets from similar users
     const { data: recentBets } = await supabase
@@ -143,16 +143,16 @@ export class SmartNotificationsJob extends BaseJob {
         'user_id',
         similarUsers.map((u) => u.id)
       )
-      .gte('created_at', thirtyMinutesAgo)
+      .gte('created_at', twoHoursAgo)
       .eq('archived', false)
       .order('created_at', { ascending: false })
-      .limit(5);
+      .limit(10);
 
     if (!recentBets?.length) return 0;
 
     // Create notifications for interesting bets
-    for (const bet of recentBets.slice(0, 2)) {
-      // Max 2 notifications per user
+    for (const bet of recentBets.slice(0, 5)) {
+      // Max 5 notifications per user
       const betDetails = bet.bet_details as { team?: string } | null;
       const team = betDetails?.team || 'selection';
       const message = `${bet.user.username} just placed $${bet.stake / 100} on ${team}`;
@@ -183,22 +183,22 @@ export class SmartNotificationsJob extends BaseJob {
     similarUsers: Array<{ id: string; username: string }>
   ): Promise<number> {
     let created = 0;
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
 
     // Get user's recent bets
     const { data: userBets } = await supabase
       .from('bets')
       .select('*')
       .eq('user_id', userId)
-      .gte('created_at', oneHourAgo)
+      .gte('created_at', twoHoursAgo)
       .eq('archived', false)
       .limit(5);
 
     if (!userBets?.length) return 0;
 
     // For each bet, check if similar users made the same bet
-    for (const userBet of userBets.slice(0, 2)) {
-      // Check max 2 bets
+    for (const userBet of userBets.slice(0, 5)) {
+      // Check max 5 bets
       const betDetails = userBet.bet_details as { team?: string } | null;
       if (!betDetails?.team) continue;
 
@@ -210,7 +210,7 @@ export class SmartNotificationsJob extends BaseJob {
         .in('user_id', similarUserIds)
         .eq('game_id', userBet.game_id)
         .eq('bet_type', userBet.bet_type)
-        .gte('created_at', oneHourAgo);
+        .gte('created_at', twoHoursAgo);
 
       if (matchingBets) {
         // Filter for same team

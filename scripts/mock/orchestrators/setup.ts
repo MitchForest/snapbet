@@ -683,7 +683,7 @@ export async function setupMockData(userId: string) {
     await createMessaging(userId, mockUsers);
 
     // 17. Create notifications for the main user
-    await createNotificationsForUser(userId, mockUsers);
+    await createNotificationsForUser(userId, mockUsers, [], []);
 
     // 18. Run badge calculation job
     console.log('\n🏆 Running badge calculation...');

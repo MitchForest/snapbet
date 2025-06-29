@@ -210,42 +210,42 @@ class NotificationService {
       case 'tail':
         return {
           title: 'New Tail',
-          body: `@${data.actorUsername} tailed your pick for $${data.amount}`,
+          body: `@${data.actorUsername} tailed your pick for $${(data.amount || 0) / 100}`,
         };
       case 'fade':
         return {
           title: 'New Fade',
-          body: `@${data.actorUsername} faded your pick for $${data.amount}`,
+          body: `@${data.actorUsername} faded your pick for $${(data.amount || 0) / 100}`,
         };
       case 'bet_won':
         return {
           title: 'Bet Won! 🎉',
-          body: `You won $${data.amount} on your bet!`,
+          body: `You won $${(data.amount || 0) / 100} on your bet!`,
         };
       case 'bet_lost':
         return {
           title: 'Bet Lost',
-          body: `You lost $${data.amount} on your bet`,
+          body: `You lost $${(data.amount || 0) / 100} on your bet`,
         };
       case 'tail_won':
         return {
           title: 'Tail Won! 🎉',
-          body: `Your tail on @${data.actorUsername} won $${data.amount}!`,
+          body: `Your tail on @${data.actorUsername} won $${(data.amount || 0) / 100}!`,
         };
       case 'tail_lost':
         return {
           title: 'Tail Lost',
-          body: `Your tail on @${data.actorUsername} lost $${data.amount}`,
+          body: `Your tail on @${data.actorUsername} lost $${(data.amount || 0) / 100}`,
         };
       case 'fade_won':
         return {
           title: 'Fade Won! 🎉',
-          body: `Your fade on @${data.actorUsername} won $${data.amount}!`,
+          body: `Your fade on @${data.actorUsername} won $${(data.amount || 0) / 100}!`,
         };
       case 'fade_lost':
         return {
           title: 'Fade Lost',
-          body: `Your fade on @${data.actorUsername} lost $${data.amount}`,
+          body: `Your fade on @${data.actorUsername} lost $${(data.amount || 0) / 100}`,
         };
       case 'follow':
         return {

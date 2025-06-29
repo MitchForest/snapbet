@@ -34,23 +34,36 @@ export function FollowButton({
     setIsLoading(true);
 
     try {
+      let result;
       if (newFollowState) {
-        await followUser(userId);
+        result = await followUser(userId);
       } else {
-        await unfollowUser(userId);
+        result = await unfollowUser(userId);
+      }
+
+      // Check if the operation was successful
+      if (!result.success) {
+        throw new Error(result.error || 'Operation failed');
       }
 
       // Success haptic
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch {
+    } catch (error) {
       // Revert on error
       onFollowChange?.(!newFollowState);
 
       // Error haptic
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
 
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : newFollowState
+            ? "Couldn't follow user"
+            : "Couldn't unfollow user";
+
       toastService.show({
-        message: newFollowState ? "Couldn't follow user" : "Couldn't unfollow user",
+        message: errorMessage,
         type: 'error',
       });
     } finally {

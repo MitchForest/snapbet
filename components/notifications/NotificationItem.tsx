@@ -62,6 +62,44 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
         router.push('/(drawer)/profile');
         break;
 
+      case 'similar_user_bet':
+        // Navigate to the bet post if available, otherwise to user's profile on bets tab
+        if (data.postId) {
+          // TODO: When post detail page is implemented, navigate to `/post/${data.postId}`
+          router.push('/(drawer)/(tabs)');
+        } else if (data.actorUsername) {
+          router.push({
+            pathname: `/(drawer)/profile/${data.actorUsername}`,
+            params: { activeTab: 'bets' },
+          });
+        }
+        break;
+
+      case 'behavioral_consensus':
+        // Navigate to the bet post if available, otherwise to games tab
+        if (data.postId) {
+          // TODO: When post detail page is implemented, navigate to `/post/${data.postId}`
+          router.push('/(drawer)/(tabs)');
+        } else {
+          router.push('/(drawer)/(tabs)/games');
+        }
+        break;
+
+      case 'smart_alert':
+        // Navigate to the bet post if available, otherwise based on data
+        if (data.postId) {
+          // TODO: When post detail page is implemented, navigate to `/post/${data.postId}`
+          router.push('/(drawer)/(tabs)');
+        } else if (data.actorUsername) {
+          router.push({
+            pathname: `/(drawer)/profile/${data.actorUsername}`,
+            params: { activeTab: 'bets' },
+          });
+        } else {
+          router.push('/(drawer)/(tabs)/games');
+        }
+        break;
+
       default:
         // No specific navigation for system notifications
         break;
@@ -129,7 +167,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
       case 'similar_user_bet':
       case 'behavioral_consensus':
       case 'smart_alert':
-        return '✨';
+        return '🔔';
       default:
         return '🔔';
     }
@@ -313,10 +351,13 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
         <View flex={1}>
           <View flexDirection="row" alignItems="center" gap="$2">
             {renderClickableText(title, true)}
-            {/* AI Badge for smart notifications */}
-            {(notification.type === 'similar_user_bet' ||
-              notification.type === 'behavioral_consensus' ||
-              notification.type === 'smart_alert') && (
+          </View>
+          {renderClickableText(body)}
+          {/* Show AI badge and reason for smart notifications */}
+          {(notification.type === 'similar_user_bet' ||
+            notification.type === 'behavioral_consensus' ||
+            notification.type === 'smart_alert') && (
+            <View flexDirection="row" alignItems="center" marginTop="$1">
               <View
                 backgroundColor={Colors.ai}
                 paddingHorizontal="$2"
@@ -327,14 +368,17 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
                   ✨ Powered by AI
                 </Text>
               </View>
-            )}
-          </View>
-          {renderClickableText(body)}
-          {/* Show AI reason if available */}
-          {notification.data.aiReason && (
-            <Text fontSize={12} color={Colors.ai} marginTop="$1" fontStyle="italic">
-              {notification.data.aiReason}
-            </Text>
+              {notification.data.aiReason && (
+                <>
+                  <Text fontSize={12} color="$textTertiary" marginHorizontal="$1">
+                    •
+                  </Text>
+                  <Text fontSize={12} color="$textSecondary" flex={1} numberOfLines={1}>
+                    {notification.data.aiReason}
+                  </Text>
+                </>
+              )}
+            </View>
           )}
           <Text fontSize={12} color="$textTertiary" marginTop="$1">
             {timeAgo}

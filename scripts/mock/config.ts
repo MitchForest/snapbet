@@ -50,7 +50,7 @@ export const MOCK_CONFIG = {
 
   content: {
     stories: {
-      count: 15,
+      count: 10,
       mediaUrls: {
         thinking: [
           'https://media.giphy.com/media/3o7TKTDn976rzVgky4/giphy.gif',

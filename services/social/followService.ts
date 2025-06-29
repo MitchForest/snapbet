@@ -212,7 +212,19 @@ class FollowService {
 
           if (error) {
             if (error.code === '23505') {
-              return { success: false, error: 'Already following this user' };
+              // Already following - just return success
+              // Update cache to reflect we're following
+              const cacheKey = `${userId}:${targetUserId}`;
+              const previousState = this.followStateCache.get(cacheKey);
+              this.followStateCache.set(cacheKey, {
+                isFollowing: true,
+                isPending: false,
+                isMutual: previousState?.isMutual || false,
+                lastChecked: Date.now(),
+              });
+              this.persistCachedStates();
+
+              return { success: true };
             }
             throw error;
           }

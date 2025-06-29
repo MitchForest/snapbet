@@ -6,6 +6,7 @@ import { Storage, StorageKeys, CacheUtils } from '@/services/storage/storageServ
 import { withActiveContent } from '@/utils/database/archiveFilter';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database, Json } from '@/types/database';
+import { AIReasonScorer, BetWithDetails } from '@/utils/ai/reasonScoring';
 
 // Types
 export interface FeedCursor {
@@ -28,21 +29,6 @@ interface FeedPost extends PostWithType {
   is_discovered?: boolean;
   discovery_reason?: string;
   relevance_score?: number;
-}
-
-interface ScoredReason {
-  text: string;
-  score: number;
-  category: 'sport' | 'team' | 'style' | 'stake' | 'time' | 'performance' | 'bet_type';
-  specificity: number;
-}
-
-interface UserMetrics {
-  topTeams: string[];
-  avgStake: number;
-  activeHours: number[];
-  winRate: number | null;
-  dominantBetType: string | null;
 }
 
 // Custom type for getPostById query result
@@ -476,7 +462,7 @@ export class FeedService {
       if (!similarNotFollowed.length) return [];
 
       // Get posts from behaviorally similar users
-      const postsQuery = this.getClient()
+      const { data: posts } = await this.getClient()
         .from('posts')
         .select(
           `
@@ -487,22 +473,12 @@ export class FeedService {
             display_name,
             avatar_url
           ),
-          reactions(
-            id,
-            user_id,
-            reaction_type
-          ),
-          comments(
-            id,
-            user_id,
-            content,
-            created_at
-          ),
-          bets!inner(
+          bet:bets!bet_id(
             id,
             bet_type,
             bet_details,
-            amount,
+            stake,
+            potential_win,
             status,
             game:games!game_id(
               id,
@@ -514,16 +490,16 @@ export class FeedService {
         `
         )
         .in('user_id', similarNotFollowed)
+        .eq('archived', false)
+        .is('deleted_at', null)
+        .gte('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false })
-        .limit(limit * 2); // Get extra for filtering
-
-      // Apply archive filter directly
-      const { data: posts } = await postsQuery.eq('archived', false).is('deleted_at', null);
+        .limit(limit * 2);
 
       if (!posts?.length) return [];
 
       // Score and rank posts based on behavioral relevance
-      const scoredPosts = await this.scorePostsForUser(userId, posts as PostWithType[]);
+      const scoredPosts = await this.scorePostsForUser(userId, posts as unknown as PostWithType[]);
 
       // Add discovery metadata with behavioral reasons
       return scoredPosts.slice(0, limit).map((scoredPost) => ({
@@ -566,217 +542,80 @@ export class FeedService {
       }));
 
     // Calculate user's behavioral metrics
-    const userMetrics = this.calculateUserMetrics({
+    const userMetrics = AIReasonScorer.calculateUserMetrics({
       bets: userBehavior.bets?.map((bet) => ({
         bet_type: bet.bet_type,
         bet_details: bet.bet_details as { team?: string } | null,
         stake: bet.stake,
         created_at: bet.created_at || '',
         status: bet.status || 'pending',
+        game: bet.game,
       })),
     });
 
     // Score each post with specific reasons
     const scoredPosts = await Promise.all(
       posts.map(async (post) => {
-        const reasons: ScoredReason[] = [];
         let baseScore = 0.5;
+        let reason = 'Suggested for you';
 
-        // Team-based reasons (Score: 100)
-        if (
-          post.bet?.bet_details &&
-          typeof post.bet.bet_details === 'object' &&
-          'team' in post.bet.bet_details
-        ) {
-          const team = post.bet.bet_details.team as string;
-          if (userMetrics.topTeams.includes(team)) {
-            reasons.push({
-              text: `${post.user?.username || 'User'} also bets ${team}`,
-              score: 100,
-              category: 'team',
-              specificity: 0.8,
-            });
-            baseScore += 0.3;
+        // If no bet, return default
+        if (!post.bet) {
+          return {
+            post,
+            score: baseScore,
+            reason,
+          };
+        }
+
+        const betWithDetails: BetWithDetails = {
+          ...post.bet,
+          created_at: post.bet.created_at || new Date().toISOString(),
+          bet_details: post.bet.bet_details as { team?: string } | null,
+          game: post.bet.game,
+          user: { username: post.user?.username || 'User' },
+        };
+
+        // Get reasons using shared scorer
+        const reasons = AIReasonScorer.scoreReasons(
+          betWithDetails,
+          userMetrics,
+          post.user?.username || 'User'
+        );
+
+        // If we have reasons, use them
+        if (reasons.length > 0) {
+          reason = AIReasonScorer.getTopReason(reasons);
+
+          // Add score boost based on top reason category
+          const topCategory = reasons[0].category;
+          if (topCategory === 'team') baseScore += 0.3;
+          else if (topCategory === 'style') baseScore += 0.2;
+          else if (topCategory === 'time') baseScore += 0.1;
+          else if (topCategory === 'sport') baseScore += 0.1;
+          else if (topCategory === 'bet_type') baseScore += 0.1;
+        } else {
+          // If no specific reasons found, generate a generic behavioral reason
+          const betStyle = AIReasonScorer.categorizeStakeStyle(post.bet.stake);
+          if (betStyle !== 'varied') {
+            reason = `${betStyle} bettor`;
+          } else if (post.bet.game?.sport) {
+            reason = `${post.bet.game.sport} bettor`;
+          } else if (post.bet.bet_type) {
+            reason = `Likes ${post.bet.bet_type} bets`;
           }
         }
-
-        // Get post author's metrics for comparison
-        const { data: authorBets } = await this.getClient()
-          .from('bets')
-          .select('stake')
-          .eq('user_id', post.user_id)
-          .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
-          .limit(20);
-
-        if (authorBets) {
-          const authorAvgStake = this.calculateAvgStake(authorBets);
-          const authorStyle = this.categorizeStakeStyle(authorAvgStake);
-          const userStyle = this.categorizeStakeStyle(userMetrics.avgStake);
-
-          // Style-based reasons (Score: 90)
-          if (authorStyle === userStyle && authorStyle !== 'varied') {
-            reasons.push({
-              text: `${authorStyle} bettor like you`,
-              score: 90,
-              category: 'style',
-              specificity: 0.7,
-            });
-            baseScore += 0.2;
-          }
-        }
-
-        // Time-based reasons (Score: 85)
-        const postHour = new Date(post.created_at).getHours();
-        if (userMetrics.activeHours.includes(postHour)) {
-          const timePattern = this.getTimePattern(postHour);
-          reasons.push({
-            text: `${timePattern} bettor`,
-            score: 85,
-            category: 'time',
-            specificity: 0.6,
-          });
-          baseScore += 0.1;
-        }
-
-        // Performance reasons (Score: 80)
-        // Note: win_rate would need to be added to the user select query
-        // For now, skip this reason since win_rate isn't in the user type
-
-        // Bet type reasons (Score: 60)
-        if (post.bet?.bet_type && userMetrics.dominantBetType === post.bet.bet_type) {
-          reasons.push({
-            text: `Loves ${post.bet.bet_type} bets`,
-            score: 60,
-            category: 'bet_type',
-            specificity: 0.5,
-          });
-          baseScore += 0.1;
-        }
-
-        // Apply scoring adjustments
-        reasons.forEach((reason) => {
-          // Boost high-specificity reasons
-          reason.score *= 1 + reason.specificity * 0.3;
-
-          // Penalize overly common patterns
-          if (reason.text.includes('NBA') && reason.category === 'sport') {
-            reason.score *= 0.6;
-          }
-        });
-
-        // Sort by score and get top reason
-        const topReason = reasons.sort((a, b) => b.score - a.score)[0];
 
         return {
           post,
           score: baseScore,
-          reason: topReason?.text || 'Suggested for you',
+          reason,
         };
       })
     );
 
     // Sort by score descending
     return scoredPosts.sort((a, b) => b.score - a.score);
-  }
-
-  private calculateUserMetrics(userBehavior: {
-    bets?: Array<{
-      bet_type: string;
-      bet_details: { team?: string } | null;
-      stake: number;
-      created_at: string;
-      status: string;
-    }> | null;
-  }): UserMetrics {
-    const bets = userBehavior.bets || [];
-
-    // Extract top teams
-    const teamCounts = new Map<string, number>();
-    bets.forEach((bet) => {
-      const team =
-        bet.bet_details && typeof bet.bet_details === 'object' && 'team' in bet.bet_details
-          ? (bet.bet_details.team as string)
-          : null;
-      if (team) {
-        teamCounts.set(team, (teamCounts.get(team) || 0) + 1);
-      }
-    });
-    const topTeams = Array.from(teamCounts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([team]) => team);
-
-    // Calculate average stake
-    const avgStake =
-      bets.length > 0 ? bets.reduce((sum, bet) => sum + (bet.stake || 0), 0) / bets.length : 0;
-
-    // Get active hours
-    const activeHours = this.getUserActiveHours(bets);
-
-    // Calculate win rate (would need to check bet status)
-    const wonBets = bets.filter((bet) => bet.status === 'won').length;
-    const settledBets = bets.filter((bet) => ['won', 'lost'].includes(bet.status)).length;
-    const winRate = settledBets > 0 ? (wonBets / settledBets) * 100 : null;
-
-    // Get dominant bet type
-    const betTypeCounts = new Map<string, number>();
-    bets.forEach((bet) => {
-      if (bet.bet_type) {
-        betTypeCounts.set(bet.bet_type, (betTypeCounts.get(bet.bet_type) || 0) + 1);
-      }
-    });
-    const dominantBetType =
-      betTypeCounts.size > 0
-        ? Array.from(betTypeCounts.entries()).sort((a, b) => b[1] - a[1])[0][0]
-        : null;
-
-    return {
-      topTeams,
-      avgStake,
-      activeHours,
-      winRate,
-      dominantBetType,
-    };
-  }
-
-  private calculateAvgStake(bets: Array<{ stake: number }>): number {
-    if (bets.length === 0) return 0;
-    return bets.reduce((sum, bet) => sum + (bet.stake || 0), 0) / bets.length;
-  }
-
-  private getUserActiveHours(
-    bets: Array<{
-      created_at: string;
-    }>
-  ): number[] {
-    const hourCounts = new Map<number, number>();
-    bets.forEach((bet) => {
-      const hour = new Date(bet.created_at).getHours();
-      hourCounts.set(hour, (hourCounts.get(hour) || 0) + 1);
-    });
-
-    // Get top 6 active hours
-    return Array.from(hourCounts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-      .map(([hour]) => hour);
-  }
-
-  private getTimePattern(hour: number): string {
-    if (hour >= 22 || hour < 4) return 'Late night';
-    if (hour >= 4 && hour < 9) return 'Early morning';
-    if (hour >= 9 && hour < 12) return 'Morning';
-    if (hour >= 12 && hour < 17) return 'Afternoon';
-    if (hour >= 17 && hour < 22) return 'Primetime';
-    return 'Active';
-  }
-
-  private categorizeStakeStyle(avgStakeCents: number): string {
-    if (avgStakeCents < 1000) return 'Micro'; // $0-10
-    if (avgStakeCents < 2500) return 'Conservative'; // $10-25
-    if (avgStakeCents < 5000) return 'Moderate'; // $25-50
-    if (avgStakeCents < 10000) return 'Confident'; // $50-100
-    return 'Aggressive'; // $100+
   }
 
   /**

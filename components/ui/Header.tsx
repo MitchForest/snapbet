@@ -55,8 +55,9 @@ export const Header: React.FC<HeaderProps> = ({
                 right={-4}
                 backgroundColor="$error"
                 borderRadius="$round"
-                width={16}
-                height={16}
+                minWidth={16}
+                minHeight={16}
+                paddingHorizontal={notificationCount > 9 ? '$1' : 0}
                 justifyContent="center"
                 alignItems="center"
               >

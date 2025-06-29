@@ -12,16 +12,18 @@ export async function followUser(
       return { success: false, error: 'Not authenticated' };
     }
 
+    // Check if already following first
+    const alreadyFollowing = await isFollowing(followingId);
+    if (alreadyFollowing) {
+      return { success: true }; // Don't error, just return success
+    }
+
     const { error } = await supabase.from('follows').insert({
       follower_id: user.id,
       following_id: followingId,
     });
 
     if (error) {
-      if (error.code === '23505') {
-        // Unique violation
-        return { success: false, error: 'Already following this user' };
-      }
       throw error;
     }
 

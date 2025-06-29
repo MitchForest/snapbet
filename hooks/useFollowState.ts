@@ -112,6 +112,14 @@ export function useFollowState(
             type: 'error',
           });
         }
+      } else {
+        // Show success toast only when following (not unfollowing)
+        if (newFollowState && !result.isPending) {
+          toastService.show({
+            message: 'Following user',
+            type: 'success',
+          });
+        }
       }
     } catch {
       // Revert on error

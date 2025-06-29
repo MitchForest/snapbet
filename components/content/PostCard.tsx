@@ -18,7 +18,6 @@ import { toastService } from '@/services/toastService';
 import { useReactions } from '@/hooks/useReactions';
 import { EngagementPill } from '../engagement/buttons/EngagementPill';
 import { AVAILABLE_REACTIONS } from '@/utils/constants/reactions';
-import { DiscoveryBadge } from '@/components/feed/DiscoveryBadge';
 
 interface PostCardProps {
   post: PostWithType & {
@@ -137,6 +136,23 @@ export function PostCard({ post, onPress }: PostCardProps) {
           </View>
         </View>
 
+        {/* AI Discovery Badge - moved here */}
+        {post.is_discovered && (
+          <View style={styles.discoveryContainer}>
+            <View style={styles.discoveryBadge}>
+              <Text style={styles.discoveryBadgeText}>✨ Powered by AI</Text>
+            </View>
+            {post.discovery_reason && (
+              <>
+                <Text style={styles.discoveryDot}>•</Text>
+                <Text style={styles.discoveryReason} numberOfLines={1}>
+                  {post.discovery_reason}
+                </Text>
+              </>
+            )}
+          </View>
+        )}
+
         {/* Auto-hidden content warning */}
         {isAutoHidden ? (
           <View style={styles.hiddenContentContainer}>
@@ -171,9 +187,6 @@ export function PostCard({ post, onPress }: PostCardProps) {
                   </View>
                 </View>
               )}
-
-              {/* AI Discovery Badge */}
-              {post.is_discovered && <DiscoveryBadge reason={post.discovery_reason} />}
 
               {/* Bet Overlays */}
               {post.post_type === PostType.PICK && post.bet && (
@@ -415,5 +428,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     justifyContent: 'space-between',
+  },
+  discoveryContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+  },
+  discoveryBadge: {
+    backgroundColor: Colors.ai,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  discoveryBadgeText: {
+    color: Colors.white,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  discoveryDot: {
+    color: Colors.text.secondary,
+    fontSize: 12,
+    marginHorizontal: 4,
+  },
+  discoveryReason: {
+    color: Colors.text.secondary,
+    fontSize: 12,
   },
 });
