@@ -85,6 +85,16 @@ class FriendDiscoveryService {
         limit_count: limit,
       });
 
+      console.log('[friendDiscoveryService] RPC returned:', {
+        count: similarUsers?.length,
+        error: rpcError,
+        firstFew: similarUsers?.slice(0, 3).map((u) => ({
+          id: u.id,
+          username: u.username,
+          similarity: u.similarity,
+        })),
+      });
+
       if (rpcError || !similarUsers) {
         console.error('Error finding similar users:', rpcError);
         return [];
@@ -94,6 +104,8 @@ class FriendDiscoveryService {
       const suggestions = await Promise.all(
         similarUsers.map((user) => this.enrichSuggestion(user, userId))
       );
+
+      console.log('[friendDiscoveryService] Enriched suggestions:', suggestions.length);
 
       return suggestions;
     } catch (error) {

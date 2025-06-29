@@ -61,7 +61,28 @@ After Sprint 8.065 fixed the technical implementation, several UX issues remain:
 
 ## Implementation Plan
 
-### Step 1: Remove Duplicate AI Badge (5 min)
+### Step 1: Fix Smart Notification Deduplication and Navigation (45 min) ✅ COMPLETE
+
+**Status**: COMPLETE
+
+**What was done**:
+1. **Fixed Find Your Tribe**: The issue was the `.in()` query filtering - it was only checking follows for users in the suggestions list, returning empty. Changed to get ALL follows first, then filter.
+
+2. **Fixed Smart Notifications Variety**: 
+   - Imported `AIReasonScorer` from the AI utils
+   - Updated `checkSimilarUserBets` to generate varied reasons using behavioral analysis
+   - Updated `checkConsensusPatterns` to use varied reasons based on bet type and consensus count
+   - Fixed TypeScript errors by properly typing the bet data
+
+**Files modified**:
+- `hooks/useFriendDiscovery.ts` - Fixed follow filtering logic
+- `scripts/jobs/smartNotifications.ts` - Added AI reason generation
+- `services/feed/feedService.ts` - Added debug logging
+- `services/social/friendDiscoveryService.ts` - Added debug logging
+
+**Result**: Smart notifications now show variety like "Conservative bettor like you", "NBA specialist", "Night owl bettor", etc. instead of all showing "Similar betting style".
+
+### Step 2: Remove Duplicate AI Badge (5 min)
 
 **File**: `components/notifications/NotificationItem.tsx`
 
@@ -84,7 +105,7 @@ Delete lines 316-327:
 )}
 ```
 
-### Step 2: Add Smart Notification Navigation (10 min)
+### Step 3: Add Smart Notification Navigation (10 min)
 
 **File**: `components/notifications/NotificationItem.tsx`
 
@@ -112,7 +133,7 @@ case 'smart_alert':
   break;
 ```
 
-### Step 3: Increase Smart Notification Volume (15 min)
+### Step 4: Increase Smart Notification Volume (15 min)
 
 **File**: `scripts/jobs/smartNotifications.ts`
 
@@ -141,7 +162,7 @@ const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(); // 
 for (const userBet of userBets.slice(0, 5)) { // Was 2
 ```
 
-### Step 4: Fix Follow API Check (10 min)
+### Step 5: Fix Follow API Check (10 min)
 
 **File**: `services/api/followUser.ts`
 
@@ -182,7 +203,7 @@ export async function followUser(
 }
 ```
 
-### Step 5: Fix AI Feed Query (15 min)
+### Step 6: Fix AI Feed Query (15 min)
 
 **File**: `services/feed/feedService.ts`
 
@@ -226,7 +247,7 @@ const { data: posts } = await this.getClient()
 if (!posts?.length) return [];
 ```
 
-### Step 6: Generate More Recent Posts (20 min)
+### Step 7: Generate More Recent Posts (20 min)
 
 **File**: `scripts/mock/generators/posts.ts`
 
@@ -250,7 +271,7 @@ const hoursAgo = i < 10 ? Math.random() * 6 : (i + 1) * 2; // More recent posts
 created_at: new Date(Date.now() - i * 30 * 60 * 1000).toISOString(), // 30 minutes apart
 ```
 
-### Step 7: Generate Multiple Stories Per User (15 min)
+### Step 8: Generate Multiple Stories Per User (15 min)
 
 **File**: `scripts/mock/generators/posts.ts`
 
@@ -276,7 +297,7 @@ for (let i = 0; i < storyUsers.length; i++) {
 }
 ```
 
-### Step 8: Adjust Story User Count (5 min)
+### Step 9: Adjust Story User Count (5 min)
 
 **File**: `scripts/mock/config.ts`
 

@@ -45,12 +45,19 @@ export function BetPickOverlay({ bet, onTail, onFade, userAction }: BetPickOverl
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
+    // Format time
+    const timeStr = gameDate.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+
     if (gameDate.toDateString() === now.toDateString()) {
-      return 'Today';
+      return `Today ${timeStr}`;
     } else if (gameDate.toDateString() === tomorrow.toDateString()) {
-      return 'Tomorrow';
+      return `Tomorrow ${timeStr}`;
     } else {
-      return gameDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const dateStr = gameDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return `${dateStr} ${timeStr}`;
     }
   };
 

@@ -33,23 +33,47 @@ export function useFriendDiscovery(): UseFriendDiscoveryReturn {
       // Get more suggestions than needed to account for filtering
       const friendSuggestions = await friendDiscoveryService.getSuggestions(user.id, 20);
 
+      console.log('[useFriendDiscovery] Got suggestions:', friendSuggestions.length);
+      console.log(
+        '[useFriendDiscovery] First few suggestions:',
+        friendSuggestions.slice(0, 3).map((s) => ({
+          id: s.id,
+          username: s.username,
+        }))
+      );
+
       // Get current following relationships
       const { supabase } = await import('@/services/supabase/client');
-      const { data: followingData } = await supabase
+
+      // Get ALL users that the current user is following
+      const { data: allFollowingData } = await supabase
         .from('follows')
         .select('following_id')
-        .eq('follower_id', user.id)
-        .in(
-          'following_id',
-          friendSuggestions.map((s) => s.id)
-        );
+        .eq('follower_id', user.id);
 
-      const followingIds = new Set(followingData?.map((f) => f.following_id) || []);
+      const followingIds = new Set(allFollowingData?.map((f) => f.following_id) || []);
+
+      console.log('[useFriendDiscovery] Total users I follow:', followingIds.size);
+      console.log('[useFriendDiscovery] Checking which suggestions I already follow...');
+
+      // Check overlap
+      const suggestedUserIds = friendSuggestions.map((s) => s.id);
+      const alreadyFollowing = suggestedUserIds.filter((id) => followingIds.has(id));
+      console.log(
+        '[useFriendDiscovery] Already following from suggestions:',
+        alreadyFollowing.length
+      );
 
       // Filter out users that are already being followed
       const unfollowedSuggestions = friendSuggestions
         .filter((suggestion) => !followingIds.has(suggestion.id))
         .slice(0, 10); // Take first 10 unfollowed users
+
+      console.log('[useFriendDiscovery] Unfollowed suggestions:', unfollowedSuggestions.length);
+      console.log(
+        '[useFriendDiscovery] Unfollowed users:',
+        unfollowedSuggestions.map((s) => s.username)
+      );
 
       setSuggestions(unfollowedSuggestions);
     } catch (err) {

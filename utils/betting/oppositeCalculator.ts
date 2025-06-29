@@ -119,7 +119,7 @@ export function getFadeMoneylineOdds(original: Record<string, unknown>, game: Ga
 /**
  * Format bet details for display
  */
-export function formatBetDetails(bet: Bet): string {
+export function formatBetDetails(bet: Bet, game?: Game): string {
   if (!bet.bet_details) return 'Unknown bet';
 
   const details = bet.bet_details as Record<string, unknown>;
@@ -129,7 +129,11 @@ export function formatBetDetails(bet: Bet): string {
       return `${details.team as string} ${(details.line as number) > 0 ? '+' : ''}${details.line}`;
 
     case 'total':
-      return `${details.total_type as string} ${details.line}`;
+      const totalLine = `${details.total_type as string} ${details.line}`;
+      if (game) {
+        return `${game.home_team} vs ${game.away_team} ${totalLine}`;
+      }
+      return totalLine;
 
     case 'moneyline':
       return details.team as string;

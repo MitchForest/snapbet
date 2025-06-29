@@ -158,7 +158,7 @@ export function TailFadeSheet({
             {originalUser.display_name || originalUser.username}&apos;s Bet
           </Text>
           <Text style={styles.betDetailsText}>
-            {formatBetDetails(originalBet)} ({formatOdds(originalBet.odds)})
+            {formatBetDetails(originalBet, game || undefined)} ({formatOdds(originalBet.odds)})
           </Text>
           <Text style={styles.betDetailsSubtext}>
             ${originalBet.stake / 100} → Win: ${originalBet.potential_win / 100}

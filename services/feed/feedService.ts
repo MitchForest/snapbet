@@ -393,9 +393,18 @@ export class FeedService {
     offset: number = 0
   ): Promise<FeedResponse> {
     try {
+      console.log('[feedService] getHybridFeed called for user:', userId);
+
       // Calculate splits
       const followingCount = Math.floor(limit * this.FOLLOWING_RATIO);
       const discoveryCount = limit - followingCount;
+
+      console.log(
+        '[feedService] Target counts - following:',
+        followingCount,
+        'discovery:',
+        discoveryCount
+      );
 
       // Get both types of content in parallel
       const [followingResponse, discoveredPosts] = await Promise.all([
@@ -403,12 +412,25 @@ export class FeedService {
         this.getDiscoveredPosts(userId, discoveryCount * 2),
       ]);
 
+      console.log(
+        '[feedService] Got posts - following:',
+        followingResponse.posts.length,
+        'discovered:',
+        discoveredPosts.length
+      );
+
       // Mix the feeds using insertion pattern
       const mixedFeed = this.mixFeeds(
         followingResponse.posts,
         discoveredPosts,
         followingCount,
         discoveryCount
+      );
+
+      console.log('[feedService] Mixed feed length:', mixedFeed.length);
+      console.log(
+        '[feedService] AI posts in feed:',
+        mixedFeed.filter((p) => p.is_discovered).length
       );
 
       return {
@@ -428,6 +450,8 @@ export class FeedService {
    */
   private async getDiscoveredPosts(userId: string, limit: number): Promise<FeedPost[]> {
     try {
+      console.log('[feedService] getDiscoveredPosts called, limit:', limit);
+
       // Get user's behavioral embedding
       const { data: userProfile } = await this.getClient()
         .from('users')
@@ -436,6 +460,7 @@ export class FeedService {
         .single();
 
       if (!userProfile?.profile_embedding) {
+        console.log('[feedService] No embedding for user');
         return [];
       }
 
@@ -445,6 +470,8 @@ export class FeedService {
         p_user_id: userId,
         limit_count: 20,
       });
+
+      console.log('[feedService] Similar users found:', similarUsers?.length);
 
       if (!similarUsers?.length) return [];
 
@@ -459,7 +486,13 @@ export class FeedService {
         .filter((u: { id: string }) => !followedIds.includes(u.id))
         .map((u: { id: string }) => u.id);
 
-      if (!similarNotFollowed.length) return [];
+      console.log('[feedService] Followed users:', followedIds.length);
+      console.log('[feedService] Similar not followed:', similarNotFollowed.length);
+
+      if (!similarNotFollowed.length) {
+        console.log('[feedService] No unfollowed similar users found');
+        return [];
+      }
 
       // Get posts from behaviorally similar users
       const { data: posts } = await this.getClient()
@@ -496,18 +529,26 @@ export class FeedService {
         .order('created_at', { ascending: false })
         .limit(limit * 2);
 
+      console.log('[feedService] Posts from similar users:', posts?.length);
+
       if (!posts?.length) return [];
 
       // Score and rank posts based on behavioral relevance
       const scoredPosts = await this.scorePostsForUser(userId, posts as unknown as PostWithType[]);
 
+      console.log('[feedService] Scored posts:', scoredPosts.length);
+
       // Add discovery metadata with behavioral reasons
-      return scoredPosts.slice(0, limit).map((scoredPost) => ({
+      const discoveredPosts = scoredPosts.slice(0, limit).map((scoredPost) => ({
         ...scoredPost.post,
         is_discovered: true,
         discovery_reason: scoredPost.reason,
         relevance_score: scoredPost.score,
       }));
+
+      console.log('[feedService] Returning discovered posts:', discoveredPosts.length);
+
+      return discoveredPosts;
     } catch (error) {
       console.error('Error getting discovered posts:', error);
       return [];
@@ -595,14 +636,47 @@ export class FeedService {
           else if (topCategory === 'sport') baseScore += 0.1;
           else if (topCategory === 'bet_type') baseScore += 0.1;
         } else {
-          // If no specific reasons found, generate a generic behavioral reason
+          // Generate varied fallback reasons when no specific matches
           const betStyle = AIReasonScorer.categorizeStakeStyle(post.bet.stake);
+          const betHour = post.created_at ? new Date(post.created_at).getHours() : null;
+          const timePattern = betHour !== null ? AIReasonScorer.getTimePattern(betHour) : null;
+          
+          // Create a pool of possible reasons
+          const fallbackReasons: string[] = [];
+          
           if (betStyle !== 'varied') {
-            reason = `${betStyle} bettor`;
-          } else if (post.bet.game?.sport) {
-            reason = `${post.bet.game.sport} bettor`;
-          } else if (post.bet.bet_type) {
-            reason = `Likes ${post.bet.bet_type} bets`;
+            fallbackReasons.push(`${betStyle} bettor like you`);
+          }
+          
+          if (post.bet.game?.sport) {
+            fallbackReasons.push(`${post.bet.game.sport} specialist`);
+          }
+          
+          if (post.bet.bet_type) {
+            const betTypeMap: Record<string, string> = {
+              'spread': 'Spread betting fan',
+              'total': 'Totals expert',
+              'moneyline': 'Moneyline player'
+            };
+            fallbackReasons.push(betTypeMap[post.bet.bet_type] || `Likes ${post.bet.bet_type} bets`);
+          }
+          
+          if (timePattern) {
+            fallbackReasons.push(`${timePattern} bettor`);
+          }
+          
+          // Add some variety based on post characteristics
+          if (post.bet.stake > 10000) {
+            fallbackReasons.push('High stakes player');
+          }
+          
+          if (post.tail_count && post.tail_count > 5) {
+            fallbackReasons.push('Popular picks');
+          }
+          
+          // Pick a random reason from available ones
+          if (fallbackReasons.length > 0) {
+            reason = fallbackReasons[Math.floor(Math.random() * fallbackReasons.length)];
           }
         }
 
