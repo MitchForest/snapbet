@@ -13,6 +13,112 @@ type User = Tables['users']['Row'];
 
 const personalities = Object.keys(MOCK_CONFIG.users.personalities);
 
+// More realistic username variations
+const usernameVariations = {
+  'sharp-steve': [
+    'LineHunter23',
+    'ValueVault',
+    'SharpEdge88',
+    'MetricsMike',
+    'DataDriven7',
+    'EdgeFinder',
+    'CLVKing',
+    'NumbersCrunch',
+    'WiseGuy22',
+    'ProAngle',
+    'SmartMoney91',
+    'Analytics101',
+    'StatSharp',
+    'ValueSeeker',
+    'LineShopper',
+  ],
+  'casual-carl': [
+    'GameDayGary',
+    'WeekendWarrior',
+    'SundaySpecial',
+    'CouchCoach22',
+    'FanFirst',
+    'JustForFun88',
+    'BeerAndBets',
+    'CasualFan23',
+    'RecRoom',
+    'ChillBettor',
+    'EasyGoing77',
+    'RelaxedRick',
+    'NoStress',
+    'FunMoney',
+    'WeekendOnly',
+  ],
+  'square-bob': [
+    'PublicJoe',
+    'FaveOnly',
+    'ChalkEater',
+    'MainstreamMike',
+    'TVBets',
+    'ESPNFollower',
+    'TrendRider',
+    'PopularPick',
+    'MajorityMan',
+    'ConsensusKid',
+    'SquarePlay',
+    'BasicBob22',
+    'FollowCrowd',
+    'SafePicks',
+    'NoRisk88',
+  ],
+  'public-pete': [
+    'BigNameBets',
+    'FamousOnly',
+    'StarPlayer',
+    'PrimetimePete',
+    'NationalTV',
+    'MainEvent',
+    'Spotlight77',
+    'CenterStage',
+    'BigGameOnly',
+    'Headlines',
+    'MediaBets',
+    'TrendingNow',
+    'PopularVote',
+    'MainStream23',
+    'PublicSide',
+  ],
+  'degen-dave': [
+    'AllGasNoBrakes',
+    'ParlayPrince',
+    'YoloYeti',
+    'SendItSaturday',
+    'MortgageMike',
+    'FullSend',
+    'NoLimits',
+    'MaxBet247',
+    'DegenHours',
+    'RiskItAll',
+    'ChaosMode',
+    'WildCard88',
+    'AllIn24_7',
+    'BankrollBuster',
+    'SweatKing',
+  ],
+  'fade-frank': [
+    'FadeThePublic',
+    'AgainstGrain',
+    'ReverseLine',
+    'ContrarianKing',
+    'OppositeDay',
+    'FadeMachine',
+    'GoingLeft',
+    'ZigWhenZag',
+    'Contrarian23',
+    'FadeGod',
+    'ReverseIt',
+    'NotWithCrowd',
+    'OtherSide',
+    'MinorityReport',
+    'FadeFactory',
+  ],
+};
+
 export async function generateMockUsers(): Promise<User[]> {
   console.log('👥 Creating mock users...');
 
@@ -35,6 +141,9 @@ export async function generateMockUsers(): Promise<User[]> {
 
   // Create new mock users
   const mockUsersToCreate = [];
+
+  // Track used usernames to avoid duplicates
+  const usedUsernames = new Set<string>();
 
   // Distribute personalities across users
   const personalityDistribution = [
@@ -69,6 +178,26 @@ export async function generateMockUsers(): Promise<User[]> {
       continue;
     }
 
+    // Get username from variations pool
+    const availableUsernames = usernameVariations[personality] || [];
+    let username: string;
+
+    // Try to get an unused username from the pool
+    const unusedUsernames = availableUsernames.filter((name) => !usedUsernames.has(name));
+
+    if (unusedUsernames.length > 0) {
+      // Pick a random unused username
+      username = unusedUsernames[Math.floor(Math.random() * unusedUsernames.length)];
+    } else {
+      // Fallback: if all usernames are used, create a variation
+      const baseUsername =
+        availableUsernames[Math.floor(Math.random() * availableUsernames.length)] ||
+        personalityData.usernamePrefix;
+      username = `${baseUsername}_${Math.floor(Math.random() * 999)}`;
+    }
+
+    usedUsernames.add(username);
+
     // First 5 users created in last 3 days for rising star
     // Next 5 users created in last week
     // Rest created over last month
@@ -87,15 +216,44 @@ export async function generateMockUsers(): Promise<User[]> {
       createdAt = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
     }
 
-    const username = `${personalityData.usernamePrefix}${i + 1}`;
+    // Create more natural display names
+    const displayNameVariations = {
+      'sharp-steve': ['The Sharp', 'Pro Bettor', 'Line Master', 'Value Hunter', 'Edge Seeker'],
+      'casual-carl': [
+        'Weekend Warrior',
+        'Just For Fun',
+        'Game Day Fan',
+        'Casual Bettor',
+        'Sunday Player',
+      ],
+      'square-bob': [
+        'Public Player',
+        'Favorite Bettor',
+        'Chalk Lover',
+        'Safe Picks',
+        'TV Follower',
+      ],
+      'public-pete': [
+        'Big Game Bettor',
+        'Prime Time',
+        'Main Event',
+        'Popular Side',
+        'Consensus Player',
+      ],
+      'degen-dave': ['Full Degen', 'All In', 'No Limits', 'Risk Taker', 'Parlay King'],
+      'fade-frank': ['The Fader', 'Contrarian', 'Against Grain', 'Fade Master', 'Other Side'],
+    };
+
+    const displayNames = displayNameVariations[personality] || [personalityData.displayName];
+    const displayName = displayNames[Math.floor(Math.random() * displayNames.length)];
 
     mockUsersToCreate.push({
       id: crypto.randomUUID(),
       username,
       email: `${username}@snapbet.mock`,
-      display_name: `${personalityData.displayName} ${i + 1}`,
+      display_name: displayName,
       bio: personalityData.bio,
-      avatar_url: personalityData.avatar,
+      avatar_url: `${personalityData.avatar}&seed=${username}`, // Use username as seed for unique avatars
       is_mock: true,
       mock_personality_id: personality,
       oauth_id: `mock_${username}`,

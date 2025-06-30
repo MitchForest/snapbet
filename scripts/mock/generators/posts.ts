@@ -17,36 +17,113 @@ export async function createStoriesForMockUsers(mockUsers: User[]) {
   const stories = [];
   const storyUsers = mockUsers
     .sort(() => Math.random() - 0.5)
-    .slice(0, Math.min(mockUsers.length, 30)); // Use more users for stories
+    .slice(0, Math.min(mockUsers.length, 10)); // Reduced from 30 to 10 users
 
   // Use all available categories for better variety
   const allCategories = Object.keys(
     MOCK_CONFIG.content.stories.mediaUrls
   ) as (keyof typeof MOCK_CONFIG.content.stories.mediaUrls)[];
 
+  // Create a pool of all available media URLs to avoid repetition
+  const mediaPool: { url: string; category: string }[] = [];
+  allCategories.forEach((category) => {
+    MOCK_CONFIG.content.stories.mediaUrls[category].forEach((url) => {
+      mediaPool.push({ url, category });
+    });
+  });
+
+  // Shuffle the media pool for better variety
+  const shuffledMedia = [...mediaPool].sort(() => Math.random() - 0.5);
+  let mediaIndex = 0;
+
+  // Personality-based story captions
+  const storyCaptionsByPersonality: Record<string, string[]> = {
+    'sharp-steve': [
+      'Line just moved 2 points 👀',
+      'Early value alert 📊',
+      'Sharp money coming in heavy 💰',
+      'Books adjusting already 📈',
+      'CLV looking good on this one',
+      'Reverse line movement spotted',
+    ],
+    'casual-carl': [
+      'Game day ready! 🏈',
+      'Who else is watching? 👀',
+      "Let's go team! 💪",
+      'Sunday funday vibes 🍻',
+      'Couch locked and loaded 🛋️',
+      'Pizza ordered, bets placed 🍕',
+    ],
+    'square-bob': [
+      'Favorites only today! 🏆',
+      'Going with the chalk 📝',
+      "Can't lose parlay ready 🎯",
+      'Public is all over this 📺',
+      'ESPN said this is a lock 🔒',
+      'Home teams never lose, right?',
+    ],
+    'public-pete': [
+      'Prime time parlay locked 🌟',
+      'Big names = big wins 💫',
+      'National TV special 📺',
+      "Everyone's on this = easy money",
+      'Following the crowd today 👥',
+      'Trending picks only 📈',
+    ],
+    'degen-dave': [
+      'FULL SEND SATURDAY 🚀',
+      'Mortgage on the line again 🏠',
+      'Last leg prayer circle 🙏',
+      '20 team parlay LFG 🎰',
+      'Risk it for the biscuit 🍪',
+      'All gas no brakes baby 💨',
+    ],
+    'fade-frank': [
+      'Fading the square money 🎯',
+      'Going against the grain 🌾',
+      'Contrarian play locked 🔐',
+      'When they zig, I zag ↔️',
+      'Public fade incoming 📉',
+      "Love when everyone's on one side",
+    ],
+  };
+
+  // Default captions for any personality not listed
+  const defaultCaptions = [
+    'Check this out! 🔥',
+    'Game day vibes 🏀',
+    "Let's go! 💪",
+    'Who else is on this? 👀',
+    'Locked in 🔒',
+    'Feeling good about tonight 🎯',
+    'Time to eat! 💰',
+    'Ready to ride 🚀',
+  ];
+
   for (let i = 0; i < storyUsers.length; i++) {
     const user = storyUsers[i];
-    // Create 7-10 stories per user for better visibility
-    const storyCount = Math.floor(Math.random() * 4) + 7;
+    // Create 1-3 stories per user (reduced from 7-10)
+    const storyCount = Math.floor(Math.random() * 3) + 1;
+
+    // Get captions based on user's personality
+    const userPersonality = user.mock_personality_id || 'casual-carl';
+    const captions = storyCaptionsByPersonality[userPersonality] || defaultCaptions;
 
     for (let j = 0; j < storyCount; j++) {
-      const mediaCategory = allCategories[(i + j) % allCategories.length];
       const hoursAgo = j * 2 + Math.random() * 4; // Spread stories over time
+
+      // Pick a random caption from the personality-specific pool
+      const caption = captions[Math.floor(Math.random() * captions.length)];
+
+      // Get next media URL from shuffled pool (wrapping around if needed)
+      const media = shuffledMedia[mediaIndex % shuffledMedia.length];
+      mediaIndex++;
 
       stories.push({
         user_id: user.id,
-        media_url: getRandomMediaUrl(mediaCategory),
+        media_url: media.url,
         media_type: 'photo' as const,
-        caption: [
-          'Check this out! 🔥',
-          'Game day vibes 🏀',
-          "Let's go! 💪",
-          'Who else is on this? 👀',
-          'Locked in 🔒',
-          'Feeling good about tonight 🎯',
-          'Time to eat! 💰',
-          'Ready to ride 🚀',
-        ][j % 8],
+        caption,
         created_at: new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString(),
         expires_at: new Date(Date.now() + (24 - hoursAgo) * 60 * 60 * 1000).toISOString(),
       });

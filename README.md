@@ -54,15 +54,35 @@ bun run ios
 To see the app fully populated with realistic content:
 
 ```bash
-# Create a complete mock ecosystem
+# Create a complete mock ecosystem with AI-powered features
 bun run mock:setup --username=YOUR_USERNAME
 
-# This creates:
-# - 30 mock users with distinct personalities
-# - Active stories and posts
-# - Group chats with conversations
-# - Trending picks and hot bettors
-# - Your personalized feed
+# This orchestrates a sophisticated data pipeline:
+# 
+# Phase 1: Historical Content Creation (7-30 days old)
+# - Creates 30 mock users with distinct betting personalities (sharps, squares, degens)
+# - Generates 100-200 historical bets per user based on personality profiles
+# - Creates behavioral patterns: team preferences, stake styles, bet types
+# - Adds historical posts, stories, and engagement data
+# 
+# Phase 2: Production Jobs (same as live environment)
+# - Runs content archiving to mark old content as archived
+# - Executes embedding generation pipeline:
+#   • Builds behavioral profiles from betting history
+#   • Converts profiles to 1536-dimensional embeddings via OpenAI
+#   • Stores embeddings with pgvector for similarity search
+# - Calculates user behavioral metrics (win rate, avg stake, active hours)
+# 
+# Phase 3: Fresh Content & AI Features
+# - Creates recent bets, posts, and stories
+# - Generates smart notifications using cosine similarity
+# - Populates AI feed with 30% discovered content from similar users
+# - Sets up Find Your Tribe suggestions based on betting compatibility
+# 
+# The result: A living ecosystem where AI features work immediately:
+# - Feed shows posts from behaviorally similar users you haven't followed
+# - Notifications alert you to bets from users with matching patterns
+# - Search suggests people who bet like you with specific reasons
 ```
 
 ## Development

@@ -746,24 +746,15 @@ async function createHistoricalMessages(userId: string, mockUsers: User[]) {
 }
 
 async function runProductionJobs() {
-  console.log('\n🛠️  Running production jobs...');
+  console.log('\n🏭 Running production jobs...');
+  console.log('  📦 Archiving expired content...');
+  const { execSync } = await import('child_process');
+  execSync('bun run scripts/jobs/content-expiration.ts', { stdio: 'inherit' });
 
-  try {
-    const { execSync } = await import('child_process');
+  console.log('  🤖 Generating embeddings for historical content...');
+  execSync('bun run scripts/jobs/embedding-generation.ts --setup-mode', { stdio: 'inherit' });
 
-    // Run content expiration to archive old content
-    console.log('  📦 Running content expiration job...');
-    execSync('bun run scripts/jobs/content-expiration.ts', { stdio: 'inherit' });
-
-    // Run embedding generation on archived content
-    console.log('  🤖 Running embedding generation job (Phase 1 - Historical content)...');
-    execSync('bun run scripts/jobs/embedding-generation.ts', { stdio: 'inherit' });
-
-    console.log('  ✅ Production jobs completed successfully');
-  } catch (error) {
-    console.error('Error running production jobs:', error);
-    console.log('  ⚠️  Continuing without job processing - some features may not work fully');
-  }
+  console.log('  ✅ Production jobs completed');
 }
 
 async function createFollowRelationships(userId: string, mockUsers: User[]) {
@@ -1334,8 +1325,10 @@ export async function setupMockData(userId: string) {
         console.log(`  ✅ Updated main user bankroll: ${wins}W-${losses}L`);
       }
 
-      // Run embedding generation with higher limit to ensure all users are processed
-      execSync('bun run scripts/jobs/embedding-generation.ts --limit=100', { stdio: 'inherit' });
+      // Run embedding generation in setup mode to ensure all users are processed
+      execSync('bun run scripts/jobs/embedding-generation.ts --setup-mode --limit=200', {
+        stdio: 'inherit',
+      });
       console.log('  ✅ Final embedding generation completed');
 
       // Verify embeddings were created
@@ -1349,13 +1342,31 @@ export async function setupMockData(userId: string) {
       // Check if main user has embedding
       const mainUserHasEmbedding = usersWithEmbeddings?.some((u) => u.id === userId);
       if (!mainUserHasEmbedding) {
-        console.log('  ⚠️  Main user still missing embedding - may need manual run');
+        console.log('  ⚠️  Main user still missing embedding - running targeted generation');
+
+        // Get main user's username
+        const { data: mainUser } = await supabase
+          .from('users')
+          .select('username')
+          .eq('id', userId)
+          .single();
+
+        if (mainUser?.username) {
+          execSync(
+            `bun run scripts/jobs/embedding-generation.ts --setup-mode --user=${mainUser.username}`,
+            { stdio: 'inherit' }
+          );
+        } else {
+          console.log('  ❌ Could not find main user username');
+        }
       } else {
         console.log('  ✅ Main user has embedding');
       }
     } catch (error) {
       console.error('Error in final embedding generation:', error);
-      console.log('  ⚠️  You may need to run: bun run scripts/jobs/embedding-generation.ts');
+      console.log(
+        '  ⚠️  You may need to run: bun run scripts/jobs/embedding-generation.ts --setup-mode'
+      );
     }
 
     // 22. Run smart notifications job to generate AI-powered notifications

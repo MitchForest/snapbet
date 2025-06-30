@@ -266,7 +266,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               justifyContent="center"
               marginBottom="$1"
             >
-              <Text fontSize={20} fontWeight="600" color="$textPrimary">
+              <Text fontSize={16} fontWeight="600" color="$textPrimary">
                 {stats.win_count + stats.loss_count}
               </Text>
             </View>
@@ -284,7 +284,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               justifyContent="center"
               marginBottom="$1"
             >
-              <Text fontSize={20} fontWeight="600" color="$textPrimary">
+              <Text fontSize={16} fontWeight="600" color="$textPrimary">
                 {winRate}%
               </Text>
             </View>
@@ -304,12 +304,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   justifyContent="center"
                   marginBottom="$1"
                 >
-                  <Text fontSize={20} fontWeight="600" color="$textPrimary">
-                    ${profit}
+                  <Text fontSize={16} fontWeight="600" color="$textPrimary">
+                    {profit}
                   </Text>
                 </View>
                 <Text fontSize={12} color="$textSecondary">
-                  Profit
+                  Profit ($)
                 </Text>
               </View>
               <View alignItems="center">
@@ -322,7 +322,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   justifyContent="center"
                   marginBottom="$1"
                 >
-                  <Text fontSize={20} fontWeight="600" color="$textPrimary">
+                  <Text fontSize={16} fontWeight="600" color="$textPrimary">
                     {roi}%
                   </Text>
                 </View>
