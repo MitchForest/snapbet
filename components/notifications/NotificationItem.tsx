@@ -177,11 +177,11 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
   const renderClickableText = (text: string, isTitle = false) => {
     // Pattern to match various clickable elements
     const patterns = {
-      username: /@(\w+)/g,
+      username: /@\w+/g,
       pick: /(your pick|their pick)/gi,
       game: /(\w+\s+vs\.?\s+\w+)/gi,
       badge: /([\w\s]+badge)/gi,
-      amount: /\$(\d+(?:,\d{3})*(?:\.\d{2})?)/g,
+      amount: /\$\d+(?:,\d{3})*/g, // Simplified to match whole dollar amounts without capturing groups
     };
 
     // Combined pattern for splitting

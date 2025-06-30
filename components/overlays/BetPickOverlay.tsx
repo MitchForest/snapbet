@@ -39,25 +39,37 @@ export function BetPickOverlay({ bet, onTail, onFade, userAction }: BetPickOverl
   };
 
   const formatGameTime = () => {
-    if (!game) return '';
-    const gameDate = new Date(game.commence_time);
-    const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    if (!game || !game.commence_time) return '';
 
-    // Format time
-    const timeStr = gameDate.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-    });
+    try {
+      const gameDate = new Date(game.commence_time);
 
-    if (gameDate.toDateString() === now.toDateString()) {
-      return `Today ${timeStr}`;
-    } else if (gameDate.toDateString() === tomorrow.toDateString()) {
-      return `Tomorrow ${timeStr}`;
-    } else {
-      const dateStr = gameDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      return `${dateStr} ${timeStr}`;
+      // Check if date is valid
+      if (isNaN(gameDate.getTime())) {
+        return '';
+      }
+
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      // Format time
+      const timeStr = gameDate.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+      });
+
+      if (gameDate.toDateString() === now.toDateString()) {
+        return `Today ${timeStr}`;
+      } else if (gameDate.toDateString() === tomorrow.toDateString()) {
+        return `Tomorrow ${timeStr}`;
+      } else {
+        const dateStr = gameDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return `${dateStr} ${timeStr}`;
+      }
+    } catch (error) {
+      console.error('Error formatting game time:', error);
+      return '';
     }
   };
 

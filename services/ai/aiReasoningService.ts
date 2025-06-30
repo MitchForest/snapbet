@@ -193,14 +193,22 @@ class AIReasoningService {
       // Stake style match
       if (
         currentUserMetrics.stakeStyle === targetUserMetrics.stakeStyle &&
-        currentUserMetrics.stakeStyle !== 'varied'
+        currentUserMetrics.stakeStyle !== 'varied' &&
+        currentUserMetrics.stakeStyle
       ) {
-        reasons.push(`${currentUserMetrics.stakeStyle} bettor like you`);
+        const stakeStyle =
+          currentUserMetrics.stakeStyle.charAt(0).toUpperCase() +
+          currentUserMetrics.stakeStyle.slice(1);
+        reasons.push(`${stakeStyle} bettor like you`);
       }
 
       // Sport match
-      if (currentUserMetrics.favoriteSport === targetUserMetrics.favoriteSport) {
-        reasons.push(`${currentUserMetrics.favoriteSport} specialist`);
+      if (
+        currentUserMetrics.favoriteSport === targetUserMetrics.favoriteSport &&
+        currentUserMetrics.favoriteSport
+      ) {
+        const sport = AIReasonScorer.formatSportName(currentUserMetrics.favoriteSport);
+        reasons.push(`${sport} specialist`);
       }
 
       // Time pattern match
@@ -209,7 +217,8 @@ class AIReasoningService {
       );
       if (commonHours.length >= 3) {
         const timePattern = AIReasonScorer.getTimePattern(commonHours[0]);
-        reasons.push(`${timePattern} bettor`);
+        const capitalizedPattern = timePattern.charAt(0).toUpperCase() + timePattern.slice(1);
+        reasons.push(`${capitalizedPattern} bettor`);
       }
     }
     // For discovery (Find Your Tribe), focus on target user's characteristics
@@ -223,7 +232,10 @@ class AIReasoningService {
       // Their stake style
       if (targetUserMetrics.stakeStyle && targetUserMetrics.avgStake > 0) {
         const avgDollars = Math.round(targetUserMetrics.avgStake / 100);
-        reasons.push(`${targetUserMetrics.stakeStyle} bettor ($${avgDollars} avg)`);
+        const stakeStyle =
+          targetUserMetrics.stakeStyle.charAt(0).toUpperCase() +
+          targetUserMetrics.stakeStyle.slice(1);
+        reasons.push(`${stakeStyle} bettor ($${avgDollars} avg)`);
       }
 
       // Their dominant bet type
@@ -249,7 +261,8 @@ class AIReasoningService {
     if (reasons.length === 0) {
       reasons.push('Similar betting style');
       if (targetUserMetrics.favoriteSport) {
-        reasons.push(`${targetUserMetrics.favoriteSport} bettor`);
+        const sport = AIReasonScorer.formatSportName(targetUserMetrics.favoriteSport);
+        reasons.push(`${sport} bettor`);
       }
     }
 
@@ -277,9 +290,11 @@ class AIReasoningService {
     // Generate fallback reason from bet data
     let fallbackReason = 'Suggested for you';
     if (bet.bet_details?.team && bet.game && userMetrics.favoriteSport === bet.game.sport) {
-      fallbackReason = `${bet.game.sport} pick`;
+      const sport = AIReasonScorer.formatSportName(bet.game.sport);
+      fallbackReason = `${sport} pick`;
     } else if (bet.bet_type === userMetrics.dominantBetType) {
-      fallbackReason = `${bet.bet_type} bet like yours`;
+      const betType = bet.bet_type.charAt(0).toUpperCase() + bet.bet_type.slice(1);
+      fallbackReason = `${betType} bet like yours`;
     } else if (AIReasonScorer.categorizeStakeStyle(bet.stake) === userMetrics.stakeStyle) {
       fallbackReason = `${userMetrics.stakeStyle} stake`;
     }

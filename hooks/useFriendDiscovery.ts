@@ -126,6 +126,11 @@ export function useFriendDiscovery(): UseFriendDiscoveryReturn {
       ...prev,
       [userId]: isFollowing,
     }));
+
+    // If the user is now being followed, remove them from suggestions
+    if (isFollowing) {
+      setSuggestions((prev) => prev.filter((user) => user.id !== userId));
+    }
   }, []);
 
   const refresh = useCallback(async () => {

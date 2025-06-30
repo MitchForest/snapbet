@@ -28,17 +28,27 @@ export interface BetWithDetails extends Omit<Bet, 'created_at'> {
 }
 
 export class AIReasonScorer {
+  static formatSportName(sport: string): string {
+    const sportMap: Record<string, string> = {
+      basketball_nba: 'NBA',
+      american_football_nfl: 'NFL',
+      baseball_mlb: 'MLB',
+      ice_hockey_nhl: 'NHL',
+    };
+    return sportMap[sport] || sport;
+  }
+
   static scoreReasons(
     targetBet: BetWithDetails,
     userMetrics: UserMetrics,
-    authorUsername: string
+    _authorUsername: string
   ): ScoredReason[] {
     const reasons: ScoredReason[] = [];
 
     // Team-based (Score: 100)
     if (targetBet.bet_details?.team && userMetrics.topTeams.includes(targetBet.bet_details.team)) {
       reasons.push({
-        text: `${authorUsername} also bets ${targetBet.bet_details.team}`,
+        text: `Also bets on ${targetBet.bet_details.team}`,
         score: 100,
         category: 'team',
         specificity: 0.8,
@@ -60,8 +70,10 @@ export class AIReasonScorer {
     if (targetBet.created_at) {
       const betHour = new Date(targetBet.created_at).getHours();
       if (userMetrics.activeHours.includes(betHour)) {
+        const timePattern = this.getTimePattern(betHour);
+        const capitalizedPattern = timePattern.charAt(0).toUpperCase() + timePattern.slice(1);
         reasons.push({
-          text: `${this.getTimePattern(betHour)} bettor`,
+          text: `${capitalizedPattern} bettor`,
           score: 85,
           category: 'time',
           specificity: 0.6,
@@ -71,8 +83,9 @@ export class AIReasonScorer {
 
     // Sport-based (Score: 70)
     if (targetBet.game?.sport && userMetrics.favoriteSport === targetBet.game.sport) {
+      const sportName = this.formatSportName(targetBet.game.sport);
       reasons.push({
-        text: `${targetBet.game.sport} specialist`,
+        text: `${sportName} specialist`,
         score: 70,
         category: 'sport',
         specificity: 0.5,

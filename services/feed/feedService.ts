@@ -149,8 +149,26 @@ export class FeedService {
               display_name,
               avatar_url
             ),
-            bet:bets!bet_id (*),
-            settled_bet:bets!settled_bet_id (*)
+            bet:bets!bet_id (
+              *,
+              game:games!game_id (
+                id,
+                sport,
+                home_team,
+                away_team,
+                commence_time
+              )
+            ),
+            settled_bet:bets!settled_bet_id (
+              *,
+              game:games!game_id (
+                id,
+                sport,
+                home_team,
+                away_team,
+                commence_time
+              )
+            )
           `
           )
       )
@@ -322,7 +340,7 @@ export class FeedService {
             home_team,
             away_team,
             sport,
-            start_time
+            commence_time
           )
         )
       `

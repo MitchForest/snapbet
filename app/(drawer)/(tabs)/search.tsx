@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, ScrollView, StyleSheet, Text, KeyboardAvoidingView, Platform } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '@/theme';
 import { SearchBar } from '@/components/search/SearchBar';
 import { UserSearchCard } from '@/components/search/UserSearchCard';
@@ -71,6 +72,13 @@ function SearchScreenContent() {
       console.log('[SearchScreen] First hot bettor:', hotBettors[0]);
     }
   }, [hotBettors, isLoading.hot, errors.hot]);
+
+  // Refresh friend suggestions when screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      refreshFriends();
+    }, [refreshFriends])
+  );
 
   const renderSearchResults = () => {
     if (searchState === 'searching') {
