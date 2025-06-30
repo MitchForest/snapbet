@@ -16,7 +16,6 @@ export interface UserBehavioralProfile {
     spread: number;
     total: number;
     moneyline: number;
-    parlay: number;
   };
   stakePattern: 'conservative' | 'moderate' | 'aggressive' | 'variable';
   avgStakeMultiplier: number; // 0.5x to 3x of base
@@ -44,9 +43,15 @@ export function generateBehavioralProfile(personality: string | null): UserBehav
   switch (personality) {
     case 'sharp-steve':
       return {
-        favoriteSports: ['NBA', 'NFL'],
-        favoriteTeams: ['Lakers', 'Heat', 'Chiefs', '49ers', 'Celtics'],
-        betTypeDistribution: { spread: 70, total: 20, moneyline: 10, parlay: 0 },
+        favoriteSports: ['basketball_nba', 'american_football_nfl'],
+        favoriteTeams: [
+          'Los Angeles Lakers',
+          'Miami Heat',
+          'Kansas City Chiefs',
+          'San Francisco 49ers',
+          'Boston Celtics',
+        ],
+        betTypeDistribution: { spread: 70, total: 20, moneyline: 10 },
         stakePattern: 'moderate',
         avgStakeMultiplier: 0.8, // Reduced from 1.5 - sharps bet smaller
         peakHours: [19, 20, 21], // Evening analysis time
@@ -62,9 +67,14 @@ export function generateBehavioralProfile(personality: string | null): UserBehav
 
     case 'degen-dave':
       return {
-        favoriteSports: ['NBA', 'NFL', 'NHL', 'MLB'],
+        favoriteSports: [
+          'basketball_nba',
+          'american_football_nfl',
+          'ice_hockey_nhl',
+          'baseball_mlb',
+        ],
         favoriteTeams: [], // Bets everything
-        betTypeDistribution: { spread: 20, total: 20, moneyline: 10, parlay: 50 },
+        betTypeDistribution: { spread: 40, total: 40, moneyline: 20 },
         stakePattern: 'aggressive',
         avgStakeMultiplier: 2.5,
         peakHours: [22, 23, 0, 1], // Late night degen hours
@@ -80,9 +90,14 @@ export function generateBehavioralProfile(personality: string | null): UserBehav
 
     case 'square-bob':
       return {
-        favoriteSports: ['NFL', 'NBA'],
-        favoriteTeams: ['Cowboys', 'Lakers', 'Yankees', 'Patriots'], // Public teams
-        betTypeDistribution: { spread: 80, total: 15, moneyline: 5, parlay: 0 },
+        favoriteSports: ['american_football_nfl', 'basketball_nba'],
+        favoriteTeams: [
+          'Dallas Cowboys',
+          'Los Angeles Lakers',
+          'New York Yankees',
+          'New England Patriots',
+        ], // Public teams
+        betTypeDistribution: { spread: 80, total: 15, moneyline: 5 },
         stakePattern: 'conservative',
         avgStakeMultiplier: 0.8,
         peakHours: [12, 13, 14], // Lunch break betting
@@ -98,9 +113,9 @@ export function generateBehavioralProfile(personality: string | null): UserBehav
 
     case 'public-pete':
       return {
-        favoriteSports: ['NFL', 'NBA', 'MLB'],
-        favoriteTeams: ['Chiefs', 'Warriors', 'Dodgers'], // Popular winners
-        betTypeDistribution: { spread: 70, total: 20, moneyline: 10, parlay: 0 },
+        favoriteSports: ['american_football_nfl', 'basketball_nba', 'baseball_mlb'],
+        favoriteTeams: ['Kansas City Chiefs', 'Golden State Warriors', 'Los Angeles Dodgers'], // Popular winners
+        betTypeDistribution: { spread: 70, total: 20, moneyline: 10 },
         stakePattern: 'moderate',
         avgStakeMultiplier: 1.0,
         peakHours: [18, 19, 20], // Prime time
@@ -116,9 +131,9 @@ export function generateBehavioralProfile(personality: string | null): UserBehav
 
     case 'casual-carl':
       return {
-        favoriteSports: ['NFL', 'NBA'],
-        favoriteTeams: ['Bills', 'Suns', 'Knicks'], // Fun teams
-        betTypeDistribution: { spread: 50, total: 30, moneyline: 15, parlay: 5 },
+        favoriteSports: ['american_football_nfl', 'basketball_nba'],
+        favoriteTeams: ['Buffalo Bills', 'Phoenix Suns', 'New York Knicks'], // Fun teams
+        betTypeDistribution: { spread: 50, total: 30, moneyline: 20 },
         stakePattern: 'conservative',
         avgStakeMultiplier: 0.3, // Very small bets for casual players
         peakHours: [20, 21, 22], // Evening casual time
@@ -134,9 +149,9 @@ export function generateBehavioralProfile(personality: string | null): UserBehav
 
     case 'fade-frank':
       return {
-        favoriteSports: ['NBA', 'NFL', 'MLB'],
+        favoriteSports: ['basketball_nba', 'american_football_nfl', 'baseball_mlb'],
         favoriteTeams: [], // No loyalty, just fades
-        betTypeDistribution: { spread: 60, total: 30, moneyline: 10, parlay: 0 },
+        betTypeDistribution: { spread: 60, total: 30, moneyline: 10 },
         stakePattern: 'moderate',
         avgStakeMultiplier: 1.2,
         peakHours: [16, 17, 18], // Analyzes before primetime
@@ -153,9 +168,9 @@ export function generateBehavioralProfile(personality: string | null): UserBehav
     default:
       // Default profile for users without specific personality
       return {
-        favoriteSports: ['NFL', 'NBA'],
-        favoriteTeams: ['Chiefs', 'Lakers', 'Warriors'],
-        betTypeDistribution: { spread: 60, total: 25, moneyline: 10, parlay: 5 },
+        favoriteSports: ['american_football_nfl', 'basketball_nba'],
+        favoriteTeams: ['Kansas City Chiefs', 'Los Angeles Lakers', 'Golden State Warriors'],
+        betTypeDistribution: { spread: 60, total: 25, moneyline: 15 },
         stakePattern: 'moderate',
         avgStakeMultiplier: 1.0,
         peakHours: [19, 20, 21],

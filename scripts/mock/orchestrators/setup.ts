@@ -66,7 +66,9 @@ async function createHistoricalContent(mockUsers: User[], games: Game[], mainUse
       createdAt.setHours(hourOffset);
 
       // Filter games by user's favorite sports
-      const relevantGames = games.filter((g) => profile.favoriteSports.includes(g.sport || 'NFL'));
+      const relevantGames = games.filter((g) =>
+        profile.favoriteSports.includes(g.sport || 'american_football_nfl')
+      );
 
       // Prefer games with favorite teams
       const favoriteTeamGames = relevantGames.filter(
@@ -90,7 +92,8 @@ async function createHistoricalContent(mockUsers: User[], games: Game[], mainUse
       // Calculate stake based on profile pattern
       const baseStake = 2000; // $20
       const variance = 0.8 + Math.random() * 0.4; // 80% to 120% variance
-      const stake = Math.round(baseStake * profile.avgStakeMultiplier * variance);
+      const rawStake = Math.round(baseStake * profile.avgStakeMultiplier * variance);
+      const stake = Math.max(500, rawStake); // Ensure minimum $5 stake
 
       // Prefer betting on favorite teams
       const team = profile.favoriteTeams.includes(game.home_team)
@@ -118,9 +121,16 @@ async function createHistoricalContent(mockUsers: User[], games: Game[], mainUse
         game_id: game.id,
         bet_type: betType,
         bet_details: {
-          team,
-          line: betType === 'spread' ? (Math.random() > 0.5 ? -3.5 : 3.5) : undefined,
-          total_type: betType === 'total' ? (Math.random() > 0.5 ? 'over' : 'under') : undefined,
+          team: betType !== 'total' ? team : undefined,
+          line:
+            betType === 'spread'
+              ? Math.random() > 0.5
+                ? -3.5
+                : 3.5
+              : betType === 'total'
+                ? 215.5
+                : undefined,
+          type: betType === 'total' ? (Math.random() > 0.5 ? 'over' : 'under') : undefined,
         },
         odds: -110,
         stake,
@@ -232,7 +242,16 @@ async function createHistoricalContent(mockUsers: User[], games: Game[], mainUse
     }
   }
 
-  // Insert historical content
+  // Insert historical content - BETS FIRST to avoid foreign key errors
+  if (historicalBets.length > 0) {
+    const { error } = await supabase.from('bets').insert(historicalBets);
+    if (error) {
+      console.error('Error creating historical bets:', error);
+    } else {
+      console.log(`  ✅ Created ${historicalBets.length} historical bets with consistent patterns`);
+    }
+  }
+
   if (historicalPosts.length > 0) {
     const { error } = await supabase.from('posts').insert(historicalPosts);
     if (error) {
@@ -241,15 +260,6 @@ async function createHistoricalContent(mockUsers: User[], games: Game[], mainUse
       console.log(
         `  ✅ Created ${historicalPosts.length} historical posts with behavioral patterns`
       );
-    }
-  }
-
-  if (historicalBets.length > 0) {
-    const { error } = await supabase.from('bets').insert(historicalBets);
-    if (error) {
-      console.error('Error creating historical bets:', error);
-    } else {
-      console.log(`  ✅ Created ${historicalBets.length} historical bets with consistent patterns`);
     }
   }
 
