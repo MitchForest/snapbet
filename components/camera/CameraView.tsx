@@ -43,6 +43,7 @@ export function CameraScreen({ onCapture, onClose }: CameraScreenProps) {
     capturePhoto,
     startRecording,
     stopRecording,
+    toggleFacing,
     toggleTorch,
     capturedMedia,
     setMode,
@@ -198,9 +199,11 @@ export function CameraScreen({ onCapture, onClose }: CameraScreenProps) {
         <TouchableOpacity onPress={onClose} style={styles.headerButton}>
           <MaterialIcons name="close" size={28} color={OpacityColors.white.full} />
         </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Camera</Text>
-        </View>
+        
+        <TouchableOpacity onPress={toggleFacing} style={styles.headerButton}>
+          <MaterialIcons name="flip-camera-ios" size={28} color={OpacityColors.white.full} />
+        </TouchableOpacity>
+        
         <TouchableOpacity onPress={toggleTorch} style={styles.headerButton}>
           <MaterialIcons
             name={enableTorch ? 'flash-on' : 'flash-off'}
@@ -286,15 +289,6 @@ const styles = StyleSheet.create({
     backgroundColor: OpacityColors.overlay.light,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    color: OpacityColors.white.full,
-    fontSize: 18,
-    fontWeight: '600',
   },
   effectsOverlay: {
     ...StyleSheet.absoluteFillObject,
