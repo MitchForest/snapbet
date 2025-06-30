@@ -4,6 +4,7 @@ import { BaseJob, JobOptions, JobResult } from './types';
 import { supabase } from '../supabase-client';
 import { embeddingPipeline } from '@/services/rag/embeddingPipeline';
 import { ragService } from '@/services/rag/ragService';
+import { aiReasoningService } from '@/services/ai/aiReasoningService';
 import type { Database } from '@/types/database';
 
 type Bet = Database['public']['Tables']['bets']['Row'] & {
@@ -40,6 +41,7 @@ export class EmbeddingGenerationJob extends BaseJob {
       // Initialize the services with required credentials
       ragService.initialize(openaiApiKey);
       embeddingPipeline.initialize(supabase);
+      aiReasoningService.initialize(supabase);
 
       // 1. Process archived posts without embeddings
       const processedPosts = await this.processArchivedPosts(options);

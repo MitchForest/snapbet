@@ -36,7 +36,7 @@ type Tables = Database['public']['Tables'];
 type User = Tables['users']['Row'];
 type Game = Tables['games']['Row'];
 
-async function createHistoricalContent(mockUsers: User[], games: Game[]) {
+async function createHistoricalContent(mockUsers: User[], games: Game[], mainUserId: string) {
   console.log('\n📚 Creating rich historical content for RAG processing...');
 
   // Generate behavioral profiles for all users
@@ -49,7 +49,6 @@ async function createHistoricalContent(mockUsers: User[], games: Game[]) {
 
   const historicalPosts = [];
   const historicalBets = [];
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   // Create rich betting history (100-200 bets per user based on personality)
   for (const user of mockUsers) {
@@ -63,7 +62,7 @@ async function createHistoricalContent(mockUsers: User[], games: Game[]) {
     for (let i = 0; i < betCount; i++) {
       const dayOffset = Math.floor(i / 5); // Average 5 bets per day
       const hourOffset = profile.peakHours[i % profile.peakHours.length];
-      const createdAt = new Date(thirtyDaysAgo.getTime() + dayOffset * 24 * 60 * 60 * 1000);
+      const createdAt = new Date(Date.now() - dayOffset * 24 * 60 * 60 * 1000);
       createdAt.setHours(hourOffset);
 
       // Filter games by user's favorite sports
@@ -144,7 +143,7 @@ async function createHistoricalContent(mockUsers: User[], games: Game[]) {
 
     for (let i = 0; i < postCount; i++) {
       const dayOffset = Math.floor(i / (profile.postFrequency / 7)); // Spread across days
-      const createdAt = new Date(thirtyDaysAgo.getTime() + dayOffset * 24 * 60 * 60 * 1000);
+      const createdAt = new Date(Date.now() - dayOffset * 24 * 60 * 60 * 1000);
       createdAt.setHours(profile.peakHours[i % profile.peakHours.length]);
 
       // Determine post type
@@ -254,8 +253,8 @@ async function createHistoricalContent(mockUsers: User[], games: Game[]) {
     }
   }
 
-  // Create historical engagement patterns
-  await createHistoricalEngagement(historicalPosts, mockUsers, userProfiles);
+  // Create historical engagement patterns including main user
+  await createHistoricalEngagement(historicalPosts, mockUsers, userProfiles, mainUserId);
 }
 
 async function createHistoricalEngagement(
@@ -266,12 +265,14 @@ async function createHistoricalEngagement(
     [key: string]: unknown;
   }>,
   users: User[],
-  profiles: Map<string, UserBehavioralProfile>
+  profiles: Map<string, UserBehavioralProfile>,
+  mainUserId?: string
 ) {
   console.log('  💬 Creating historical engagement patterns...');
 
   const reactions = [];
   const pickActions = [];
+  const comments = [];
 
   for (const post of posts) {
     const postUser = users.find((u) => u.id === post.user_id);
@@ -305,6 +306,30 @@ async function createHistoricalEngagement(
       }
     }
 
+    // Add main user engagement on some posts
+    if (mainUserId && post.user_id !== mainUserId && Math.random() < 0.3) {
+      reactions.push({
+        post_id: post.id,
+        user_id: mainUserId,
+        emoji: ['🔥', '💰', '🎯', '💪'][Math.floor(Math.random() * 4)],
+      });
+
+      // Sometimes add comments too
+      if (Math.random() < 0.2) {
+        comments.push({
+          id: crypto.randomUUID(),
+          post_id: post.id,
+          user_id: mainUserId,
+          content: ['Great pick!', 'Tailing this one', 'Love the analysis', 'BOL!', "Let's ride!"][
+            Math.floor(Math.random() * 5)
+          ],
+          created_at: new Date(
+            new Date(post.created_at as string).getTime() + Math.random() * 60 * 60 * 1000
+          ).toISOString(),
+        });
+      }
+    }
+
     // Add pick actions for pick posts
     if (post.post_type === 'pick') {
       const pickUsers = engagingUsers.slice(0, 10); // Max 10 actions per pick
@@ -319,6 +344,15 @@ async function createHistoricalEngagement(
           action_type: action as 'tail' | 'fade',
         });
       }
+
+      // Main user sometimes tails/fades picks
+      if (mainUserId && post.user_id !== mainUserId && Math.random() < 0.25) {
+        pickActions.push({
+          post_id: post.id,
+          user_id: mainUserId,
+          action_type: Math.random() < 0.7 ? 'tail' : ('fade' as 'tail' | 'fade'),
+        });
+      }
     }
   }
 
@@ -331,6 +365,383 @@ async function createHistoricalEngagement(
   if (pickActions.length > 0) {
     await supabase.from('pick_actions').insert(pickActions);
     console.log(`    ✅ Created ${pickActions.length} historical pick actions`);
+  }
+
+  if (comments.length > 0) {
+    await supabase.from('comments').insert(comments);
+    console.log(`    ✅ Created ${comments.length} historical comments`);
+  }
+}
+
+async function createMainUserHistoricalContent(userId: string, games: Game[], mockUsers: User[]) {
+  console.log('\n🎯 Creating historical content for main user...');
+
+  const historicalBets = [];
+  const historicalPosts = [];
+  const historicalStories = [];
+
+  // Create 30-40 historical bets for main user
+  const betCount = 35;
+  console.log(`  Creating ${betCount} historical bets for main user...`);
+
+  for (let i = 0; i < betCount; i++) {
+    const dayOffset = Math.floor(Math.random() * 23) + 7; // 7-30 days ago
+    const createdAt = new Date(Date.now() - dayOffset * 24 * 60 * 60 * 1000);
+    createdAt.setHours(Math.floor(Math.random() * 4) + 18); // Evening hours
+
+    const game = games[Math.floor(Math.random() * games.length)];
+    const betType = ['spread', 'total', 'moneyline'][Math.floor(Math.random() * 3)] as
+      | 'spread'
+      | 'total'
+      | 'moneyline';
+    const stake = [2500, 5000, 10000, 20000][Math.floor(Math.random() * 4)]; // $25-$200
+    const isWin = Math.random() > 0.45; // 55% win rate
+
+    historicalBets.push({
+      id: crypto.randomUUID(),
+      user_id: userId,
+      game_id: game.id,
+      bet_type: betType,
+      bet_details:
+        betType === 'spread'
+          ? { team: game.home_team, line: -3.5 }
+          : betType === 'total'
+            ? { type: 'over', line: 215.5 }
+            : { team: game.away_team },
+      odds: -110,
+      stake,
+      potential_win: Math.floor(stake * 0.91),
+      actual_win: isWin ? Math.floor(stake * 1.91) : 0,
+      status: (isWin ? 'won' : 'lost') as 'won' | 'lost',
+      created_at: createdAt.toISOString(),
+      settled_at: new Date(createdAt.getTime() + 3 * 60 * 60 * 1000).toISOString(),
+    });
+  }
+
+  // Create 20-25 historical posts for main user
+  const postCount = 23;
+  console.log(`  Creating ${postCount} historical posts for main user...`);
+
+  for (let i = 0; i < postCount; i++) {
+    const dayOffset = Math.floor(Math.random() * 23) + 7; // 7-30 days ago
+    const createdAt = new Date(Date.now() - dayOffset * 24 * 60 * 60 * 1000);
+
+    const postType = Math.random() < 0.4 ? 'pick' : Math.random() < 0.7 ? 'outcome' : 'content';
+
+    if (postType === 'pick' && historicalBets.length > 0) {
+      const bet = historicalBets[Math.floor(Math.random() * historicalBets.length)];
+      historicalPosts.push({
+        id: crypto.randomUUID(),
+        user_id: userId,
+        caption: '🔥 Feeling good about this one! Lock it in 🔒',
+        created_at: createdAt.toISOString(),
+        expires_at: new Date(createdAt.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+        media_type: 'photo' as const,
+        media_url: 'https://media.giphy.com/media/3o7TKTDn976rzVgky4/giphy.gif',
+        post_type: 'pick' as const,
+        bet_id: bet.id,
+      });
+    } else if (postType === 'outcome' && historicalBets.length > 0) {
+      const settledBets = historicalBets.filter((b) => b.status === 'won' || b.status === 'lost');
+      if (settledBets.length > 0) {
+        const settledBet = settledBets[Math.floor(Math.random() * settledBets.length)];
+        const isWin = settledBet.status === 'won';
+        historicalPosts.push({
+          id: crypto.randomUUID(),
+          user_id: userId,
+          caption: isWin
+            ? '💰 Another one in the books! +$' + settledBet.actual_win / 100
+            : 'On to the next one 💪',
+          created_at: new Date(
+            new Date(settledBet.settled_at).getTime() + 30 * 60 * 1000
+          ).toISOString(),
+          expires_at: new Date(createdAt.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+          media_type: 'photo' as const,
+          media_url: isWin
+            ? 'https://media.giphy.com/media/l0MYGb1LuZ3n7dRnO/giphy.gif'
+            : 'https://media.giphy.com/media/l0HlvtIPzPdt2usKs/giphy.gif',
+          post_type: 'outcome' as const,
+          bet_id: settledBet.id,
+        });
+      }
+    } else {
+      historicalPosts.push({
+        id: crypto.randomUUID(),
+        user_id: userId,
+        caption: "Ready for another great week of action! Who's with me? 🚀",
+        created_at: createdAt.toISOString(),
+        expires_at: new Date(createdAt.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+        media_type: 'photo' as const,
+        media_url: 'https://media.giphy.com/media/3o7TKF1fSIs1R19B8k/giphy.gif',
+        post_type: 'content' as const,
+      });
+    }
+  }
+
+  // Create 15-20 historical stories for main user
+  const storyCount = 18;
+  console.log(`  Creating ${storyCount} historical stories for main user...`);
+
+  for (let i = 0; i < storyCount; i++) {
+    const dayOffset = Math.floor(Math.random() * 23) + 7; // 7-30 days ago
+    const createdAt = new Date(Date.now() - dayOffset * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000);
+
+    const categories = Object.keys(
+      MOCK_CONFIG.content.stories.mediaUrls
+    ) as (keyof typeof MOCK_CONFIG.content.stories.mediaUrls)[];
+    const category = categories[Math.floor(Math.random() * categories.length)];
+
+    historicalStories.push({
+      user_id: userId,
+      media_url:
+        MOCK_CONFIG.content.stories.mediaUrls[category][
+          Math.floor(Math.random() * MOCK_CONFIG.content.stories.mediaUrls[category].length)
+        ],
+      media_type: 'photo' as const,
+      caption: [
+        'Check this out! 🔥',
+        'Game day vibes 🏀',
+        "Let's go! 💪",
+        "Who's tailing? 👀",
+        'Lock of the day 🔒',
+      ][i % 5],
+      created_at: createdAt.toISOString(),
+      expires_at: expiresAt.toISOString(),
+    });
+  }
+
+  // Insert historical content
+  if (historicalBets.length > 0) {
+    const { error } = await supabase.from('bets').insert(historicalBets);
+    if (error) {
+      console.error('Error creating main user historical bets:', error);
+    } else {
+      console.log(`  ✅ Created ${historicalBets.length} historical bets for main user`);
+    }
+  }
+
+  if (historicalPosts.length > 0) {
+    const { error } = await supabase.from('posts').insert(historicalPosts);
+    if (error) {
+      console.error('Error creating main user historical posts:', error);
+    } else {
+      console.log(`  ✅ Created ${historicalPosts.length} historical posts for main user`);
+    }
+  }
+
+  if (historicalStories.length > 0) {
+    const { error } = await supabase.from('stories').insert(historicalStories);
+    if (error) {
+      console.error('Error creating main user historical stories:', error);
+    } else {
+      console.log(`  ✅ Created ${historicalStories.length} historical stories for main user`);
+    }
+  }
+
+  // Create engagement on main user's historical posts
+  if (historicalPosts.length > 0 && mockUsers.length > 0) {
+    console.log('  💬 Creating engagement on main user historical posts...');
+
+    const reactions = [];
+    const comments = [];
+    const pickActions = [];
+
+    for (const post of historicalPosts) {
+      // 2-5 reactions per post
+      const reactionCount = Math.floor(Math.random() * 4) + 2;
+      const reactingUsers = mockUsers.sort(() => Math.random() - 0.5).slice(0, reactionCount);
+
+      for (const user of reactingUsers) {
+        reactions.push({
+          post_id: post.id,
+          user_id: user.id,
+          emoji: ['🔥', '💰', '🎯', '💪'][Math.floor(Math.random() * 4)],
+        });
+      }
+
+      // 0-2 comments per post
+      if (Math.random() < 0.5) {
+        const commentCount = Math.floor(Math.random() * 2) + 1;
+        const commentingUsers = mockUsers.sort(() => Math.random() - 0.5).slice(0, commentCount);
+
+        for (const user of commentingUsers) {
+          comments.push({
+            id: crypto.randomUUID(),
+            post_id: post.id,
+            user_id: user.id,
+            content: ['Great pick!', 'Tailing!', 'BOL!', 'Love it!'][Math.floor(Math.random() * 4)],
+            created_at: new Date(
+              new Date(post.created_at).getTime() + Math.random() * 60 * 60 * 1000
+            ).toISOString(),
+          });
+        }
+      }
+
+      // Pick actions for pick posts
+      if (post.post_type === 'pick') {
+        const actionCount = Math.floor(Math.random() * 3) + 2;
+        const actingUsers = mockUsers.sort(() => Math.random() - 0.5).slice(0, actionCount);
+
+        for (const user of actingUsers) {
+          pickActions.push({
+            post_id: post.id,
+            user_id: user.id,
+            action_type: Math.random() < 0.8 ? 'tail' : ('fade' as 'tail' | 'fade'),
+          });
+        }
+      }
+    }
+
+    // Insert engagement
+    if (reactions.length > 0) {
+      await supabase.from('reactions').insert(reactions);
+      console.log(`    ✅ Created ${reactions.length} reactions`);
+    }
+
+    if (comments.length > 0) {
+      await supabase.from('comments').insert(comments);
+      console.log(`    ✅ Created ${comments.length} comments`);
+    }
+
+    if (pickActions.length > 0) {
+      await supabase.from('pick_actions').insert(pickActions);
+      console.log(`    ✅ Created ${pickActions.length} pick actions`);
+    }
+  }
+
+  return { bets: historicalBets, posts: historicalPosts };
+}
+
+async function createHistoricalStories(users: User[], mainUserId: string) {
+  console.log('\n📸 Creating historical stories...');
+
+  const historicalStories = [];
+
+  // Include main user in the users array for story creation
+  const allUsers = [{ id: mainUserId, username: 'MainUser' } as User, ...users];
+
+  // Create 5-10 historical stories per user
+  for (const user of allUsers) {
+    const storyCount = Math.floor(Math.random() * 6) + 5; // 5-10 stories
+
+    for (let i = 0; i < storyCount; i++) {
+      const dayOffset = Math.floor(Math.random() * 25) + 2; // 2-27 days ago
+      const createdAt = new Date(Date.now() - dayOffset * 24 * 60 * 60 * 1000);
+      const expiresAt = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000);
+
+      const categories = Object.keys(
+        MOCK_CONFIG.content.stories.mediaUrls
+      ) as (keyof typeof MOCK_CONFIG.content.stories.mediaUrls)[];
+      const category = categories[Math.floor(Math.random() * categories.length)];
+
+      historicalStories.push({
+        user_id: user.id,
+        media_url:
+          MOCK_CONFIG.content.stories.mediaUrls[category][
+            Math.floor(Math.random() * MOCK_CONFIG.content.stories.mediaUrls[category].length)
+          ],
+        media_type: 'photo' as const,
+        caption: [
+          'Check this out! 🔥',
+          'Game day vibes 🏀',
+          "Let's go! 💪",
+          "Who's tailing? 👀",
+          'Lock of the day 🔒',
+        ][i % 5],
+        created_at: createdAt.toISOString(),
+        expires_at: expiresAt.toISOString(),
+      });
+    }
+  }
+
+  if (historicalStories.length > 0) {
+    const { error } = await supabase.from('stories').insert(historicalStories);
+    if (error) {
+      console.error('Error creating historical stories:', error);
+    } else {
+      console.log(
+        `  ✅ Created ${historicalStories.length} historical stories for ${allUsers.length} users (including main user)`
+      );
+    }
+  }
+}
+
+async function createHistoricalMessages(userId: string, mockUsers: User[]) {
+  console.log('\n💬 Creating historical messages...');
+
+  const messages = [];
+  const chats = [];
+
+  // Create 3-5 historical chats
+  const chatCount = Math.floor(Math.random() * 3) + 3;
+  const chatUsers = mockUsers.sort(() => Math.random() - 0.5).slice(0, chatCount);
+
+  for (const chatUser of chatUsers) {
+    const chatId = crypto.randomUUID();
+    const dayOffset = Math.floor(Math.random() * 20) + 10; // 10-30 days ago
+    const createdAt = new Date(Date.now() - dayOffset * 24 * 60 * 60 * 1000);
+
+    chats.push({
+      id: chatId,
+      chat_type: 'dm' as const,
+      created_at: createdAt.toISOString(),
+      created_by: userId,
+    });
+
+    // Create 20-30 messages per chat
+    const messageCount = Math.floor(Math.random() * 11) + 20;
+
+    for (let i = 0; i < messageCount; i++) {
+      const isFromMainUser = Math.random() > 0.5;
+      const messageCreatedAt = new Date(createdAt.getTime() + i * 60 * 60 * 1000); // Spread over hours
+
+      messages.push({
+        id: crypto.randomUUID(),
+        chat_id: chatId,
+        sender_id: isFromMainUser ? userId : chatUser.id,
+        content: isFromMainUser
+          ? [
+              'What do you think about the game tonight?',
+              "I'm leaning towards the over",
+              'Good call on that last pick!',
+              'You seeing any value today?',
+            ][i % 4]
+          : [
+              'I like the home team to cover',
+              'That line seems too high',
+              'Thanks! Got lucky on that one',
+              'Check out the Lakers game',
+            ][i % 4],
+        created_at: messageCreatedAt.toISOString(),
+      });
+    }
+  }
+
+  if (chats.length > 0) {
+    const { error: chatError } = await supabase.from('chats').insert(chats);
+    if (chatError) {
+      console.error('Error creating historical chats:', chatError);
+    } else {
+      // Add chat members
+      const chatMembers = [];
+      for (let i = 0; i < chats.length; i++) {
+        chatMembers.push(
+          { chat_id: chats[i].id, user_id: userId },
+          { chat_id: chats[i].id, user_id: chatUsers[i].id }
+        );
+      }
+      await supabase.from('chat_members').insert(chatMembers);
+    }
+  }
+
+  if (messages.length > 0) {
+    const { error: messageError } = await supabase.from('messages').insert(messages);
+    if (messageError) {
+      console.error('Error creating historical messages:', messageError);
+    } else {
+      console.log(`  ✅ Created ${messages.length} historical messages in ${chats.length} chats`);
+    }
   }
 }
 
@@ -478,6 +889,93 @@ async function createFadeActions(
   }
 }
 
+async function createEngagementOnMainUserContent(mainUserId: string, mockUsers: User[]) {
+  console.log('\n💬 Creating engagement on main user content...');
+
+  // Get main user's posts
+  const { data: mainUserPosts } = await supabase
+    .from('posts')
+    .select('*')
+    .eq('user_id', mainUserId)
+    .eq('archived', false);
+
+  if (!mainUserPosts || mainUserPosts.length === 0) return;
+
+  const reactions = [];
+  const comments = [];
+  const pickActions = [];
+
+  for (const post of mainUserPosts) {
+    // 3-8 reactions per post
+    const reactionCount = Math.floor(Math.random() * 6) + 3;
+    const reactingUsers = mockUsers.sort(() => Math.random() - 0.5).slice(0, reactionCount);
+
+    for (const user of reactingUsers) {
+      reactions.push({
+        post_id: post.id,
+        user_id: user.id,
+        emoji: ['🔥', '💰', '🎯', '💪', '🚀', '👏'][Math.floor(Math.random() * 6)],
+      });
+    }
+
+    // 1-3 comments per post
+    const commentCount = Math.floor(Math.random() * 3) + 1;
+    const commentingUsers = mockUsers.sort(() => Math.random() - 0.5).slice(0, commentCount);
+
+    for (const user of commentingUsers) {
+      comments.push({
+        id: crypto.randomUUID(),
+        post_id: post.id,
+        user_id: user.id,
+        content: [
+          'Great analysis!',
+          'Tailing this!',
+          'Love this pick',
+          "Let's ride together!",
+          'BOL!',
+          "I'm on this too",
+          'Solid reasoning',
+        ][Math.floor(Math.random() * 7)],
+        created_at: new Date(
+          post.created_at
+            ? new Date(post.created_at).getTime() + Math.random() * 2 * 60 * 60 * 1000
+            : Date.now()
+        ).toISOString(),
+      });
+    }
+
+    // Pick actions if it's a pick post
+    if (post.post_type === 'pick') {
+      const actionCount = Math.floor(Math.random() * 5) + 3;
+      const actingUsers = mockUsers.sort(() => Math.random() - 0.5).slice(0, actionCount);
+
+      for (const user of actingUsers) {
+        pickActions.push({
+          post_id: post.id,
+          user_id: user.id,
+          action_type: Math.random() < 0.8 ? 'tail' : ('fade' as 'tail' | 'fade'),
+        });
+      }
+    }
+  }
+
+  // Insert engagement
+  if (reactions.length > 0) {
+    await supabase.from('reactions').insert(reactions);
+    console.log(`  ✅ Created ${reactions.length} reactions on main user posts`);
+  }
+
+  if (comments.length > 0) {
+    await supabase.from('comments').insert(comments);
+    console.log(`  ✅ Created ${comments.length} comments on main user posts`);
+  }
+
+  if (pickActions.length > 0) {
+    await supabase.from('pick_actions').insert(pickActions);
+    console.log(`  ✅ Created ${pickActions.length} pick actions on main user picks`);
+  }
+}
+
 export async function setupMockData(userId: string) {
   console.log('🚀 Starting unified mock data setup...\n');
 
@@ -524,53 +1022,16 @@ export async function setupMockData(userId: string) {
     }
 
     // 3. Phase 1: Create historical content for RAG processing
-    await createHistoricalContent(mockUsers, games);
+    await createHistoricalContent(mockUsers, games, userId);
 
-    // 3a. IMPORTANT: Create some betting activity for the main user BEFORE production jobs
-    console.log('\n🎯 Creating betting activity for main user...');
-    const mainUserBets = [];
+    // 3a. Create historical content for main user
+    await createMainUserHistoricalContent(userId, games, mockUsers);
 
-    // Create 10-15 bets for the main user with a mix of wins/losses
-    for (let i = 0; i < 12; i++) {
-      const game = games[i % games.length];
-      const isWin = Math.random() > 0.4; // 60% win rate
-      const betType = ['spread', 'total', 'moneyline'][Math.floor(Math.random() * 3)] as
-        | 'spread'
-        | 'total'
-        | 'moneyline';
-      const stake = [25, 50, 100, 200][Math.floor(Math.random() * 4)];
+    // 3b. Create historical stories for all users
+    await createHistoricalStories(mockUsers, userId);
 
-      const bet = {
-        id: crypto.randomUUID(),
-        user_id: userId,
-        game_id: game.id,
-        bet_type: betType,
-        bet_details:
-          betType === 'spread'
-            ? { team: game.home_team, line: -3.5 }
-            : betType === 'total'
-              ? { type: 'over', line: 215.5 }
-              : { team: game.away_team },
-        odds: -110,
-        stake: stake * 100, // Convert to cents
-        potential_win: Math.floor((stake * 100) / 1.1),
-        actual_win: isWin ? Math.floor((stake * 100) / 1.1) * 2 : 0,
-        status: (isWin ? 'won' : 'lost') as 'won' | 'lost',
-        created_at: new Date(Date.now() - (i + 1) * 2 * 60 * 60 * 1000).toISOString(),
-        settled_at: new Date(Date.now() - i * 2 * 60 * 60 * 1000).toISOString(),
-      };
-
-      mainUserBets.push(bet);
-    }
-
-    if (mainUserBets.length > 0) {
-      const { error } = await supabase.from('bets').insert(mainUserBets);
-      if (error) {
-        console.error('Error creating main user bets:', error);
-      } else {
-        console.log(`  ✅ Created ${mainUserBets.length} bets for main user`);
-      }
-    }
+    // 3c. Create historical messages
+    await createHistoricalMessages(userId, mockUsers);
 
     // 4. Run production jobs to archive and embed historical content
     await runProductionJobs();
@@ -582,7 +1043,8 @@ export async function setupMockData(userId: string) {
     await createFollowRelationships(userId, mockUsers);
 
     // 7. Create stories
-    await createStoriesForMockUsers(mockUsers);
+    const allUsersForStories = [{ id: userId, username: 'MainUser' } as User, ...mockUsers];
+    await createStoriesForMockUsers(allUsersForStories);
 
     // 8. Create badge-worthy betting patterns
     const badgeBets = await createBetsForBadges(mockUsers, games);
@@ -678,6 +1140,9 @@ export async function setupMockData(userId: string) {
       await createTrendingPicks(posts, mockUsers);
       await createFadeActions(userId, mockUsers, posts);
     }
+
+    // 15a. Create engagement on main user's fresh content
+    await createEngagementOnMainUserContent(userId, mockUsers);
 
     // 16. Create messaging
     await createMessaging(userId, mockUsers);
@@ -838,28 +1303,36 @@ export async function setupMockData(userId: string) {
       const { execSync } = await import('child_process');
 
       // First, ensure the main user's bankroll is updated
-      const wins = mainUserBets.filter((b) => b.status === 'won').length;
-      const losses = mainUserBets.filter((b) => b.status === 'lost').length;
-      const profit = mainUserBets.reduce((sum, bet) => {
-        if (bet.status === 'won') {
-          return sum + (bet.actual_win - bet.stake);
-        } else {
-          return sum - bet.stake;
-        }
-      }, 0);
+      const { data: mainUserBets } = await supabase
+        .from('bets')
+        .select('status, stake, actual_win')
+        .eq('user_id', userId)
+        .in('status', ['won', 'lost']);
 
-      await supabase
-        .from('bankrolls')
-        .update({
-          win_count: wins,
-          loss_count: losses,
-          balance: 100000 + profit,
-          total_wagered: mainUserBets.reduce((sum, bet) => sum + bet.stake, 0),
-          total_won: profit > 0 ? profit : 0,
-        })
-        .eq('user_id', userId);
+      if (mainUserBets && mainUserBets.length > 0) {
+        const wins = mainUserBets.filter((b) => b.status === 'won').length;
+        const losses = mainUserBets.filter((b) => b.status === 'lost').length;
+        const profit = mainUserBets.reduce((sum, bet) => {
+          if (bet.status === 'won') {
+            return sum + ((bet.actual_win || 0) - bet.stake);
+          } else {
+            return sum - bet.stake;
+          }
+        }, 0);
 
-      console.log(`  ✅ Updated main user bankroll: ${wins}W-${losses}L`);
+        await supabase
+          .from('bankrolls')
+          .update({
+            win_count: wins,
+            loss_count: losses,
+            balance: 100000 + profit,
+            total_wagered: mainUserBets.reduce((sum, bet) => sum + bet.stake, 0),
+            total_won: profit > 0 ? profit : 0,
+          })
+          .eq('user_id', userId);
+
+        console.log(`  ✅ Updated main user bankroll: ${wins}W-${losses}L`);
+      }
 
       // Run embedding generation with higher limit to ensure all users are processed
       execSync('bun run scripts/jobs/embedding-generation.ts --limit=100', { stdio: 'inherit' });

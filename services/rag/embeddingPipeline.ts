@@ -1,7 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { ragService } from './ragService';
 import { EmbeddingMetadata } from './types';
-import { Database } from '@/types/database';
+import { Database, Json } from '@/types/database';
 
 type Post = Database['public']['Tables']['posts']['Row'];
 type Bet = Database['public']['Tables']['bets']['Row'];
@@ -259,6 +259,9 @@ export class EmbeddingPipeline {
       await this.trackEmbedding('user', userId, result.tokenCount, result.modelVersion);
 
       console.log(`Successfully updated profile embedding for user ${userData.username}`);
+
+      // Store computed metrics for reuse
+      await this.storeUserMetrics(userId, behavioralProfile);
     } catch (error) {
       console.error(`Failed to update user profile ${userId}:`, error);
     }
@@ -500,6 +503,124 @@ export class EmbeddingPipeline {
     } catch (error) {
       console.error('Error tracking embedding:', error);
     }
+  }
+
+  private async storeUserMetrics(userId: string, behavioralProfile: string): Promise<void> {
+    try {
+      const supabaseAdmin = this.getClient();
+
+      // Parse metrics from behavioral profile
+      const metrics = this.parseBehavioralProfile(behavioralProfile);
+
+      // Store in user_behavioral_metrics table
+      const { error } = await supabaseAdmin.from('user_behavioral_metrics').upsert({
+        user_id: userId,
+        top_teams: metrics.topTeams,
+        avg_stake: metrics.avgStake,
+        active_hours: metrics.activeHours,
+        favorite_sport: metrics.favoriteSport,
+        dominant_bet_type: metrics.dominantBetType,
+        stake_style: metrics.stakeStyle,
+        win_rate: metrics.winRate,
+        total_bets: metrics.totalBets,
+        betting_patterns: metrics.bettingPatterns,
+        last_updated: new Date().toISOString(),
+      });
+
+      if (error) {
+        console.error('Failed to store user metrics:', error);
+      } else {
+        console.log(`Stored behavioral metrics for user ${userId}`);
+      }
+    } catch (error) {
+      console.error('Error storing user metrics:', error);
+    }
+  }
+
+  private parseBehavioralProfile(profile: string): {
+    topTeams: string[];
+    avgStake: number;
+    activeHours: number[];
+    favoriteSport: string | null;
+    dominantBetType: string | null;
+    stakeStyle: string | null;
+    winRate: number | null;
+    totalBets: number;
+    bettingPatterns: Json;
+  } {
+    // Parse the behavioral profile text to extract metrics
+    const metrics = {
+      topTeams: [] as string[],
+      avgStake: 0,
+      activeHours: [] as number[],
+      favoriteSport: null as string | null,
+      dominantBetType: null as string | null,
+      stakeStyle: null as string | null,
+      winRate: null as number | null,
+      totalBets: 0,
+      bettingPatterns: {} as Json,
+    };
+
+    // Extract teams
+    const teamsMatch = profile.match(/Frequently bets on: ([^\n]+)/);
+    if (teamsMatch) {
+      metrics.topTeams = teamsMatch[1].split(', ').filter((t) => t.trim());
+    }
+
+    // Extract average stake
+    const stakeMatch = profile.match(/Average stake: \$(\d+)/);
+    if (stakeMatch) {
+      metrics.avgStake = parseInt(stakeMatch[1]) * 100; // Convert to cents
+    }
+
+    // Extract dominant bet type
+    const betTypeMatch = profile.match(/Prefers (\w+) bets/);
+    if (betTypeMatch) {
+      metrics.dominantBetType = betTypeMatch[1];
+    }
+
+    // Extract betting style
+    const styleMatch = profile.match(/Betting style: ([^\n]+)/);
+    if (styleMatch) {
+      metrics.stakeStyle = styleMatch[1].trim();
+    }
+
+    // Extract win rate
+    const winRateMatch = profile.match(/Win rate: (\d+)%/);
+    if (winRateMatch) {
+      metrics.winRate = parseInt(winRateMatch[1]) / 100;
+    }
+
+    // Extract total bets
+    const totalBetsMatch = profile.match(/Total bets: (\d+)/);
+    if (totalBetsMatch) {
+      metrics.totalBets = parseInt(totalBetsMatch[1]);
+    }
+
+    // Extract sports
+    const sportsMatch = profile.match(/Sports: ([^\n]+)/);
+    if (sportsMatch) {
+      const sports = sportsMatch[1].split(', ').filter((s) => s.trim());
+      metrics.favoriteSport = sports[0] || null;
+    }
+
+    // Extract active hours (simplified - would need temporal patterns)
+    const timeMatch = profile.match(/Active during ([^\n]+)/);
+    if (timeMatch) {
+      const timeSlots = timeMatch[1];
+      // Map time slots to hours (simplified)
+      if (timeSlots.includes('primetime')) {
+        metrics.activeHours = [18, 19, 20, 21];
+      } else if (timeSlots.includes('late night')) {
+        metrics.activeHours = [22, 23, 0, 1, 2];
+      } else if (timeSlots.includes('afternoon')) {
+        metrics.activeHours = [12, 13, 14, 15, 16, 17];
+      } else {
+        metrics.activeHours = [9, 10, 11];
+      }
+    }
+
+    return metrics;
   }
 }
 

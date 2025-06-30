@@ -1338,6 +1338,59 @@ export type Database = {
           },
         ];
       };
+      user_behavioral_metrics: {
+        Row: {
+          active_hours: number[] | null;
+          avg_stake: number | null;
+          betting_patterns: Json | null;
+          created_at: string | null;
+          dominant_bet_type: string | null;
+          favorite_sport: string | null;
+          last_updated: string | null;
+          stake_style: string | null;
+          top_teams: Json | null;
+          total_bets: number | null;
+          user_id: string;
+          win_rate: number | null;
+        };
+        Insert: {
+          active_hours?: number[] | null;
+          avg_stake?: number | null;
+          betting_patterns?: Json | null;
+          created_at?: string | null;
+          dominant_bet_type?: string | null;
+          favorite_sport?: string | null;
+          last_updated?: string | null;
+          stake_style?: string | null;
+          top_teams?: Json | null;
+          total_bets?: number | null;
+          user_id: string;
+          win_rate?: number | null;
+        };
+        Update: {
+          active_hours?: number[] | null;
+          avg_stake?: number | null;
+          betting_patterns?: Json | null;
+          created_at?: string | null;
+          dominant_bet_type?: string | null;
+          favorite_sport?: string | null;
+          last_updated?: string | null;
+          stake_style?: string | null;
+          top_teams?: Json | null;
+          total_bets?: number | null;
+          user_id?: string;
+          win_rate?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'user_behavioral_metrics_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: true;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       user_stats_display: {
         Row: {
           created_at: string | null;

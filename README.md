@@ -41,6 +41,8 @@ X_BEARER_TOKEN=your_twitter_bearer_token
 
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+EXPO_PUBLIC_OPENAI_API_KEY=your_openai_api_key
 EOF
 
 # 6. Run the app
@@ -61,22 +63,6 @@ bun run mock:setup --username=YOUR_USERNAME
 # - Group chats with conversations
 # - Trending picks and hot bettors
 # - Your personalized feed
-```
-
-### Troubleshooting
-
-```bash
-# Clear Metro cache
-bun expo start -c
-
-# iOS build issues
-cd ios && rm -rf Pods Podfile.lock && pod install && cd ..
-
-# TypeScript errors
-bun run typecheck
-
-# Linting issues
-bun run lint
 ```
 
 ## Development
@@ -101,40 +87,6 @@ snapbet/
 ├── types/        # TypeScript definitions
 └── supabase/     # Database migrations
 ```
-
-### Available Scripts
-
-```bash
-# Development
-bun start               # Start Expo dev server
-bun run ios            # Run on iOS simulator
-bun run android        # Run on Android emulator
-
-# Code Quality
-bun run lint           # Run ESLint
-bun run typecheck      # Check TypeScript
-
-# Mock Data
-bun run mock:setup     # Create demo environment
-bun run mock:progress  # Simulate activity
-bun run mock:cleanup   # Remove all mock data
-
-# Database
-bun run db:add-games   # Add real games from API
-bun run db:settle      # Settle completed games
-```
-
-### Database Setup
-
-If using a real Supabase instance:
-
-1. Create a project at [supabase.com](https://supabase.com)
-2. Run migrations from `supabase/migrations/` in order
-3. Update `.env` with your project credentials
-
-For local testing, you can use dummy environment values.
-
----
 
 ## What is SnapBet?
 
@@ -215,61 +167,115 @@ SnapBet Solutions:
 **"I know my tribe is out there - people who bet like me, love the same teams, take similar risks - but I can't find them."**
 
 SnapBet AI Solutions:
-- **Pattern Analysis**: Identifies your betting style, team preferences, risk profile
+- **Behavioral Embeddings**: Converts your betting patterns into a 1536-dimensional vector capturing your unique style
 - **Smart Recommendations**: "Follow @sarah - 68% on Cowboys unders like you"
-- **Compatibility Scoring**: Matches based on risk profiles, teams, timing
+- **Similarity Scoring**: Uses cosine similarity to find users with compatible betting DNA
+- **Context-Aware Reasons**: Different explanations for discovery vs notifications
+  - Discovery: "Bets Lakers & Warriors" 
+  - Feed: "Lakers pick from a sharp bettor"
 - **Dynamic Updates**: Recommendations evolve as your style changes
 
 ### 6. The Notification Chaos Problem (AI-Enhanced)
 **"I'm either missing great picks from people I trust or getting spammed with notifications I don't care about."**
 
 SnapBet AI Solutions:
-- **Pattern Recognition**: Learns whose picks you actually tail
-- **Smart Prioritization**: "3 of your most tailed users bet the same game"
+- **Behavioral Analysis**: Tracks who you tail, when you bet, what sports you follow
+- **Smart Notifications**: Two intelligent alert types:
+  - Similar User Bets: "sharp-steve just placed $100 on Lakers -3.5" (Reason: "Lakers bettor like you")
+  - Consensus Patterns: "5 sharp bettors are on Celtics -7" (Reason: "Popular with Celtics fans")
 - **Contextual Filtering**: Quiet during losing streaks, active during your betting windows
 - **Intelligent Grouping**: "5 people tailed your pick" (not 5 separate alerts)
 
-## The Mock Ecosystem
+## AI & RAG Implementation
 
-Our sophisticated mock system creates a living, breathing betting community:
+### Overview
 
-### Mock User Personalities
-- **Sharp Bettors** (4): Data-driven, analytical, post early morning
-- **Degens** (5): High-energy, emotional, active late night
-- **Fade Material** (4): Overconfident, often wrong, make bad parlays
-- **Contrarians** (3): Fade public sentiment, look for value
-- **Homers** (3): Bet on favorite teams, biased but passionate
+SnapBet uses AI-powered recommendations to help users discover their betting tribe and stay informed about relevant activity. Our system analyzes betting patterns, social interactions, and content preferences to deliver personalized experiences across three key features:
 
-### Explore Page Sections
-- **🔥 Hot Bettors**: Users with 70%+ win rate in last 7 days
-- **📈 Trending Picks**: Posts with 15-25 tails in last 24 hours
-- **🎪 Fade Gods**: Users with poor records that others successfully fade
-- **⭐ Rising Stars**: New users with 75%+ win rate
+1. **AI Feed (30% Discovery)** - Mixes following content with AI-recommended posts from similar users
+2. **Find Your Tribe** - User discovery based on betting style compatibility
+3. **Smart Notifications** - Intelligent alerts about relevant betting activity
 
-## Why SnapBet is the Inevitable Solution
+### How It Works: Embeddings & Similarity
 
-We're building the anti-LinkedIn for sports betting. SnapBet is the first platform that understands:
+#### User Behavioral Embeddings
+Each user has a behavioral profile that captures their betting personality:
 
-1. **Betting content should expire like the games themselves**
-2. **Your Wednesday night degen parlay shouldn't define your Friday job interview**
-3. **The social experience is the product, not a feature**
-4. **Gen Z wants to be legendary for 24 hours, not archived forever**
+```typescript
+const behavioralProfile = `
+  ${username} betting behavior:
+  - Frequently bets on: ${topTeams.join(', ')}
+  - Prefers ${dominantBetType} bets (${percentage}%)
+  - Active during ${activeTimeSlots}
+  - Average stake: $${avgStake}
+  - Betting style: ${bettingStyle}
+  - Win rate: ${winRate}%
+`;
+```
 
-### Our Three Core Innovations
+This profile is converted to a 1536-dimensional vector using OpenAI's `text-embedding-3-small` model.
 
-1. **Ephemeral by Design** - Pick posts expire at game time, bad beats disappear, fresh starts weekly
-2. **Social Mechanics That Mirror Real Betting Culture** - Tail/fade with one tap, group chats like you're at the bar
-3. **Built for the 95% (Not the Sharps)** - For people who bet socially, not professionally
+#### Cosine Similarity Search
+We use pgvector to find users with similar betting patterns:
 
-## Our Vision
+```sql
+SELECT 
+  u.id,
+  u.username,
+  1 - (u.profile_embedding <=> query_embedding) as similarity
+FROM users u
+WHERE u.id != p_user_id
+  AND u.profile_embedding IS NOT NULL
+ORDER BY u.profile_embedding <=> query_embedding
+LIMIT 20;
+```
 
-**Year 1**: The default "second screen" for social bettors  
-**Year 3**: The cultural hub where every betting meme starts  
-**Year 5**: Redefine how a generation experiences sports
+The `<=>` operator calculates cosine distance. A similarity score of 1 means identical betting patterns, while 0 means completely different.
 
-We're not building another betting app. We're building a social platform that happens to involve betting. A place where every game day is legendary, until tomorrow.
+### Behavioral Scoring System
 
----
+Our AI evaluates compatibility across multiple dimensions:
 
-*"Because sometimes the best memories are the ones that don't last forever."*
+1. **Team Affinity** (Highest weight): Shared team preferences
+2. **Stake Style**: Micro ($1-10), Conservative ($10-50), Moderate ($50-100), Confident ($100-500), Aggressive ($500+)
+3. **Time Patterns**: Morning sharps vs late-night degens
+4. **Sport Preference**: NBA specialist, NFL only, multi-sport
+5. **Bet Type**: Spread specialist, totals expert, moneyline player
+6. **Performance**: Similar win rates attract
 
+### AI Features in Action
+
+#### 1. AI Feed Discovery
+The feed intelligently mixes content:
+- 70% from users you follow
+- 30% AI-discovered posts from similar bettors
+- Each discovered post includes a reason: "From a Lakers bettor", "Conservative stake like you"
+
+#### 2. Find Your Tribe Suggestions
+Recommends users with specific compatibility reasons:
+- "Bets Lakers & Warriors" - Team alignment
+- "Conservative bettor ($25 avg)" - Similar stake style
+- "Spread specialist" - Matching bet types
+- "Crushing at 68%" - Performance similarity
+
+#### 3. Smart Notifications
+Two types of intelligent alerts:
+- **Similar User Activity**: When behaviorally similar users place interesting bets
+- **Consensus Detection**: When multiple users in your cohort bet the same way
+
+### Technical Architecture
+
+```
+AI Reasoning Service (Centralized Logic)
+    ├── Feed Service (30% discovery content)
+    ├── Friend Discovery (Find your tribe)
+    └── Smart Notifications (Relevant alerts)
+         │
+         └── All powered by:
+             - OpenAI Embeddings (text-embedding-3-small)
+             - pgvector (Cosine similarity search)
+             - Behavioral metrics (Pre-computed)
+             - Context-aware reasoning
+```
+
+The AI system enhances SnapBet's core mission: helping Tyler find his people and share the emotional journey of betting, without the permanent record.

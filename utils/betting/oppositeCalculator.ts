@@ -128,12 +128,13 @@ export function formatBetDetails(bet: Bet, game?: Game): string {
     case 'spread':
       return `${details.team as string} ${(details.line as number) > 0 ? '+' : ''}${details.line}`;
 
-    case 'total':
+    case 'total': {
       const totalLine = `${details.total_type as string} ${details.line}`;
       if (game) {
         return `${game.home_team} vs ${game.away_team} ${totalLine}`;
       }
       return totalLine;
+    }
 
     case 'moneyline':
       return details.team as string;

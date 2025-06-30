@@ -17,7 +17,7 @@ export async function createStoriesForMockUsers(mockUsers: User[]) {
   const stories = [];
   const storyUsers = mockUsers
     .sort(() => Math.random() - 0.5)
-    .slice(0, MOCK_CONFIG.content.stories.count);
+    .slice(0, Math.min(mockUsers.length, 30)); // Use more users for stories
 
   // Use all available categories for better variety
   const allCategories = Object.keys(
@@ -26,21 +26,29 @@ export async function createStoriesForMockUsers(mockUsers: User[]) {
 
   for (let i = 0; i < storyUsers.length; i++) {
     const user = storyUsers[i];
-    // Create 1-3 stories per user
-    const storyCount = Math.floor(Math.random() * 3) + 1;
+    // Create 7-10 stories per user for better visibility
+    const storyCount = Math.floor(Math.random() * 4) + 7;
 
     for (let j = 0; j < storyCount; j++) {
       const mediaCategory = allCategories[(i + j) % allCategories.length];
+      const hoursAgo = j * 2 + Math.random() * 4; // Spread stories over time
 
       stories.push({
         user_id: user.id,
         media_url: getRandomMediaUrl(mediaCategory),
         media_type: 'photo' as const,
-        caption: j === 0 ? 'Check this out! 🔥' : j === 1 ? 'Game day vibes 🏀' : "Let's go! 💪",
-        created_at: new Date(
-          Date.now() - (j * 2 + Math.random() * 4) * 60 * 60 * 1000
-        ).toISOString(),
-        expires_at: new Date(Date.now() + (20 - j * 2) * 60 * 60 * 1000).toISOString(),
+        caption: [
+          'Check this out! 🔥',
+          'Game day vibes 🏀',
+          "Let's go! 💪",
+          'Who else is on this? 👀',
+          'Locked in 🔒',
+          'Feeling good about tonight 🎯',
+          'Time to eat! 💰',
+          'Ready to ride 🚀',
+        ][j % 8],
+        created_at: new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString(),
+        expires_at: new Date(Date.now() + (24 - hoursAgo) * 60 * 60 * 1000).toISOString(),
       });
     }
   }

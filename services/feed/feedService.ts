@@ -6,7 +6,8 @@ import { Storage, StorageKeys, CacheUtils } from '@/services/storage/storageServ
 import { withActiveContent } from '@/utils/database/archiveFilter';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database, Json } from '@/types/database';
-import { AIReasonScorer, BetWithDetails } from '@/utils/ai/reasonScoring';
+import { BetWithDetails } from '@/utils/ai/reasonScoring';
+import { aiReasoningService, AIReasonContext } from '@/services/ai/aiReasoningService';
 
 // Types
 export interface FeedCursor {
@@ -452,28 +453,21 @@ export class FeedService {
     try {
       console.log('[feedService] getDiscoveredPosts called, limit:', limit);
 
-      // Get user's behavioral embedding
-      const { data: userProfile } = await this.getClient()
-        .from('users')
-        .select('profile_embedding')
-        .eq('id', userId)
-        .single();
+      // Initialize AI service
+      aiReasoningService.initialize(this.getClient());
 
-      if (!userProfile?.profile_embedding) {
-        console.log('[feedService] No embedding for user');
-        return [];
-      }
+      // Get similar users with AI-generated reasons
+      const context: AIReasonContext = {
+        fromUserId: userId,
+        toUserId: userId,
+        contextType: 'feed',
+      };
 
-      // Find behaviorally similar users first
-      const { data: similarUsers } = await this.getClient().rpc('find_similar_users', {
-        query_embedding: userProfile.profile_embedding,
-        p_user_id: userId,
-        limit_count: 20,
-      });
+      const similarUsers = await aiReasoningService.getSimilarUsersWithReasons(userId, 20, context);
 
-      console.log('[feedService] Similar users found:', similarUsers?.length);
+      console.log('[feedService] Similar users found:', similarUsers.length);
 
-      if (!similarUsers?.length) return [];
+      if (!similarUsers.length) return [];
 
       // Get recent posts from similar users (not followed)
       const { data: followedUsers } = await this.getClient()
@@ -483,8 +477,8 @@ export class FeedService {
 
       const followedIds = followedUsers?.map((f: { following_id: string }) => f.following_id) || [];
       const similarNotFollowed = similarUsers
-        .filter((u: { id: string }) => !followedIds.includes(u.id))
-        .map((u: { id: string }) => u.id);
+        .filter((su) => !followedIds.includes(su.user.id))
+        .map((su) => su.user.id);
 
       console.log('[feedService] Followed users:', followedIds.length);
       console.log('[feedService] Similar not followed:', similarNotFollowed.length);
@@ -562,50 +556,15 @@ export class FeedService {
     userId: string,
     posts: PostWithType[]
   ): Promise<Array<{ post: PostWithType; score: number; reason: string }>> {
-    // Get user's behavioral data for comparison
-    const { data: userBehavior } = await this.getClient()
-      .from('users')
-      .select(
-        `
-        bets(bet_type, bet_details, stake, created_at, status, game:games(sport)),
-        reactions(post_id, reaction_type),
-        posts(caption)
-      `
-      )
-      .eq('id', userId)
-      .single();
-
-    if (!userBehavior)
-      return posts.map((p) => ({
-        post: p,
-        score: 0.5,
-        reason: 'Suggested for you',
-      }));
-
-    // Calculate user's behavioral metrics
-    const userMetrics = AIReasonScorer.calculateUserMetrics({
-      bets: userBehavior.bets?.map((bet) => ({
-        bet_type: bet.bet_type,
-        bet_details: bet.bet_details as { team?: string } | null,
-        stake: bet.stake,
-        created_at: bet.created_at || '',
-        status: bet.status || 'pending',
-        game: bet.game,
-      })),
-    });
-
-    // Score each post with specific reasons
+    // Score each post with AI service
     const scoredPosts = await Promise.all(
       posts.map(async (post) => {
-        let baseScore = 0.5;
-        let reason = 'Suggested for you';
-
         // If no bet, return default
         if (!post.bet) {
           return {
             post,
-            score: baseScore,
-            reason,
+            score: 0.5,
+            reason: 'Suggested for you',
           };
         }
 
@@ -617,72 +576,16 @@ export class FeedService {
           user: { username: post.user?.username || 'User' },
         };
 
-        // Get reasons using shared scorer
-        const reasons = AIReasonScorer.scoreReasons(
+        // Use AI service to score the bet
+        const { score, reason } = await aiReasoningService.scoreBetForUser(
+          userId,
           betWithDetails,
-          userMetrics,
           post.user?.username || 'User'
         );
 
-        // If we have reasons, use them
-        if (reasons.length > 0) {
-          reason = AIReasonScorer.getTopReason(reasons);
-
-          // Add score boost based on top reason category
-          const topCategory = reasons[0].category;
-          if (topCategory === 'team') baseScore += 0.3;
-          else if (topCategory === 'style') baseScore += 0.2;
-          else if (topCategory === 'time') baseScore += 0.1;
-          else if (topCategory === 'sport') baseScore += 0.1;
-          else if (topCategory === 'bet_type') baseScore += 0.1;
-        } else {
-          // Generate varied fallback reasons when no specific matches
-          const betStyle = AIReasonScorer.categorizeStakeStyle(post.bet.stake);
-          const betHour = post.created_at ? new Date(post.created_at).getHours() : null;
-          const timePattern = betHour !== null ? AIReasonScorer.getTimePattern(betHour) : null;
-          
-          // Create a pool of possible reasons
-          const fallbackReasons: string[] = [];
-          
-          if (betStyle !== 'varied') {
-            fallbackReasons.push(`${betStyle} bettor like you`);
-          }
-          
-          if (post.bet.game?.sport) {
-            fallbackReasons.push(`${post.bet.game.sport} specialist`);
-          }
-          
-          if (post.bet.bet_type) {
-            const betTypeMap: Record<string, string> = {
-              'spread': 'Spread betting fan',
-              'total': 'Totals expert',
-              'moneyline': 'Moneyline player'
-            };
-            fallbackReasons.push(betTypeMap[post.bet.bet_type] || `Likes ${post.bet.bet_type} bets`);
-          }
-          
-          if (timePattern) {
-            fallbackReasons.push(`${timePattern} bettor`);
-          }
-          
-          // Add some variety based on post characteristics
-          if (post.bet.stake > 10000) {
-            fallbackReasons.push('High stakes player');
-          }
-          
-          if (post.tail_count && post.tail_count > 5) {
-            fallbackReasons.push('Popular picks');
-          }
-          
-          // Pick a random reason from available ones
-          if (fallbackReasons.length > 0) {
-            reason = fallbackReasons[Math.floor(Math.random() * fallbackReasons.length)];
-          }
-        }
-
         return {
           post,
-          score: baseScore,
+          score,
           reason,
         };
       })
