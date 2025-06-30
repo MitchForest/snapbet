@@ -250,8 +250,8 @@ export class EmbeddingGenerationJob extends BaseJob {
 
     // In setup mode, process ALL users regardless of last update
     if (options.setupMode) {
-      // Get all users that need embeddings
-      query = query.or('profile_embedding.is.null,profile_embedding.neq.null');
+      // Get all users that need embeddings - no need for .or() filter
+      // Just get all users, the limit will control how many we process
     } else {
       // Normal mode: only users with missing or stale embeddings
       query = query.or(

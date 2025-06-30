@@ -5,9 +5,9 @@
 
 export const MOCK_CONFIG = {
   users: {
-    count: 50, // Increased from 30 to have more variety
-    followsFromMocks: 15,
-    userFollowsMocks: 10, // Reduced from 25 to leave more unfollowed users
+    count: 25, // Reduced from 50
+    followsFromMocks: 8, // Reduced from 15
+    userFollowsMocks: 8, // ~30% of 25 users for better feed population
     personalities: {
       'sharp-steve': {
         usernamePrefix: 'sharp',
@@ -93,9 +93,9 @@ export const MOCK_CONFIG = {
     },
 
     engagement: {
-      reactionsPerPost: { min: 3, max: 15 },
-      commentsPerPost: { min: 1, max: 5 },
-      tailsPerPick: { min: 2, max: 10 },
+      reactionsPerPost: { min: 2, max: 8 }, // Reduced from 3-15
+      commentsPerPost: { min: 0, max: 3 }, // Reduced from 1-5
+      tailsPerPick: { min: 1, max: 5 }, // Reduced from 2-10
     },
   },
 

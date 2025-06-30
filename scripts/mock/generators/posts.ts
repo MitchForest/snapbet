@@ -15,9 +15,8 @@ export async function createStoriesForMockUsers(mockUsers: User[]) {
   console.log('📸 Creating stories...');
 
   const stories = [];
-  const storyUsers = mockUsers
-    .sort(() => Math.random() - 0.5)
-    .slice(0, Math.min(mockUsers.length, 10)); // Reduced from 30 to 10 users
+  // All users should create stories for a realistic feed
+  const storyUsers = mockUsers;
 
   // Use all available categories for better variety
   const allCategories = Object.keys(
@@ -220,11 +219,13 @@ export async function createPostsForMockUsers(
     }
   }
 
-  // 2. Create mock users' posts
-  const postingUsers = mockUsers.slice(0, MOCK_CONFIG.content.posts.regular);
+  // 2. Create mock users' posts - all users should create posts
+  const postingUsers = mockUsers;
 
+  // Ensure each user creates at least 1 post
   for (let i = 0; i < postingUsers.length; i++) {
     const user = postingUsers[i];
+    // First 10 users create picks, rest create regular posts
     const isPick = i < MOCK_CONFIG.content.posts.picks;
 
     if (isPick && upcomingGames.length > 0) {

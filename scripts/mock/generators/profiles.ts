@@ -178,19 +178,19 @@ export function generateBehavioralProfile(personality: string | null): UserBehav
 export function getBetCountForPersonality(personality: string | null): number {
   switch (personality) {
     case 'sharp-steve':
-      return 150; // Analytical, consistent betting
+      return 50; // Reduced from 150
     case 'degen-dave':
-      return 200; // Bets everything
+      return 50; // Reduced from 200
     case 'fade-frank':
-      return 120; // Selective fading
+      return 40; // Reduced from 120
     case 'square-bob':
-      return 80; // Weekend warrior
+      return 30; // Reduced from 80
     case 'public-pete':
-      return 100; // Regular bettor
+      return 35; // Reduced from 100
     case 'casual-carl':
-      return 50; // Light bettor
+      return 20; // Reduced from 50
     default:
-      return 75;
+      return 30; // Reduced from 75
   }
 }
 

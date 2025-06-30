@@ -136,7 +136,7 @@ async function createHistoricalContent(mockUsers: User[], games: Game[], mainUse
   // Create rich post history with consistent caption styles
   for (const user of mockUsers) {
     const profile = userProfiles.get(user.id)!;
-    const postCount = Math.floor(profile.postFrequency * 4); // 4 weeks of posts
+    const postCount = Math.floor(profile.postFrequency * 1.5); // Reduced from 4 weeks to 1.5 weeks
     const userBets = historicalBets.filter((b) => b.user_id === user.id);
 
     console.log(`  Creating ${postCount} historical posts for ${user.username}`);
@@ -446,9 +446,7 @@ async function createMainUserHistoricalContent(userId: string, games: Game[], mo
       if (settledBets.length > 0) {
         const settledBet = settledBets[Math.floor(Math.random() * settledBets.length)];
         const isWin = settledBet.status === 'won';
-        const postCreatedAt = new Date(
-          new Date(settledBet.settled_at).getTime() + 30 * 60 * 1000
-        );
+        const postCreatedAt = new Date(new Date(settledBet.settled_at).getTime() + 30 * 60 * 1000);
         historicalPosts.push({
           id: crypto.randomUUID(),
           user_id: userId,
@@ -622,9 +620,9 @@ async function createHistoricalStories(users: User[], mainUserId: string) {
   // Include main user in the users array for story creation
   const allUsers = [{ id: mainUserId, username: 'MainUser' } as User, ...users];
 
-  // Create 5-10 historical stories per user
+  // Create 2-4 historical stories per user
   for (const user of allUsers) {
-    const storyCount = Math.floor(Math.random() * 6) + 5; // 5-10 stories
+    const storyCount = Math.floor(Math.random() * 3) + 2; // 2-4 stories (reduced from 5-10)
 
     for (let i = 0; i < storyCount; i++) {
       const dayOffset = Math.floor(Math.random() * 25) + 2; // 2-27 days ago
