@@ -446,16 +446,17 @@ async function createMainUserHistoricalContent(userId: string, games: Game[], mo
       if (settledBets.length > 0) {
         const settledBet = settledBets[Math.floor(Math.random() * settledBets.length)];
         const isWin = settledBet.status === 'won';
+        const postCreatedAt = new Date(
+          new Date(settledBet.settled_at).getTime() + 30 * 60 * 1000
+        );
         historicalPosts.push({
           id: crypto.randomUUID(),
           user_id: userId,
           caption: isWin
             ? '💰 Another one in the books! +$' + settledBet.actual_win / 100
             : 'On to the next one 💪',
-          created_at: new Date(
-            new Date(settledBet.settled_at).getTime() + 30 * 60 * 1000
-          ).toISOString(),
-          expires_at: new Date(createdAt.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+          created_at: postCreatedAt.toISOString(),
+          expires_at: new Date(postCreatedAt.getTime() + 24 * 60 * 60 * 1000).toISOString(),
           media_type: 'photo' as const,
           media_url: isWin
             ? 'https://media.giphy.com/media/l0MYGb1LuZ3n7dRnO/giphy.gif'
